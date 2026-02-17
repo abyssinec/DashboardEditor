@@ -8,8 +8,8 @@ import { AssetsPanel } from "./components/AssetsPanel";
 import { ViewPanel } from "./components/ViewPanel";
 
 export default function App() {
-  const project = useStore(s => s.project);
-  const assetsOpen = useStore(s => s.assetsPanel.isOpen);
+  const project = useStore((s) => s.project);
+  const assetsOpen = useStore((s) => s.assetsPanel.isOpen);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   async function onExport() {
@@ -31,35 +31,62 @@ export default function App() {
   }
 
   function onNew() {
-    // Hard reset by reloading.
     window.location.reload();
   }
 
   return (
-    <div className="main">
-      <div className="title">DashboardEditor</div>
-      <div className="version">v0.0.1</div>
+    <div className="appRoot">
+      {/* Top */}
+      <div className="topBar">
+        <div className="brand">
+          <div className="title">DashboardEditor</div>
+          <div className="version">v0.0.1</div>
+        </div>
 
-      <div className="top-buttons">
-        <div className="top-button" onClick={onNew}>New</div>
-        <div className="top-button" onClick={onImportClick}>Import</div>
-        <div className="top-button" onClick={onExport}>Export</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+          <div className="topActions">
+            <div className="topBtn" onClick={onNew}>
+              New
+            </div>
+            <div className="topBtn" onClick={onImportClick}>
+              Import
+            </div>
+            <div className="topBtn" onClick={() => void onExport()}>
+              Export
+            </div>
+          </div>
+
+          <div className="projectName">{project.project.name}</div>
+        </div>
+
+        <div className="account">Account</div>
       </div>
 
-      <div className="project-name">{project.project.name}</div>
-      <div className="account">Account</div>
+      {/* Main */}
+      <div className="mainGrid">
+        <div className="panel">
+          <div className="panelInner">
+            <LeftPanel />
+          </div>
+        </div>
 
-      <LeftPanel />
-      <ViewPanel />
+        <div className="panel">
+          <div className="panelInner">
+            <ViewPanel />
+          </div>
+        </div>
 
-      {assetsOpen ? <AssetsPanel /> : <Inspector />}
+        <div className="panel">
+          <div className="panelInner">{assetsOpen ? <AssetsPanel /> : <Inspector />}</div>
+        </div>
+      </div>
 
       <input
         ref={fileRef}
         type="file"
-        accept=".dashboard"
         style={{ display: "none" }}
-        onChange={e => {
+        accept=".dashboard"
+        onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) void onImportFile(f);
           e.currentTarget.value = "";
