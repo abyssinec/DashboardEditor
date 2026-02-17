@@ -41,7 +41,6 @@ body{
   gap:12px;
   padding:10px 14px;
   background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-  border:1px solid var(--border2);
   border-radius:10px;
 }
 .brand{display:flex;flex-direction:column;line-height:1.1;}
@@ -80,7 +79,6 @@ body{
 /* Panels */
 .panel{
   background:var(--panel);
-  border:1px solid var(--border2);
   border-radius:10px;
   overflow:hidden;
   min-height:0;
@@ -109,7 +107,6 @@ body{
 .listItem{
   height:38px;border-radius:10px;display:flex;align-items:center;
   background:transparent;color:var(--text);opacity:.75;cursor:pointer;user-select:none;
-  border:1px solid transparent;
 }
 .listItem:hover{opacity:.95;background:rgba(255,255,255,0.03);border-color:var(--border2);}
 .listItem.active{opacity:1;background:rgba(62,163,255,0.12);border-color:rgba(62,163,255,0.35);}
@@ -127,22 +124,22 @@ body{
 .canvasFrame{width:100%;height:100%;background:#000;border-radius:10px;border:none;position:relative;overflow:hidden;}
 .canvasOverlayTag{
   position:absolute;left:12px;top:12px;padding:6px 12px;border-radius:999px;
-  background:rgba(255,255,255,0.06);border:1px solid var(--border2);font-size:13px;opacity:.95;
+  background:rgba(255,255,255,0.06);font-size:13px;opacity:.95;
 }
 .viewTools{
   position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
   display:flex;gap:10px;align-items:center;padding:10px;border-radius:14px;
-  background:rgba(0,0,0,0.25);border:1px solid var(--border2);backdrop-filter:blur(6px);
+  background:rgba(0,0,0,0.25);backdrop-filter:blur(6px);
 }
 .toolBtn{
   width:50px;height:50px;border-radius:10px;background:rgba(255,255,255,0.06);
-  border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
 }
 .toolBtn:hover{background:rgba(255,255,255,0.09);}
 .toolBtn svg{width:26px;height:26px;opacity:.95;}
 .counter{
   width:110px;height:50px;border-radius:10px;background:rgba(255,255,255,0.06);
-  border:1px solid var(--border2);position:relative;font-size:12px;opacity:.9;
+  position:relative;font-size:12px;opacity:.9;
 }
 .counter .k1{position:absolute;left:10px;top:9px;}
 .counter .v1{position:absolute;right:10px;top:9px;}
@@ -190,7 +187,6 @@ body{
   border-radius:12px;
   background:rgba(255,255,255,0.08);
   color:var(--text);
-  border:1px solid rgba(255,255,255,0.10);
   outline:none;
   font-size:13px;
 }
@@ -262,7 +258,6 @@ body{
   width:100%;
   height:36px;
   border-radius:12px;
-  border:1px solid rgba(255,255,255,0.10);
   background:rgba(255,255,255,0.08);
   padding:0;
   overflow:hidden;
@@ -290,16 +285,31 @@ body{
   align-items:center;
 }
 .insBtn{
-  height:36px;
+  height:34px;
   padding:0 14px;
   border-radius:12px;
-  background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.10);
-  color:var(--text);
-  cursor:pointer;
+
+  border:none !important;
+  box-shadow:none !important;
+  outline:none !important;
+
+  background: rgba(255,255,255,0.06);
+  color:#fff;
   font-size:13px;
+  cursor:pointer;
+
+  transition: background 0.15s ease;
 }
-.insBtn:hover{ background:rgba(255,255,255,0.11); }
+
+.insBtn:hover{
+  background: rgba(255,255,255,0.10);
+}
+
+.insBtn:focus{
+  outline:none !important;
+  box-shadow:none !important;
+}
+
 
 /* Responsive tweaks */
 @media (max-width: 1280px){
@@ -313,7 +323,6 @@ body{
   width:100%;
   height:36px;
   border-radius:12px;
-  border:1px solid rgba(255,255,255,0.10);
   background:rgba(255,255,255,0.08);
   cursor:pointer;
 }
@@ -327,13 +336,12 @@ body{
   padding:10px;
   border-radius:14px;
   background: rgba(20,20,20,0.98);
-  border:1px solid rgba(255,255,255,0.10);
   box-shadow: 0 18px 40px rgba(0,0,0,0.55);
 }
 
 /* Picker UI */
 .cpRoot{ display:flex; flex-direction:column; gap:10px; }
-.cpSVWrap{ position:relative; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.10); }
+.cpSVWrap{ position:relative; border-radius:12px; overflow:hidden;}
 .cpSV{ width:100%; height:auto; display:block; cursor:crosshair; }
 .cpSVCursor{
   position:absolute;
@@ -350,12 +358,10 @@ body{
   width:18px; height:18px;
   opacity:0.7;
   border-radius:4px;
-  border:1px solid rgba(255,255,255,0.10);
 }
 .cpChecker{
   width:18px; height:18px;
   border-radius:4px;
-  border:1px solid rgba(255,255,255,0.10);
   background:
     linear-gradient(45deg, rgba(255,255,255,0.12) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255,255,255,0.12) 25%, transparent 25%),
@@ -369,7 +375,6 @@ body{
 .cpTrack{
   position:absolute; inset:0;
   border-radius:999px;
-  border:1px solid rgba(255,255,255,0.10);
 }
 .cpAlphaTrack{
   background-blend-mode: multiply;
@@ -404,7 +409,6 @@ body{
   border-radius:10px;
   padding:0 10px;
   background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.10);
   color:#fff;
 }
 .cpPctSym{ opacity:0.8; }
@@ -415,7 +419,6 @@ body{
   border-radius:10px;
   padding:0 10px;
   background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.10);
   color:#fff;
 }
 .cpRgb{ display:flex; gap:8px; flex:1; }
@@ -425,7 +428,6 @@ body{
   border-radius:10px;
   padding:0 10px;
   background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.10);
   color:#fff;
 }
 /* RGB label as plain text (not dropdown) */
@@ -438,7 +440,6 @@ body{
   align-items:center;
   justify-content:center;
   background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.10);
   color:#fff;
   font-size:13px;
 }
@@ -452,30 +453,40 @@ body{
 }
 .insSpinBtns{
   position:absolute;
-  right:10px;
+  right:8px;
   top:50%;
   transform:translateY(-50%);
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:0px;
+
+  background:none !important;
 }
+
 .insSpinBtn{
-  width:22px;
-  height:14px;
-  border-radius:6px;
-  border:1px solid rgba(255,255,255,0.10);
-  background:rgba(0,0,0,0.22);
-  color:rgba(255,255,255,0.85);
+  width:10px;
+  height:15px;
+
+  border:none !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  outline:none !important;
+
+  color:rgba(255,255,255,0.75);
   font-size:10px;
   line-height:1;
+
   display:flex;
   align-items:center;
   justify-content:center;
+
   cursor:pointer;
   padding:0;
 }
+
 .insSpinBtn:hover{
-  background:rgba(255,255,255,0.10);
+  color:#ffffff;
+  background:transparent !important;
 }
 
 /* ===== Inspector: custom dropdown (Fill) so options are visible and styled ===== */
@@ -488,7 +499,6 @@ body{
   border-radius:12px;
   padding:0 12px;
   background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.10);
   color:#fff;
   font-size:13px;
   display:flex;
@@ -512,7 +522,6 @@ body{
   border-radius:12px;
   overflow:hidden;
   background:rgba(18,18,18,0.98);
-  border:1px solid rgba(255,255,255,0.10);
   box-shadow: 0 18px 40px rgba(0,0,0,0.55);
 }
 .insDropItem{
@@ -540,3 +549,53 @@ input[type=number]::-webkit-inner-spin-button{
   margin: 0;
 }
 input[type=number]{ -moz-appearance: textfield; }
+/* ============================= */
+/* GLOBAL SOFT UI – no hard borders */
+/* ============================= */
+
+.panel,
+.canvasFrame,
+.insField,
+.insSpinBtn,
+.insDropBtn,
+.insDropMenu,
+.insColorSwatchBtn,
+.insPickerPopover {
+  border: none !important;
+}
+
+/* мягкие фоновые карточки */
+.panel,
+.canvasFrame,
+.insDropMenu,
+.insPickerPopover {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.03),
+    rgba(255,255,255,0.01)
+  );
+}
+
+/* мягкие input поля */
+.insField,
+.insSpinInput,
+.insDropBtn {
+  background: rgba(255,255,255,0.06);
+}
+
+/* hover состояния */
+.insSpinBtn:hover,
+.insDropItem:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+/* убрать тонкие линии в collapse */
+.insSectionHead {
+  border: none !important;
+}
+
+/* убрать тонкую рамку вокруг View */
+.canvasFrame {
+  box-shadow: none !important;
+}
+
