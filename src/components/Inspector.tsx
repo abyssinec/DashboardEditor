@@ -8,7 +8,9 @@ function clampInt(v: any, fallback: number) {
   const n = parseInt(String(v), 10);
   return Number.isFinite(n) ? n : fallback;
 }
-
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
+}
 function normalizeHex(v: string) {
   let s = (v || "").trim();
   if (!s) return "#000000";
@@ -25,7 +27,6 @@ function normalizeHex(v: string) {
 function useSelectedScreen(): Screen {
   return useStore((s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!);
 }
-
 function useSelectedObject(): AnyObj | undefined {
   return useStore((s) => {
     const sc = s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!;
@@ -41,33 +42,28 @@ function Label({ children, style }: { children: React.ReactNode; style?: any }) 
     </div>
   );
 }
-
 function Row2({ children }: { children: React.ReactNode }) {
   return <div className="insRow2">{children}</div>;
 }
-
 function TextField(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className="insField" {...props} />;
-}
-
-function NumberField(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input className="insField" type="number" inputMode="numeric" {...props} />;
-}
-
-function SelectField(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className="insField insSelect" {...props} />;
 }
 
 function Caret({ open }: { open: boolean }) {
   return (
     <span className={`insCaret ${open ? "open" : ""}`}>
       <svg viewBox="0 0 12 12" fill="none">
-        <path d="M2.2 4.2 6 8 9.8 4.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path
+          d="M2.2 4.2 6 8 9.8 4.2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     </span>
   );
 }
-
 function Collapse({
   title,
   open,
@@ -86,6 +82,107 @@ function Collapse({
         <Caret open={open} />
       </button>
       {open ? <div className="insSectionBody">{children}</div> : null}
+    </div>
+  );
+}
+
+/** Custom number with up/down like reference */
+function SpinNumber({
+  value,
+  onChange,
+  step = 1,
+  min,
+  max,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  step?: number;
+  min?: number;
+  max?: number;
+}) {
+  return (
+    <div className="insSpin">
+      <input
+        className="insField insSpinInput"
+        type="text"
+        inputMode="numeric"
+        value={String(value)}
+        onChange={(e) => {
+          const next = clampInt(e.target.value, value);
+          onChange(clamp(next, min ?? -1e9, max ?? 1e9));
+        }}
+      />
+      <div className="insSpinBtns">
+        <button
+          type="button"
+          className="insSpinBtn"
+          onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
+          aria-label="Increase"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          className="insSpinBtn"
+          onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
+          aria-label="Decrease"
+        >
+          ▼
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Custom dropdown (so options are readable and styled) */
+function Dropdown({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (!open) return;
+      const t = e.target as Node;
+      if (rootRef.current && rootRef.current.contains(t)) return;
+      setOpen(false);
+    }
+    window.addEventListener("mousedown", onDown, true);
+    return () => window.removeEventListener("mousedown", onDown, true);
+  }, [open]);
+
+  const label = options.find((o) => o.value === value)?.label ?? value;
+
+  return (
+    <div ref={rootRef} className="insDrop">
+      <button type="button" className="insDropBtn" onClick={() => setOpen((v) => !v)}>
+        <span>{label}</span>
+        <span className="insDropCaret" />
+      </button>
+      {open ? (
+        <div className="insDropMenu">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              className={`insDropItem ${o.value === value ? "active" : ""}`}
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -148,34 +245,29 @@ function ScreenInspector({ screen }: { screen: Screen }) {
         <Row2>
           <div>
             <Label>Width</Label>
-            <NumberField
+            <SpinNumber
               value={screen.settings.width}
-              step={1}
               min={1}
-              onChange={(e) =>
-                Actions.updateScreen(screen.id, {
-                  settings: { ...screen.settings, width: clampInt(e.target.value, screen.settings.width) },
-                })
+              step={1}
+              onChange={(v) =>
+                Actions.updateScreen(screen.id, { settings: { ...screen.settings, width: v } })
               }
             />
           </div>
           <div>
             <Label>Height</Label>
-            <NumberField
+            <SpinNumber
               value={screen.settings.height}
-              step={1}
               min={1}
-              onChange={(e) =>
-                Actions.updateScreen(screen.id, {
-                  settings: { ...screen.settings, height: clampInt(e.target.value, screen.settings.height) },
-                })
+              step={1}
+              onChange={(v) =>
+                Actions.updateScreen(screen.id, { settings: { ...screen.settings, height: v } })
               }
             />
           </div>
         </Row2>
       </Collapse>
 
-      {/* Style теперь включает: Color/Alpha + Background Image + Fill */}
       <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
         <Row2>
           <div style={{ position: "relative" }}>
@@ -215,15 +307,13 @@ function ScreenInspector({ screen }: { screen: Screen }) {
 
           <div>
             <Label>Alpha</Label>
-            <NumberField
+            <SpinNumber
               value={alpha}
-              step={1}
               min={0}
               max={100}
-              onChange={(e) =>
-                Actions.updateScreen(screen.id, {
-                  style: { ...screen.style, alpha: clampInt(e.target.value, alpha) },
-                })
+              step={1}
+              onChange={(v) =>
+                Actions.updateScreen(screen.id, { style: { ...screen.style, alpha: v } })
               }
             />
           </div>
@@ -245,16 +335,15 @@ function ScreenInspector({ screen }: { screen: Screen }) {
 
         <div style={{ marginTop: 12 }}>
           <Label>Fill</Label>
-          <SelectField
+          <Dropdown
             value={screen.style.fill}
-            onChange={(e) =>
-              Actions.updateScreen(screen.id, { style: { ...screen.style, fill: e.target.value as any } })
-            }
-          >
-            <option value="Fit">Fit</option>
-            <option value="Fill">Fill</option>
-            <option value="Stretch">Stretch</option>
-          </SelectField>
+            onChange={(v) => Actions.updateScreen(screen.id, { style: { ...screen.style, fill: v as any } })}
+            options={[
+              { value: "Fit", label: "Fit" },
+              { value: "Fill", label: "Fill" },
+              { value: "Stretch", label: "Stretch" },
+            ]}
+          />
         </div>
       </Collapse>
     </div>
