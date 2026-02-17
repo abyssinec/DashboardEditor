@@ -125,7 +125,7 @@ export function CanvasView() {
 // softer grid (less visible)
 ctx.save();
 ctx.globalAlpha = 0.07;           // было 0.10
-ctx.strokeStyle = "#3EA3FF";      // вместо белого
+ctx.strokeStyle = "#9E9E9E";      // вместо белого
 ctx.lineWidth = 1;
 
 const step = 140 * vp.zoom;       // реже линии
@@ -158,7 +158,7 @@ ctx.restore();
 
     // screen border
     ctx.save();
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.5;
     ctx.strokeStyle = "#3EA3FF";
     ctx.lineWidth = 2;
     ctx.strokeRect(tl.sx, tl.sy, srW, srH);
@@ -177,7 +177,7 @@ ctx.restore();
         ctx.save();
         ctx.fillStyle = hexToRgba(o.style.color || "#3EA3FF", alpha);
         ctx.globalAlpha = 1;
-        ctx.font = `${o.settings.bold === "Yes" ? "700" : "400"} ${Math.max(10, (o.settings.fontSize || 20) * vp.zoom)}px Inter, Arial`;
+        ctx.font = `${o.settings.bold === "Yes" ? "700" : "400"} ${Math.max(10, (o.settings.fontSize || 20) * vp.zoom)}px Inter`;
         ctx.textBaseline = "top";
         const txt = o.settings.text?.length ? o.settings.text : o.name;
         ctx.fillText(txt, p.sx + 6, p.sy + 6);

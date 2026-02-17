@@ -19,7 +19,7 @@ html, body, #root{ height:100%; margin:0; }
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  font-family:Roboto,Roboto,-apple-system,Segoe UI,Roboto,Roboto,Roboto;
   overflow:hidden;
 }
 
@@ -458,14 +458,14 @@ body{
   transform:translateY(-50%);
   display:flex;
   flex-direction:column;
-  gap:0px;
+  gap:3px;
 
   background:none !important;
 }
 
 .insSpinBtn{
   width:10px;
-  height:15px;
+  height:12px;
 
   border:none !important;
   background:transparent !important;
@@ -566,7 +566,6 @@ input[type=number]{ -moz-appearance: textfield; }
 
 /* мягкие фоновые карточки */
 .panel,
-.canvasFrame,
 .insDropMenu,
 .insPickerPopover {
   background: linear-gradient(
@@ -583,19 +582,6 @@ input[type=number]{ -moz-appearance: textfield; }
   background: rgba(255,255,255,0.06);
 }
 
-/* hover состояния */
-.insSpinBtn:hover,
-.insDropItem:hover {
-  background: rgba(255,255,255,0.08);
+.canvasFrame{
+  background:#080808 !important;
 }
-
-/* убрать тонкие линии в collapse */
-.insSectionHead {
-  border: none !important;
-}
-
-/* убрать тонкую рамку вокруг View */
-.canvasFrame {
-  box-shadow: none !important;
-}
-
