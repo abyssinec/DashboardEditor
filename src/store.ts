@@ -5,7 +5,10 @@ import type { AnyObj, Asset, AssetKind, Project, Screen } from "./types";
 export type AssetsPanelState = {
   isOpen: boolean;
   tab: "Images" | "Fonts";
-  pickFor?: { objectId: string; field: "screenBackground" | "imageAssetId" | "fontAssetId" };
+  pickFor?: {
+    objectId: string;
+    field: "screenBackground" | "imageAssetId" | "fontAssetId";
+  };
 };
 
 type State = {
@@ -21,22 +24,19 @@ export const defaultProject = (): Project => {
     id: "screen_1",
     name: "Screen 1",
     settings: { width: 1920, height: 1080 },
-    style: { color: "#000000", alpha: 100, backgroundImageAssetId: undefined, fill: "Fit" },
-    objects: []
-  };
-
-  const screen2: Screen = {
-    id: "screen_2",
-    name: "Screen 2",
-    settings: { width: 1920, height: 1080 },
-    style: { color: "#000000", alpha: 100, backgroundImageAssetId: undefined, fill: "Fit" },
-    objects: []
+    style: {
+      color: "#000000",
+      alpha: 100,
+      backgroundImageAssetId: undefined,
+      fill: "Fit",
+    },
+    objects: [],
   };
 
   return {
     project: { id: "proj_" + nanoid(6), name: "Project name.dash" },
     assets: { images: [], fonts: [] },
-    screens: [screen1, screen2]
+    screens: [screen1], // ✅ только один экран
   };
 };
 
@@ -45,25 +45,31 @@ const initial: State = {
   selectedScreenId: "screen_1",
   selectedObjectId: undefined,
   assetBytes: {},
-  assetsPanel: { isOpen: false, tab: "Images" }
+  assetsPanel: { isOpen: false, tab: "Images" },
 };
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
 let state: State = initial;
 
-export function getState() { return state; }
-export function subscribe(fn: Listener) { listeners.add(fn); return () => listeners.delete(fn); }
+export function getState() {
+  return state;
+}
+
+export function subscribe(fn: Listener) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
 
 function setState(next: State) {
   state = next;
   (window as any).__assetBytes = next.assetBytes;
-  listeners.forEach(l => l());
+  listeners.forEach((l) => l());
 }
 
 function nextZ(screen: Screen) {
   const max = screen.objects.reduce((m, o) => Math.max(m, o.z), -1);
-  return (max < 0 ? 0 : max + 1);
+  return max < 0 ? 0 : max + 1;
 }
 
 export const Actions = {
@@ -75,13 +81,14 @@ export const Actions = {
       assetBytes,
       selectedScreenId: first,
       selectedObjectId: undefined,
-      assetsPanel: { isOpen: false, tab: "Images" }
+      assetsPanel: { isOpen: false, tab: "Images" },
     });
   },
 
   selectScreen(id: string) {
     setState({ ...state, selectedScreenId: id, selectedObjectId: undefined });
   },
+
   selectObject(id?: string) {
     setState({ ...state, selectedObjectId: id });
   },
@@ -92,38 +99,49 @@ export const Actions = {
       id,
       name: `Screen ${state.project.screens.length + 1}`,
       settings: { width: 1920, height: 1080 },
-      style: { color: "#000000", alpha: 100, backgroundImageAssetId: undefined, fill: "Fit" },
-      objects: []
+      style: {
+        color: "#000000",
+        alpha: 100,
+        backgroundImageAssetId: undefined,
+        fill: "Fit",
+      },
+      objects: [],
     };
-    setState(produce(state, d => {
-      d.project.screens.push(screen);
-      d.selectedScreenId = id;
-      d.selectedObjectId = undefined;
-    }));
+
+    setState(
+      produce(state, (d) => {
+        d.project.screens.push(screen);
+        d.selectedScreenId = id;
+        d.selectedObjectId = undefined;
+      })
+    );
   },
 
   deleteScreen(screenId: string) {
-    setState(produce(state, d => {
-      if (d.project.screens.length <= 1) return;
-      d.project.screens = d.project.screens.filter(s => s.id !== screenId);
-      if (d.selectedScreenId === screenId) {
-        d.selectedScreenId = d.project.screens[0].id;
-        d.selectedObjectId = undefined;
-      }
-    }));
+    setState(
+      produce(state, (d) => {
+        if (d.project.screens.length <= 1) return;
+        d.project.screens = d.project.screens.filter((s) => s.id !== screenId);
+        if (d.selectedScreenId === screenId) {
+          d.selectedScreenId = d.project.screens[0].id;
+          d.selectedObjectId = undefined;
+        }
+      })
+    );
   },
 
   addObject(type: AnyObj["type"]) {
-    const screen = state.project.screens.find(s => s.id === state.selectedScreenId)!;
+    const screen = state.project.screens.find((s) => s.id === state.selectedScreenId)!;
     const id = "obj_" + nanoid(6);
     const z = nextZ(screen);
 
     let obj: AnyObj;
+
     if (type === "Label") {
       obj = {
         id,
         type,
-        name: `Label ${screen.objects.filter(o => o.type === "Label").length + 1}`,
+        name: `Label ${screen.objects.filter((o) => o.type === "Label").length + 1}`,
         z,
         gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
         transform: { x: 0, y: 0, rotation: 0 },
@@ -135,7 +153,7 @@ export const Actions = {
           bold: "No",
           italic: "No",
           align: "Left",
-          wrap: "No wrap"
+          wrap: "No wrap",
         },
         style: {
           color: "#3EABFE",
@@ -146,25 +164,30 @@ export const Actions = {
           shadowOffsetY: 0,
           shadowBlur: 0,
           outlineColor: "#000000",
-          outlineThickness: 0
-        }
+          outlineThickness: 0,
+        },
       };
     } else if (type === "Image") {
       obj = {
         id,
         type,
-        name: `Image ${screen.objects.filter(o => o.type === "Image").length + 1}`,
+        name: `Image ${screen.objects.filter((o) => o.type === "Image").length + 1}`,
         z,
         gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
         transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
-        settings: { imageAssetId: undefined, keepAspect: "Yes", fillMode: "Fill", flip: "None" },
-        style: { alpha: 100 }
+        settings: {
+          imageAssetId: undefined,
+          keepAspect: "Yes",
+          fillMode: "Fill",
+          flip: "None",
+        },
+        style: { alpha: 100 },
       };
     } else if (type === "Arc") {
       obj = {
         id,
         type,
-        name: `Arc ${screen.objects.filter(o => o.type === "Arc").length + 1}`,
+        name: `Arc ${screen.objects.filter((o) => o.type === "Arc").length + 1}`,
         z,
         gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
         transform: { x: 0, y: 0, rotation: 0, startAngle: 0, endAngle: 0 },
@@ -179,14 +202,14 @@ export const Actions = {
           backgroundAlpha: 40,
           backgroundGlow: 0,
           backgroundThickness: 20,
-          backgroundCapStyle: "Flat"
-        }
+          backgroundCapStyle: "Flat",
+        },
       };
     } else {
       obj = {
         id,
         type,
-        name: `Bar ${screen.objects.filter(o => o.type === "Bar").length + 1}`,
+        name: `Bar ${screen.objects.filter((o) => o.type === "Bar").length + 1}`,
         z,
         gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
         transform: { x: 0, y: 0, rotation: 0, width: 250, height: 25 },
@@ -199,72 +222,85 @@ export const Actions = {
           backgroundAlpha: 40,
           backgroundGlow: 0,
           radius: 10,
-          capStyle: "Flat"
-        }
+          capStyle: "Flat",
+        },
       };
     }
 
-    setState(produce(state, d => {
-      const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-      s.objects.push(obj);
-      d.selectedObjectId = id;
-    }));
+    setState(
+      produce(state, (d) => {
+        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        s.objects.push(obj);
+        d.selectedObjectId = id;
+      })
+    );
   },
 
   deleteObject(objectId: string) {
-    setState(produce(state, d => {
-      const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-      s.objects = s.objects.filter(o => o.id !== objectId);
-      if (d.selectedObjectId === objectId) d.selectedObjectId = undefined;
-    }));
+    setState(
+      produce(state, (d) => {
+        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        s.objects = s.objects.filter((o) => o.id !== objectId);
+        if (d.selectedObjectId === objectId) d.selectedObjectId = undefined;
+      })
+    );
   },
 
   moveObject(objectId: string, dir: -1 | 1) {
-    setState(produce(state, d => {
-      const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-      const sorted = [...s.objects].sort((a, b) => a.z - b.z);
-      const idx = sorted.findIndex(o => o.id === objectId);
-      const j = idx + dir;
-      if (idx < 0 || j < 0 || j >= sorted.length) return;
-      const a = sorted[idx];
-      const b = sorted[j];
-      const tmp = a.z;
-      a.z = b.z;
-      b.z = tmp;
-    }));
+    setState(
+      produce(state, (d) => {
+        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const sorted = [...s.objects].sort((a, b) => a.z - b.z);
+        const idx = sorted.findIndex((o) => o.id === objectId);
+        const j = idx + dir;
+        if (idx < 0 || j < 0 || j >= sorted.length) return;
+        const a = sorted[idx];
+        const b = sorted[j];
+        const tmp = a.z;
+        a.z = b.z;
+        b.z = tmp;
+      })
+    );
   },
 
   updateScreen(screenId: string, patch: Partial<Screen>) {
-    setState(produce(state, d => {
-      const s = d.project.screens.find(x => x.id === screenId);
-      if (!s) return;
-      Object.assign(s, patch);
-    }));
+    setState(
+      produce(state, (d) => {
+        const s = d.project.screens.find((x) => x.id === screenId);
+        if (!s) return;
+        Object.assign(s, patch);
+      })
+    );
   },
 
   updateObject(objectId: string, patch: any) {
-    setState(produce(state, d => {
-      const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-      const obj = s.objects.find(o => o.id === objectId);
-      if (!obj) return;
-      Object.assign(obj as any, patch);
-    }));
+    setState(
+      produce(state, (d) => {
+        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const obj = s.objects.find((o) => o.id === objectId);
+        if (!obj) return;
+        Object.assign(obj as any, patch);
+      })
+    );
   },
 
   updateObjectDeep(objectId: string, path: string[], value: any) {
-    setState(produce(state, d => {
-      const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-      const obj: any = s.objects.find(o => o.id === objectId);
-      if (!obj) return;
-      let cur = obj;
-      for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]];
-      cur[path[path.length - 1]] = value;
-    }));
+    setState(
+      produce(state, (d) => {
+        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const obj: any = s.objects.find((o: any) => o.id === objectId);
+        if (!obj) return;
+        let cur = obj;
+        for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]];
+        cur[path[path.length - 1]] = value;
+      })
+    );
   },
 
   openAssets(tab: "Images" | "Fonts", pickFor?: AssetsPanelState["pickFor"]) {
     setState({ ...state, assetsPanel: { isOpen: true, tab, pickFor } });
   },
+
   closeAssets() {
     setState({ ...state, assetsPanel: { isOpen: false, tab: "Images" } });
   },
@@ -274,50 +310,66 @@ export const Actions = {
     const ext = file.name.split(".").pop() ?? "bin";
     const folder = kind === "image" ? "assets/images" : "assets/fonts";
     const path = `${folder}/${id}.${ext}`;
-
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const asset: Asset = { id, kind, name: file.name, path, mime: file.type || "application/octet-stream" };
 
-    setState(produce(state, d => {
-      if (kind === "image") d.project.assets.images.push(asset);
-      else d.project.assets.fonts.push(asset);
-      d.assetBytes[id] = bytes;
-    }));
+    const asset: Asset = {
+      id,
+      kind,
+      name: file.name,
+      path,
+      mime: file.type || "application/octet-stream",
+    };
+
+    setState(
+      produce(state, (d) => {
+        if (kind === "image") d.project.assets.images.push(asset);
+        else d.project.assets.fonts.push(asset);
+        d.assetBytes[id] = bytes;
+      })
+    );
   },
 
   deleteAsset(kind: AssetKind, assetId: string) {
-    setState(produce(state, d => {
-      if (kind === "image") d.project.assets.images = d.project.assets.images.filter(a => a.id !== assetId);
-      else d.project.assets.fonts = d.project.assets.fonts.filter(a => a.id !== assetId);
-      delete d.assetBytes[assetId];
+    setState(
+      produce(state, (d) => {
+        if (kind === "image")
+          d.project.assets.images = d.project.assets.images.filter((a) => a.id !== assetId);
+        else d.project.assets.fonts = d.project.assets.fonts.filter((a) => a.id !== assetId);
 
-      // unlink
-      for (const s of d.project.screens) {
-        if (s.style.backgroundImageAssetId === assetId) s.style.backgroundImageAssetId = undefined;
-        for (const o of s.objects as any[]) {
-          if (o.type === "Image" && o.settings.imageAssetId === assetId) o.settings.imageAssetId = undefined;
-          if (o.type === "Label" && o.settings.fontAssetId === assetId) o.settings.fontAssetId = undefined;
+        delete d.assetBytes[assetId];
+
+        // unlink
+        for (const s of d.project.screens) {
+          if (s.style.backgroundImageAssetId === assetId) s.style.backgroundImageAssetId = undefined;
+
+          for (const o of s.objects as any[]) {
+            if (o.type === "Image" && o.settings.imageAssetId === assetId) o.settings.imageAssetId = undefined;
+            if (o.type === "Label" && o.settings.fontAssetId === assetId) o.settings.fontAssetId = undefined;
+          }
         }
-      }
-    }));
+      })
+    );
   },
 
   pickAsset(assetId: string) {
     const pick = state.assetsPanel.pickFor;
     if (!pick) return;
 
-    setState(produce(state, d => {
-      if (pick.field === "screenBackground") {
-        const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-        s.style.backgroundImageAssetId = assetId;
-      } else {
-        const s = d.project.screens.find(x => x.id === d.selectedScreenId)!;
-        const o: any = s.objects.find(x => x.id === pick.objectId);
-        if (!o) return;
-        if (pick.field === "imageAssetId" && o.type === "Image") o.settings.imageAssetId = assetId;
-        if (pick.field === "fontAssetId" && o.type === "Label") o.settings.fontAssetId = assetId;
-      }
-      d.assetsPanel = { isOpen: false, tab: "Images" };
-    }));
-  }
+    setState(
+      produce(state, (d) => {
+        if (pick.field === "screenBackground") {
+          const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+          s.style.backgroundImageAssetId = assetId;
+        } else {
+          const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+          const o: any = s.objects.find((x: any) => x.id === pick.objectId);
+          if (!o) return;
+          if (pick.field === "imageAssetId" && o.type === "Image") o.settings.imageAssetId = assetId;
+          if (pick.field === "fontAssetId" && o.type === "Label") o.settings.fontAssetId = assetId;
+        }
+
+        d.assetsPanel = { isOpen: false, tab: "Images" };
+      })
+    );
+  },
 };

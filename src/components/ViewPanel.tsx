@@ -46,19 +46,24 @@ function IconBar() {
 export function ViewPanel() {
   const screens = useStore((s) => s.project.screens);
   const selectedScreenId = useStore((s) => s.selectedScreenId);
-  const screen = useStore((s) => s.project.screens.find((x) => x.id === s.selectedScreenId)!);
+  const screen = useStore((s) =>
+    s.project.screens.find((x) => x.id === s.selectedScreenId)!
+  );
   const objectsCount = useStore((s) => {
     const sc = s.project.screens.find((x) => x.id === s.selectedScreenId);
     return sc ? sc.objects.length : 0;
   });
 
-  const screenIndex = Math.min(screens.findIndex((s) => s.id === selectedScreenId) + 1, screens.length);
+  const screenIndex = Math.min(
+    screens.findIndex((s) => s.id === selectedScreenId) + 1,
+    screens.length
+  );
 
   return (
     <div className="viewWrap">
       <div className="viewHeader">
         <div className="viewTitle">View</div>
-        <div className="screenName">{screen.name}</div>
+        {/* ❌ Убрали дублирующее название Screen справа */}
       </div>
 
       <div className="canvasHost">
@@ -67,25 +72,27 @@ export function ViewPanel() {
           <CanvasView />
 
           <div className="viewTools">
-            <div className="toolBtn" onClick={() => Actions.addScreen()} title="Add screen">
+            <div className="toolBtn" onClick={() => Actions.addScreen()}>
               <IconPlus />
             </div>
-            <div className="toolBtn" onClick={() => Actions.addObject("Label")} title="Add label">
+            <div className="toolBtn" onClick={() => Actions.addObject("Label")}>
               <IconLabel />
             </div>
-            <div className="toolBtn" onClick={() => Actions.addObject("Image")} title="Add image">
+            <div className="toolBtn" onClick={() => Actions.addObject("Image")}>
               <IconImage />
             </div>
-            <div className="toolBtn" onClick={() => Actions.addObject("Arc")} title="Add arc">
+            <div className="toolBtn" onClick={() => Actions.addObject("Arc")}>
               <IconArc />
             </div>
-            <div className="toolBtn" onClick={() => Actions.addObject("Bar")} title="Add bar">
+            <div className="toolBtn" onClick={() => Actions.addObject("Bar")}>
               <IconBar />
             </div>
 
             <div className="counter">
               <div className="k1">Screens:</div>
-              <div className="v1">{screenIndex}/{screens.length}</div>
+              <div className="v1">
+                {screenIndex}/{screens.length}
+              </div>
               <div className="k2">Objects:</div>
               <div className="v2">{objectsCount}/10</div>
             </div>

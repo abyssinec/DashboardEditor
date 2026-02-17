@@ -122,24 +122,27 @@ export function CanvasView() {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    // subtle grid (world)
-    ctx.save();
-    ctx.globalAlpha = 0.10;
-    ctx.strokeStyle = "#ffffff";
-    const step = 100 * vp.zoom;
-    for (let x = (c.width / 2) % step; x < c.width; x += step) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, c.height);
-      ctx.stroke();
-    }
-    for (let y = (c.height / 2) % step; y < c.height; y += step) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(c.width, y);
-      ctx.stroke();
-    }
-    ctx.restore();
+// softer grid (less visible)
+ctx.save();
+ctx.globalAlpha = 0.07;           // было 0.10
+ctx.strokeStyle = "#3EA3FF";      // вместо белого
+ctx.lineWidth = 1;
+
+const step = 140 * vp.zoom;       // реже линии
+for (let x = (c.width / 2) % step; x < c.width; x += step) {
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, c.height);
+  ctx.stroke();
+}
+for (let y = (c.height / 2) % step; y < c.height; y += step) {
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(c.width, y);
+  ctx.stroke();
+}
+ctx.restore();
+
 
     // screen rect (centered at world origin)
     const tl = worldToScreen(-sw / 2, -sh / 2);
