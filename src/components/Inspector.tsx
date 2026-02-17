@@ -1,190 +1,23 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React from "react";
 import { useStore } from "../hooks/useStore";
-import { Actions } from "../store";
 import type { AnyObj, Screen } from "../types";
-import { ColorPicker } from "./ColorPicker";
-
-function clampInt(v: any, fallback: number) {
-  const n = parseInt(String(v), 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
-}
-function normalizeHex(v: string) {
-  let s = (v || "").trim();
-  if (!s) return "#000000";
-  if (!s.startsWith("#")) s = "#" + s;
-  s = "#" + s.slice(1).replace(/[^0-9a-fA-F]/g, "");
-  if (s.length === 4) {
-    const r = s[1], g = s[2], b = s[3];
-    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
-  }
-  if (s.length >= 7) return s.slice(0, 7).toUpperCase();
-  return (s + "000000").slice(0, 7).toUpperCase();
-}
+import { ScreenInspector } from "./ScreenInspector";
+import { LabelInspector } from "./LabelInspector";
 
 function useSelectedScreen(): Screen {
-  return useStore((s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!);
+  return useStore(
+    (s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!
+  );
 }
+
 function useSelectedObject(): AnyObj | undefined {
   return useStore((s) => {
-    const sc = s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!;
+    const sc = s.project.screens.find(
+      (x: Screen) => x.id === s.selectedScreenId
+    )!;
     if (!s.selectedObjectId) return undefined;
     return sc.objects.find((o: AnyObj) => o.id === s.selectedObjectId);
   });
-}
-
-function Label({ children, style }: { children: React.ReactNode; style?: any }) {
-  return (
-    <div className="insLbl" style={style}>
-      {children}
-    </div>
-  );
-}
-function Row2({ children }: { children: React.ReactNode }) {
-  return <div className="insRow2">{children}</div>;
-}
-function TextField(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input className="insField" {...props} />;
-}
-
-function Caret({ open }: { open: boolean }) {
-  return (
-    <span className={`insCaret ${open ? "open" : ""}`}>
-      <svg viewBox="0 0 12 12" fill="none">
-        <path
-          d="M2.2 4.2 6 8 9.8 4.2"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
-}
-function Collapse({
-  title,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="insSection">
-      <button type="button" className="insSectionHead" onClick={onToggle}>
-        <span>{title}</span>
-        <Caret open={open} />
-      </button>
-      {open ? <div className="insSectionBody">{children}</div> : null}
-    </div>
-  );
-}
-
-/** Custom number with up/down like reference */
-function SpinNumber({
-  value,
-  onChange,
-  step = 1,
-  min,
-  max,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  step?: number;
-  min?: number;
-  max?: number;
-}) {
-  return (
-    <div className="insSpin">
-      <input
-        className="insField insSpinInput"
-        type="text"
-        inputMode="numeric"
-        value={String(value)}
-        onChange={(e) => {
-          const next = clampInt(e.target.value, value);
-          onChange(clamp(next, min ?? -1e9, max ?? 1e9));
-        }}
-      />
-      <div className="insSpinBtns">
-        <button
-          type="button"
-          className="insSpinBtn"
-          onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
-          aria-label="Increase"
-        >
-          ▲
-        </button>
-        <button
-          type="button"
-          className="insSpinBtn"
-          onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
-          aria-label="Decrease"
-        >
-          ▼
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Custom dropdown (so options are readable and styled) */
-function Dropdown({
-  value,
-  options,
-  onChange,
-}: {
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!open) return;
-      const t = e.target as Node;
-      if (rootRef.current && rootRef.current.contains(t)) return;
-      setOpen(false);
-    }
-    window.addEventListener("mousedown", onDown, true);
-    return () => window.removeEventListener("mousedown", onDown, true);
-  }, [open]);
-
-  const label = options.find((o) => o.value === value)?.label ?? value;
-
-  return (
-    <div ref={rootRef} className="insDrop">
-      <button type="button" className="insDropBtn" onClick={() => setOpen((v) => !v)}>
-        <span>{label}</span>
-        <span className="insDropCaret" />
-      </button>
-      {open ? (
-        <div className="insDropMenu">
-          {options.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              className={`insDropItem ${o.value === value ? "active" : ""}`}
-              onClick={() => {
-                onChange(o.value);
-                setOpen(false);
-              }}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 export function Inspector() {
@@ -195,157 +28,14 @@ export function Inspector() {
     <>
       <div className="panelTitle insPanelTitle">Inspector</div>
       <div className="scrollArea inspector-scroll">
-        {!obj ? <ScreenInspector screen={screen} /> : <div className="insRoot">TODO: next объектные инспекторы</div>}
+        {!obj ? (
+          <ScreenInspector screen={screen} />
+        ) : obj.type === "Label" ? (
+          <LabelInspector obj={obj} />
+        ) : (
+          <div className="insRoot">TODO: next объектные инспекторы</div>
+        )}
       </div>
     </>
-  );
-}
-
-function ScreenInspector({ screen }: { screen: Screen }) {
-  const images = useStore((s) => s.project.assets.images);
-
-  const bgAssetName = useMemo(() => {
-    const id = screen.style.backgroundImageAssetId;
-    if (!id) return "None";
-    const a = images.find((x: any) => x.id === id);
-    return a?.name ?? "None";
-  }, [images, screen.style.backgroundImageAssetId]);
-
-  const [openSettings, setOpenSettings] = useState(true);
-  const [openStyle, setOpenStyle] = useState(true);
-
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const popRef = useRef<HTMLDivElement | null>(null);
-  const btnRef = useRef<HTMLButtonElement | null>(null);
-
-  // close picker on any click outside
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!pickerOpen) return;
-      const t = e.target as Node;
-      if (popRef.current && popRef.current.contains(t)) return;
-      if (btnRef.current && btnRef.current.contains(t)) return;
-      setPickerOpen(false);
-    }
-    window.addEventListener("mousedown", onDown, true);
-    return () => window.removeEventListener("mousedown", onDown, true);
-  }, [pickerOpen]);
-
-  const hex = normalizeHex(screen.style.color || "#000000");
-  const alpha = clampInt(screen.style.alpha, 100);
-
-  return (
-    <div className="insRoot">
-      <div className="insTypeBar">Screen</div>
-
-      <Label>Name</Label>
-      <TextField value={screen.name} onChange={(e) => Actions.updateScreen(screen.id, { name: e.target.value })} />
-
-      <Collapse title="Settings" open={openSettings} onToggle={() => setOpenSettings((v) => !v)}>
-        <Row2>
-          <div>
-            <Label>Width</Label>
-            <SpinNumber
-              value={screen.settings.width}
-              min={1}
-              step={1}
-              onChange={(v) =>
-                Actions.updateScreen(screen.id, { settings: { ...screen.settings, width: v } })
-              }
-            />
-          </div>
-          <div>
-            <Label>Height</Label>
-            <SpinNumber
-              value={screen.settings.height}
-              min={1}
-              step={1}
-              onChange={(v) =>
-                Actions.updateScreen(screen.id, { settings: { ...screen.settings, height: v } })
-              }
-            />
-          </div>
-        </Row2>
-      </Collapse>
-
-      <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
-        <Row2>
-          <div style={{ position: "relative" }}>
-            <Label>Color</Label>
-
-            <div className="insColorRow">
-              <button
-                ref={btnRef}
-                type="button"
-                className="insColorSwatchBtn"
-                onClick={() => setPickerOpen((v) => !v)}
-                title="Pick color"
-                style={{ background: hex }}
-              />
-              <TextField
-                value={hex}
-                onChange={(e) =>
-                  Actions.updateScreen(screen.id, { style: { ...screen.style, color: normalizeHex(e.target.value) } })
-                }
-              />
-            </div>
-
-            {pickerOpen ? (
-              <div ref={popRef} className="insPickerPopover">
-                <ColorPicker
-                  value={hex}
-                  alpha={alpha}
-                  onChange={(nextHex, nextAlpha) => {
-                    Actions.updateScreen(screen.id, {
-                      style: { ...screen.style, color: normalizeHex(nextHex), alpha: clampInt(nextAlpha, alpha) },
-                    });
-                  }}
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <div>
-            <Label>Alpha</Label>
-            <SpinNumber
-              value={alpha}
-              min={0}
-              max={100}
-              step={1}
-              onChange={(v) =>
-                Actions.updateScreen(screen.id, { style: { ...screen.style, alpha: v } })
-              }
-            />
-          </div>
-        </Row2>
-
-        <div style={{ marginTop: 12 }}>
-          <Label>Background Image</Label>
-          <div className="insBgRow">
-            <button
-              className="insBtn"
-              type="button"
-              onClick={() => Actions.openAssets("Images", { objectId: "", field: "screenBackground" })}
-            >
-              Select
-            </button>
-            <TextField value={bgAssetName} readOnly />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <Label>Fill</Label>
-          <Dropdown
-            value={screen.style.fill}
-            onChange={(v) => Actions.updateScreen(screen.id, { style: { ...screen.style, fill: v as any } })}
-            options={[
-              { value: "Fit", label: "Fit" },
-              { value: "Fill", label: "Fill" },
-              { value: "Stretch", label: "Stretch" },
-            ]}
-          />
-        </div>
-      </Collapse>
-    </div>
   );
 }

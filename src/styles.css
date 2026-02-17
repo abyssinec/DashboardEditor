@@ -585,3 +585,9 @@ input[type=number]{ -moz-appearance: textfield; }
 .canvasFrame{
   background:#080808 !important;
 }
+.insTextarea{
+  min-height:74px;
+  padding:10px 12px;
+  resize:none;
+  line-height:1.35;
+}

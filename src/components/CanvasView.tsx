@@ -124,11 +124,11 @@ export function CanvasView() {
 
 // softer grid (less visible)
 ctx.save();
-ctx.globalAlpha = 0.07;           // было 0.10
-ctx.strokeStyle = "#9E9E9E";      // вместо белого
+ctx.globalAlpha = 0.07;           
+ctx.strokeStyle = "#9E9E9E";      
 ctx.lineWidth = 1;
 
-const step = 140 * vp.zoom;       // реже линии
+const step = 140 * vp.zoom;       
 for (let x = (c.width / 2) % step; x < c.width; x += step) {
   ctx.beginPath();
   ctx.moveTo(x, 0);

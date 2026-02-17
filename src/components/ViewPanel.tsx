@@ -63,7 +63,6 @@ export function ViewPanel() {
     <div className="viewWrap">
       <div className="viewHeader">
         <div className="viewTitle">View</div>
-        {/* ❌ Убрали дублирующее название Screen справа */}
       </div>
 
       <div className="canvasHost">
