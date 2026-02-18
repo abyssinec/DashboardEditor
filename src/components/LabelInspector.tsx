@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useStore } from "../hooks/useStore";
@@ -95,7 +95,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
           aria-label="Increase"
         >
-          в–І
+          ▲
         </button>
         <button
           type="button"
@@ -103,7 +103,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
           aria-label="Decrease"
         >
-          в–ј
+          ▼
         </button>
       </div>
     </div>

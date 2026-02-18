@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
@@ -91,7 +91,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
           aria-label="Increase"
         >
-          в–І
+          ▲
         </button>
         <button
           type="button"
@@ -99,7 +99,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
           aria-label="Decrease"
         >
-          в–ј
+          ▼
         </button>
       </div>
     </div>

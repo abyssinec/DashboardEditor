@@ -1,4 +1,4 @@
-﻿/* DashboardEditor вЂ” responsive app layout (no page scroll) */
+/* DashboardEditor вЂ” responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -1340,50 +1340,6 @@ input[type="number"] {
   opacity: 0.45;
   cursor: default;
 }
-
-
-/* ===== FORCE spinner arrows (Inspector) =====
-   Some builds show broken glyphs like "B- … j" inside stepper buttons.
-   We hide the original content and draw ^/Ў with ::before.
-*/
-
-/* Targets the numeric stepper block used in inspectors */
-.inspector .numSpin button,
-.inspector .spinBtn,
-.inspector .stepBtn{
-  font-size: 0 !important;        /* hide any text/icon ligatures */
-  color: transparent !important;
-}
-
-/* Draw arrows */
-.inspector .numSpin button::before,
-.inspector .spinBtn::before,
-.inspector .stepBtn::before{
-  content: "^";
-  font-size: 13px;
-  line-height: 1;
-  color: rgba(255,255,255,0.85);
-}
-
-/* Down button: usually the 2nd button in the vertical stack */
-.inspector .numSpin button:last-child::before{
-  content: "Ў";
-}
-
-/* If buttons are wrapped in a column div, still ensure the second is Ў */
-.inspector .numSpin button:nth-child(2)::before{
-  content: "Ў";
-}
-
-/* Make sure buttons remain centered */
-.inspector .numSpin button,
-.inspector .spinBtn,
-.inspector .stepBtn{
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
 
 
 /* ===== Stepper arrow safety-net (unknown classnames) =====
