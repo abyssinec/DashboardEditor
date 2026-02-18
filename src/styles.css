@@ -591,3 +591,10 @@ input[type=number]{ -moz-appearance: textfield; }
   resize:none;
   line-height:1.35;
 }
+.insPopPortal{
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(22,22,22,0.98);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.65);
+}
+

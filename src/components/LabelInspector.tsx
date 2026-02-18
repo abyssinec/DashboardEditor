@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { LabelObj } from "../types";
@@ -26,8 +27,12 @@ function normalizeHex(v: string) {
   return (s + "000000").slice(0, 7).toUpperCase();
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <div className="insLbl">{children}</div>;
+function Label({ children, style }: { children: React.ReactNode; style?: any }) {
+  return (
+    <div className="insLbl" style={style}>
+      {children}
+    </div>
+  );
 }
 function Row2({ children }: { children: React.ReactNode }) {
   return <div className="insRow2">{children}</div>;
@@ -152,11 +157,7 @@ function Dropdown({
 
   return (
     <div ref={rootRef} className="insDrop">
-      <button
-        type="button"
-        className="insDropBtn"
-        onClick={() => setOpen((v) => !v)}
-      >
+      <button type="button" className="insDropBtn" onClick={() => setOpen((v) => !v)}>
         <span>{label}</span>
         <span className="insDropCaret" />
       </button>
@@ -181,6 +182,85 @@ function Dropdown({
   );
 }
 
+/** Portal popover (NOT clipped by scroll/overflow) */
+function PortalPopover({
+  open,
+  anchorRef,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLElement>;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const popRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const update = () => {
+      const a = anchorRef.current;
+      if (!a) return;
+      const r = a.getBoundingClientRect();
+      const width = 372; // matches picker visually
+      const heightGuess = 360;
+
+      let left = r.left;
+      left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+
+      let top = r.bottom + 8;
+      if (top + heightGuess > window.innerHeight - 12) {
+        top = Math.max(12, r.top - heightGuess - 8);
+      }
+
+      setPos({ left, top });
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, anchorRef]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onDown(e: MouseEvent) {
+      const t = e.target as Node;
+      if (popRef.current && popRef.current.contains(t)) return;
+      if (anchorRef.current && anchorRef.current.contains(t)) return;
+      onClose();
+    }
+
+    window.addEventListener("mousedown", onDown, true);
+    return () => window.removeEventListener("mousedown", onDown, true);
+  }, [open, anchorRef, onClose]);
+
+  if (!open || !pos) return null;
+
+  return createPortal(
+    <div
+      ref={popRef}
+      className="insPopPortal"
+      style={{
+        position: "fixed",
+        left: pos.left,
+        top: pos.top,
+        zIndex: 9999,
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
 export function LabelInspector({ obj }: { obj: LabelObj }) {
   const fonts = useStore((s) => s.project.assets.fonts);
 
@@ -195,55 +275,39 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
   const [openStyle, setOpenStyle] = useState(true);
   const [openGauge, setOpenGauge] = useState(true);
 
-  // color picker (close outside)
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const popRef = useRef<HTMLDivElement | null>(null);
-  const btnRef = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!pickerOpen) return;
-      const t = e.target as Node;
-      if (popRef.current && popRef.current.contains(t)) return;
-      if (btnRef.current && btnRef.current.contains(t)) return;
-      setPickerOpen(false);
-    }
-    window.addEventListener("mousedown", onDown, true);
-    return () => window.removeEventListener("mousedown", onDown, true);
-  }, [pickerOpen]);
-
   const colorHex = normalizeHex(obj.style.color);
   const alpha = clampInt(obj.style.alpha, 100);
+
+  // main color picker
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  // shadow picker
+  const [shadowOpen, setShadowOpen] = useState(false);
+  const shadowBtnRef = useRef<HTMLButtonElement | null>(null);
+  const shadowHex = normalizeHex(obj.style.shadowColor);
+
+  // outline picker
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const outlineBtnRef = useRef<HTMLButtonElement | null>(null);
+  const outlineHex = normalizeHex(obj.style.outlineColor);
 
   return (
     <div className="insRoot">
       <div className="insTypeBar">Label</div>
 
-      {/* Name */}
       <Label>Name</Label>
-      <TextField
-        value={obj.name}
-        onChange={(e) => Actions.updateObject(obj.id, { name: e.target.value })}
-      />
+      <TextField value={obj.name} onChange={(e) => Actions.updateObject(obj.id, { name: e.target.value })} />
 
-      <Collapse
-        title="Transform"
-        open={openTransform}
-        onToggle={() => setOpenTransform((v) => !v)}
-      >
+      <Collapse title="Transform" open={openTransform} onToggle={() => setOpenTransform((v) => !v)}>
         <Row2>
           <div>
             <Label>Position X</Label>
-            <SpinNumber
-              value={obj.transform.x}
-              onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "x"], v)}
-            />
+            <SpinNumber value={obj.transform.x} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "x"], v)} />
           </div>
           <div>
             <Label>Position Y</Label>
-            <SpinNumber
-              value={obj.transform.y}
-              onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "y"], v)}
-            />
+            <SpinNumber value={obj.transform.y} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "y"], v)} />
           </div>
         </Row2>
 
@@ -251,25 +315,17 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           <Label>Rotation</Label>
           <SpinNumber
             value={obj.transform.rotation}
-            onChange={(v) =>
-              Actions.updateObjectDeep(obj.id, ["transform", "rotation"], v)
-            }
+            onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "rotation"], v)}
           />
         </div>
       </Collapse>
 
-      <Collapse
-        title="Settings"
-        open={openSettings}
-        onToggle={() => setOpenSettings((v) => !v)}
-      >
+      <Collapse title="Settings" open={openSettings} onToggle={() => setOpenSettings((v) => !v)}>
         <Label>Text</Label>
         <TextArea
           rows={3}
           value={obj.settings.text}
-          onChange={(e) =>
-            Actions.updateObjectDeep(obj.id, ["settings", "text"], e.target.value)
-          }
+          onChange={(e) => Actions.updateObjectDeep(obj.id, ["settings", "text"], e.target.value)}
         />
 
         <div style={{ marginTop: 12 }}>
@@ -278,9 +334,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
             <button
               className="insBtn"
               type="button"
-              onClick={() =>
-                Actions.openAssets("Fonts", { objectId: obj.id, field: "fontAssetId" })
-              }
+              onClick={() => Actions.openAssets("Fonts", { objectId: obj.id, field: "fontAssetId" })}
             >
               Select
             </button>
@@ -295,19 +349,14 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               <SpinNumber
                 value={obj.settings.fontSize}
                 min={1}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["settings", "fontSize"], v)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "fontSize"], v)}
               />
             </div>
-
             <div>
               <Label>Auto Size</Label>
               <Dropdown
                 value={obj.settings.autoSize}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["settings", "autoSize"], v as any)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "autoSize"], v as any)}
                 options={[
                   { value: "No", label: "No" },
                   { value: "Yes", label: "Yes" },
@@ -323,23 +372,18 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               <Label>Bold</Label>
               <Dropdown
                 value={obj.settings.bold}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["settings", "bold"], v as any)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "bold"], v as any)}
                 options={[
                   { value: "No", label: "No" },
                   { value: "Yes", label: "Yes" },
                 ]}
               />
             </div>
-
             <div>
               <Label>Italic</Label>
               <Dropdown
                 value={obj.settings.italic}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["settings", "italic"], v as any)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "italic"], v as any)}
                 options={[
                   { value: "No", label: "No" },
                   { value: "Yes", label: "Yes" },
@@ -355,9 +399,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               <Label>Align</Label>
               <Dropdown
                 value={obj.settings.align}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["settings", "align"], v as any)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "align"], v as any)}
                 options={[
                   { value: "Left", label: "Left" },
                   { value: "Center", label: "Center" },
@@ -365,14 +407,11 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
                 ]}
               />
             </div>
-
             <div>
               <Label>Wrap</Label>
               <Dropdown
                 value={obj.settings.wrap}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["settings", "wrap"], v as any)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "wrap"], v as any)}
                 options={[
                   { value: "No wrap", label: "No wrap" },
                   { value: "Word", label: "Word" },
@@ -384,15 +423,10 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
         </div>
       </Collapse>
 
-      <Collapse
-        title="Style"
-        open={openStyle}
-        onToggle={() => setOpenStyle((v) => !v)}
-      >
+      <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
         <Row2>
-          <div style={{ position: "relative" }}>
+          <div>
             <Label>Color</Label>
-
             <div className="insColorRow">
               <button
                 ref={btnRef}
@@ -404,14 +438,12 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               />
               <TextField
                 value={colorHex}
-                onChange={(e) =>
-                  Actions.updateObjectDeep(obj.id, ["style", "color"], normalizeHex(e.target.value))
-                }
+                onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "color"], normalizeHex(e.target.value))}
               />
             </div>
 
-            {pickerOpen ? (
-              <div ref={popRef} className="insPickerPopover">
+            <PortalPopover open={pickerOpen} anchorRef={btnRef as any} onClose={() => setPickerOpen(false)}>
+              <div className="insPickerPopover" style={{ position: "static" }}>
                 <ColorPicker
                   value={colorHex}
                   alpha={alpha}
@@ -421,7 +453,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
                   }}
                 />
               </div>
-            ) : null}
+            </PortalPopover>
           </div>
 
           <div>
@@ -443,9 +475,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
                 value={obj.style.glow}
                 min={0}
                 max={1000}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["style", "glow"], v)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "glow"], v)}
               />
             </div>
             <div />
@@ -456,19 +486,30 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           <Label>Shadow Color</Label>
           <div className="insColorRow">
             <button
+              ref={shadowBtnRef}
               type="button"
               className="insColorSwatchBtn"
-              style={{ background: normalizeHex(obj.style.shadowColor) }}
-              onClick={() => {}}
-              title="Shadow color (hex)"
+              style={{ background: shadowHex }}
+              onClick={() => setShadowOpen((v) => !v)}
+              title="Pick shadow color"
             />
             <TextField
-              value={normalizeHex(obj.style.shadowColor)}
-              onChange={(e) =>
-                Actions.updateObjectDeep(obj.id, ["style", "shadowColor"], normalizeHex(e.target.value))
-              }
+              value={shadowHex}
+              onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "shadowColor"], normalizeHex(e.target.value))}
             />
           </div>
+
+          <PortalPopover open={shadowOpen} anchorRef={shadowBtnRef as any} onClose={() => setShadowOpen(false)}>
+            <div className="insPickerPopover" style={{ position: "static" }}>
+              <ColorPicker
+                value={shadowHex}
+                alpha={100}
+                onChange={(nextHex) => {
+                  Actions.updateObjectDeep(obj.id, ["style", "shadowColor"], normalizeHex(nextHex));
+                }}
+              />
+            </div>
+          </PortalPopover>
         </div>
 
         <div style={{ marginTop: 12 }}>
@@ -477,18 +518,14 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               <Label>Shadow Offset X</Label>
               <SpinNumber
                 value={obj.style.shadowOffsetX}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["style", "shadowOffsetX"], v)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "shadowOffsetX"], v)}
               />
             </div>
             <div>
               <Label>Shadow Offset Y</Label>
               <SpinNumber
                 value={obj.style.shadowOffsetY}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["style", "shadowOffsetY"], v)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "shadowOffsetY"], v)}
               />
             </div>
           </Row2>
@@ -500,9 +537,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
             value={obj.style.shadowBlur}
             min={0}
             max={1000}
-            onChange={(v) =>
-              Actions.updateObjectDeep(obj.id, ["style", "shadowBlur"], v)
-            }
+            onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "shadowBlur"], v)}
           />
         </div>
 
@@ -510,19 +545,30 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           <Label>Outline Color</Label>
           <div className="insColorRow">
             <button
+              ref={outlineBtnRef}
               type="button"
               className="insColorSwatchBtn"
-              style={{ background: normalizeHex(obj.style.outlineColor) }}
-              onClick={() => {}}
-              title="Outline color (hex)"
+              style={{ background: outlineHex }}
+              onClick={() => setOutlineOpen((v) => !v)}
+              title="Pick outline color"
             />
             <TextField
-              value={normalizeHex(obj.style.outlineColor)}
-              onChange={(e) =>
-                Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(e.target.value))
-              }
+              value={outlineHex}
+              onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(e.target.value))}
             />
           </div>
+
+          <PortalPopover open={outlineOpen} anchorRef={outlineBtnRef as any} onClose={() => setOutlineOpen(false)}>
+            <div className="insPickerPopover" style={{ position: "static" }}>
+              <ColorPicker
+                value={outlineHex}
+                alpha={100}
+                onChange={(nextHex) => {
+                  Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(nextHex));
+                }}
+              />
+            </div>
+          </PortalPopover>
         </div>
 
         <div style={{ marginTop: 12 }}>
@@ -531,25 +577,17 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
             value={obj.style.outlineThickness}
             min={0}
             max={1000}
-            onChange={(v) =>
-              Actions.updateObjectDeep(obj.id, ["style", "outlineThickness"], v)
-            }
+            onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "outlineThickness"], v)}
           />
         </div>
       </Collapse>
 
-      <Collapse
-        title="Gauge settings"
-        open={openGauge}
-        onToggle={() => setOpenGauge((v) => !v)}
-      >
+      <Collapse title="Gauge settings" open={openGauge} onToggle={() => setOpenGauge((v) => !v)}>
         <div style={{ marginTop: 2 }}>
           <Label>Gauge Type</Label>
           <TextField
             value={obj.gauge.gaugeType}
-            onChange={(e) =>
-              Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], e.target.value)
-            }
+            onChange={(e) => Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], e.target.value)}
           />
         </div>
 
@@ -561,9 +599,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
                 value={obj.gauge.updateRateMs}
                 min={1}
                 max={100000}
-                onChange={(v) =>
-                  Actions.updateObjectDeep(obj.id, ["gauge", "updateRateMs"], v)
-                }
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "updateRateMs"], v)}
               />
             </div>
             <div>
@@ -571,11 +607,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               <TextField
                 value={String(obj.gauge.smoothingFactor)}
                 onChange={(e) =>
-                  Actions.updateObjectDeep(
-                    obj.id,
-                    ["gauge", "smoothingFactor"],
-                    Number(e.target.value) || 0
-                  )
+                  Actions.updateObjectDeep(obj.id, ["gauge", "smoothingFactor"], Number(e.target.value) || 0)
                 }
               />
             </div>
