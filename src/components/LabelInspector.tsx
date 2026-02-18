@@ -606,3 +606,6 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
     </div>
   );
 }
+
+
+

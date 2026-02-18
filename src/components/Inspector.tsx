@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 import { useStore } from "../hooks/useStore";
 import type { AnyObj, Screen } from "../types";
@@ -31,9 +31,11 @@ export function Inspector() {
         ) : obj.type === "Label" ? (
           <LabelInspector obj={obj} />
         ) : (
-          <div className="insRoot">TODO: next объектные инспекторы</div>
+          <div className="insRoot">TODO: next РѕР±СЉРµРєС‚РЅС‹Рµ РёРЅСЃРїРµРєС‚РѕСЂС‹</div>
         )}
       </div>
     </>
   );
 }
+
+

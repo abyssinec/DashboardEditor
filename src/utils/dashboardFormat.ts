@@ -1,4 +1,4 @@
-import JSZip from "jszip";
+﻿import JSZip from "jszip";
 
 import type { Manifest, Project } from "../types";
 
@@ -128,3 +128,5 @@ export async function importDashboard(fileBytes: Uint8Array): Promise<ImportedDa
 
   return { manifest, project, screens, assetBytes };
 }
+
+

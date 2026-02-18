@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
@@ -98,3 +98,5 @@ export function ViewPanel() {
     </div>
   );
 }
+
+

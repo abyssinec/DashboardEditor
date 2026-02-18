@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type Rect = { left: number; top: number; width: number; height: number };
@@ -98,3 +98,5 @@ export function InspectorPopover({
     document.body,
   );
 }
+
+

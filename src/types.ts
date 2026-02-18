@@ -164,3 +164,5 @@ export type Manifest = {
   app: { editor: "DashboardEditor"; editorVersion: string };
   minViewerVersion: number;
 };
+
+

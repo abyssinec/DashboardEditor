@@ -1,4 +1,4 @@
-/* DashboardEditor — responsive app layout (no page scroll) */
+﻿/* DashboardEditor вЂ” responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -133,7 +133,7 @@ body {
 }
 .insPanelTitle {
   text-align: center;
-} /* как в рефе */
+} /* РєР°Рє РІ СЂРµС„Рµ */
 
 .scrollArea {
   flex: 1 1 auto;
@@ -319,7 +319,7 @@ body {
 /* ===== Inspector like reference ===== */
 .inspector-scroll {
   padding: 0;
-} /* padding уже на scrollArea */
+} /* padding СѓР¶Рµ РЅР° scrollArea */
 .insRoot {
   padding: 10px;
 }
@@ -444,7 +444,7 @@ body {
   cursor: pointer;
 }
 
-/* убираем внутренние отступы и делаем заливку на весь размер */
+/* СѓР±РёСЂР°РµРј РІРЅСѓС‚СЂРµРЅРЅРёРµ РѕС‚СЃС‚СѓРїС‹ Рё РґРµР»Р°РµРј Р·Р°Р»РёРІРєСѓ РЅР° РІРµСЃСЊ СЂР°Р·РјРµСЂ */
 .insColorSwatch::-webkit-color-swatch-wrapper {
   padding: 0;
 }
@@ -679,7 +679,7 @@ body {
   position: relative;
 }
 .insSpinInput {
-  padding-right: 38px; /* место под стрелки */
+  padding-right: 38px; /* РјРµСЃС‚Рѕ РїРѕРґ СЃС‚СЂРµР»РєРё */
 }
 .insSpinBtns {
   position: absolute;
@@ -773,7 +773,7 @@ body {
   background: rgba(62, 163, 255, 0.28);
 }
 
-/* (опционально) скрыть нативные спиннеры на number (мы их больше не используем в инспекторе) */
+/* (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ) СЃРєСЂС‹С‚СЊ РЅР°С‚РёРІРЅС‹Рµ СЃРїРёРЅРЅРµСЂС‹ РЅР° number (РјС‹ РёС… Р±РѕР»СЊС€Рµ РЅРµ РёСЃРїРѕР»СЊР·СѓРµРј РІ РёРЅСЃРїРµРєС‚РѕСЂРµ) */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -783,7 +783,7 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 /* ============================= */
-/* GLOBAL SOFT UI – no hard borders */
+/* GLOBAL SOFT UI вЂ“ no hard borders */
 /* ============================= */
 
 .panel,
@@ -797,14 +797,14 @@ input[type="number"] {
   border: none !important;
 }
 
-/* мягкие фоновые карточки */
+/* РјСЏРіРєРёРµ С„РѕРЅРѕРІС‹Рµ РєР°СЂС‚РѕС‡РєРё */
 .panel,
 .insDropMenu,
 .insPickerPopover {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
 }
 
-/* мягкие input поля */
+/* РјСЏРіРєРёРµ input РїРѕР»СЏ */
 .insField,
 .insSpinInput,
 .insDropBtn {
@@ -826,3 +826,607 @@ input[type="number"] {
   background: rgba(22, 22, 22, 0.98);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
 }
+
+/* ===== Assets panel (scroll + footer) ===== */
+.assetsPanelRoot { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.assetsScroll { flex: 1 1 auto; min-height: 0; padding: 10px; }
+
+/* headers like the reference */
+.assetsSection { margin-bottom: 10px; }
+.assetsSectionHead {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.assetsSectionTitle { opacity: 0.9; }
+.assetsSectionBody { padding-top: 8px; }
+
+/* list rows */
+.assetsRow { opacity: 0.95; background: rgba(255,255,255,0.04); }
+.assetsRow:hover { background: rgba(255,255,255,0.06); }
+
+/* footer button pinned bottom */
+.assetsFooter { flex: 0 0 auto; padding: 10px; }
+.assetsUploadBtn {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(62,163,255,0.55);
+}
+.assetsUploadBtn:hover { background: rgba(62,163,255,0.7); }
+
+
+/* ===== Assets Header + Close Button ===== */
+.assetsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 6px 14px;
+}
+
+.assetsCloseBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.assetsCloseBtn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+
+/* ===== Assets overlay blur ===== */
+.assetsOverlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10px;
+  z-index: 50;
+}
+
+/* keep panel size same as before; ensure it doesn't stretch */
+.assetsPanelRoot{
+  width: min(360px, 94vw);
+  max-height: calc(100vh - 20px);
+}
+
+/* ===== Header like Inspector (center title, same height/position) ===== */
+.assetsHeaderLike{
+  position: relative;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.assetsHeaderTitle{
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.2px;
+}
+
+/* Close button stays right */
+.assetsCloseBtn{
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  cursor: pointer;
+}
+.assetsCloseBtn:hover{
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+/* Adjust scroll padding because header now has its own padding/border */
+.assetsScroll{ padding: 10px; }
+
+
+/* ===== Assets modal (premium) ===== */
+.assetsOverlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 18px;
+  z-index: 1000;
+}
+
+.assetsModal{
+  width: min(420px, 94vw);
+  max-height: calc(100vh - 36px);
+  border-radius: 18px;
+  background: rgba(20,20,20,0.92);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+  overflow: hidden;
+}
+
+.assetsHeaderLike{
+  position: relative;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.assetsHeaderTitle{
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.88);
+  letter-spacing: 0.2px;
+}
+
+.assetsCloseBtn{
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  cursor: pointer;
+}
+.assetsCloseBtn:hover{
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.95);
+}
+
+.assetsBody{
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 36px - 44px);
+}
+
+.assetsScrollArea{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 10px 12px 10px;
+}
+
+/* sections */
+.assetsSection{ margin-bottom: 10px; }
+.assetsSectionHead{
+  width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border: none;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.assetsSectionHead:hover{
+  background: rgba(255,255,255,0.05);
+}
+.assetsSectionBody{ padding-top: 8px; }
+
+.assetsCaret{
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.65);
+  transition: transform 120ms ease;
+}
+.assetsCaret.open{ transform: rotate(180deg); }
+.assetsCaret svg{ width: 18px; height: 18px; }
+
+/* list rows */
+.assetsList{ display: flex; flex-direction: column; gap: 8px; }
+
+.assetsRow{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.86);
+  cursor: pointer;
+  text-align: left;
+}
+.assetsRow:hover{
+  background: rgba(255,255,255,0.05);
+}
+.assetsRowName{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.assetsRowRight{
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assetsIconBtn{
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.65);
+  cursor: pointer;
+}
+.assetsIconBtn:hover{
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.95);
+}
+.assetsIconBtn svg{ width: 16px; height: 16px; }
+
+/* footer pinned */
+.assetsFooter{
+  flex: 0 0 auto;
+  padding: 12px 10px 12px 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(18,18,18,0.72);
+}
+
+.assetsUploadBtn{
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  color: rgba(255,255,255,0.95);
+  background: rgba(62,163,255,0.42);
+}
+.assetsUploadBtn:hover{
+  background: rgba(62,163,255,0.56);
+}
+
+
+/* ===== Assets modal: scrollbar + no 1px borders (override) ===== */
+.assetsModal,
+.assetsHeaderLike,
+.assetsFooter,
+.assetsSectionHead,
+.assetsRow,
+.assetsUploadBtn { border: none !important; }
+
+.assetsHeaderLike { box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04) !important; }
+.assetsFooter      { box-shadow: inset 0  1px 0 rgba(255,255,255,0.04) !important; }
+.assetsSectionHead { box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset !important; }
+.assetsRow         { box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset !important; }
+
+.assetsRow.isDisabled { opacity: 0.45; cursor: default; }
+.assetsRow.isDisabled:hover { background: rgba(255,255,255,0.03); }
+
+/* Scrollbar like Inspector */
+.assetsScrollArea{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+.assetsScrollArea::-webkit-scrollbar{ width: 10px; }
+.assetsScrollArea::-webkit-scrollbar-track{ background: transparent; }
+.assetsScrollArea::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.14);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.assetsScrollArea::-webkit-scrollbar-thumb:hover{
+  background: rgba(255,255,255,0.22);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* Assets: no 1px outlines anywhere */
+.assetsSectionHead,
+.assetsRow{
+  box-shadow: none !important;
+}
+
+/* Assets: remove background from section headers */
+.assetsSectionHead{
+  background: transparent !important;
+}
+
+.assetsSectionHead:hover{
+  background: rgba(255,255,255,0.04) !important; /* лёгкий hover, без подложки */
+}
+
+/* ===== Assets full-height layout ===== */
+
+.assetsOverlay{
+  display: flex;
+  align-items: flex-start !important;   /* не центрируем по вертикали */
+  justify-content: center;
+  padding-top: 40px;                    /* верхний отступ */
+  padding-bottom: 40px;                 /* такой же снизу */
+}
+
+.assetsModal{
+  height: calc(100vh - 80px);           /* 40 + 40 */
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* scroll area stretches */
+.assetsScrollArea{
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* footer stays pinned */
+.assetsFooter{
+  flex-shrink: 0;
+}
+
+
+/* ===== Assets modal layout fix (pro layout) ===== */
+
+.assetsModal {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px); /* same top spacing */
+}
+
+.assetsScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 12px 24px;
+}
+
+.assetsFooter {
+  padding: 16px 24px 24px 24px;
+}
+
+.assetsUploadBtn {
+  width: 100%;
+}
+
+/* ensure overlay doesn't scroll */
+.assetsOverlay {
+  overflow: hidden;
+}
+
+
+/* ===== Assets footer pin fix v2 ===== */
+
+/* overlay sizing (keep equal top/bottom padding) */
+.assetsOverlay{
+  display: flex;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 40px 20px 40px 20px !important;
+}
+
+/* modal full height within padding */
+.assetsModal{
+  height: calc(100vh - 80px) !important;      /* 40 top + 40 bottom */
+  max-height: calc(100vh - 80px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* IMPORTANT: the wrapper between header and footer must be flex too */
+.assetsBody{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;                   /* allows internal scrolling */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* scroll area consumes remaining height */
+.assetsScrollArea{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* footer stays at bottom */
+.assetsFooter{
+  margin-top: auto !important;
+  flex: 0 0 auto !important;
+
+  /* remove "underlay" look */
+  background: transparent !important;
+  backdrop-filter: none !important;
+
+  /* subtle separation like Inspector */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+
+
+/* ===== Inspector spinner arrows fix ===== */
+.inspector button,
+.inspector .numSpin button,
+.inspector .spinBtn,
+.inspector .stepBtn{
+  font-family: inherit !important;
+  line-height: 1 !important;
+}
+
+.inspector .numSpin button,
+.inspector .spinBtn,
+.inspector .stepBtn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+
+/* ===== ScreenInspector: clear background image button ===== */
+.assetValueRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.assetClearBtn{
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.assetClearBtn:hover{
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.92);
+}
+.assetClearBtn svg{
+  width: 18px;
+  height: 18px;
+}
+.assetClearBtn.isDisabled,
+.assetClearBtn:disabled{
+  opacity: 0.45;
+  cursor: default;
+}
+
+
+/* ===== FORCE spinner arrows (Inspector) =====
+   Some builds show broken glyphs like "B- … j" inside stepper buttons.
+   We hide the original content and draw ^/Ў with ::before.
+*/
+
+/* Targets the numeric stepper block used in inspectors */
+.inspector .numSpin button,
+.inspector .spinBtn,
+.inspector .stepBtn{
+  font-size: 0 !important;        /* hide any text/icon ligatures */
+  color: transparent !important;
+}
+
+/* Draw arrows */
+.inspector .numSpin button::before,
+.inspector .spinBtn::before,
+.inspector .stepBtn::before{
+  content: "^";
+  font-size: 13px;
+  line-height: 1;
+  color: rgba(255,255,255,0.85);
+}
+
+/* Down button: usually the 2nd button in the vertical stack */
+.inspector .numSpin button:last-child::before{
+  content: "Ў";
+}
+
+/* If buttons are wrapped in a column div, still ensure the second is Ў */
+.inspector .numSpin button:nth-child(2)::before{
+  content: "Ў";
+}
+
+/* Make sure buttons remain centered */
+.inspector .numSpin button,
+.inspector .spinBtn,
+.inspector .stepBtn{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+
+
+/* ===== Stepper arrow safety-net (unknown classnames) =====
+   If any icon-font still leaks, hide it and show ▲/▼ via ::before.
+*/
+.inspector button[class*="Spin"],
+.inspector button[class*="spin"],
+.inspector button[class*="Step"],
+.inspector button[class*="step"],
+.inspector button[class*="Arrow"],
+.inspector button[class*="arrow"]{
+  font-family: inherit !important;
+}
+
+.inspector button[class*="Spin"] *,
+.inspector button[class*="spin"] *,
+.inspector button[class*="Step"] *,
+.inspector button[class*="step"] *,
+.inspector button[class*="Arrow"] *,
+.inspector button[class*="arrow"] *{
+  display: none !important;
+}
+
+.inspector button[class*="Spin"]::before,
+.inspector button[class*="spin"]::before,
+.inspector button[class*="Step"]::before,
+.inspector button[class*="step"]::before,
+.inspector button[class*="Arrow"]::before,
+.inspector button[class*="arrow"]::before{
+  content: "▲";
+  font-size: 13px;
+  line-height: 1;
+  color: rgba(255,255,255,0.85);
+}
+
+/* if it's the second button in a vertical pair -> ▼ */
+.inspector button[class*="Spin"]:nth-of-type(2)::before,
+.inspector button[class*="spin"]:nth-of-type(2)::before,
+.inspector button[class*="Step"]:nth-of-type(2)::before,
+.inspector button[class*="step"]:nth-of-type(2)::before,
+.inspector button[class*="Arrow"]:nth-of-type(2)::before,
+.inspector button[class*="arrow"]:nth-of-type(2)::before{
+  content: "▼";
+}
+
+

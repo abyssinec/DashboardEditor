@@ -1,4 +1,4 @@
-const DB = "nf_dash";
+﻿const DB = "nf_dash";
 const STORE = "kv";
 const KEY_SKIN = "currentSkin";
 const KEY_PROJECT = "lastProject";
@@ -61,3 +61,5 @@ export const Idb = {
     return await get<T>(KEY_PROJECT);
   },
 };
+
+

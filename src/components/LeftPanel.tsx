@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
@@ -103,7 +103,7 @@ export function LeftPanel() {
             >
               <div className="name">{o.name}</div>
 
-              {/* ВСЕГДА показываем кнопки справа, включая delete */}
+              {/* Р’РЎР•Р“Р”Рђ РїРѕРєР°Р·С‹РІР°РµРј РєРЅРѕРїРєРё СЃРїСЂР°РІР°, РІРєР»СЋС‡Р°СЏ delete */}
               <div className="itemRight">
                 <DownIcon onClick={() => Actions.moveObject(o.id, -1)} />
                 <UpIcon onClick={() => Actions.moveObject(o.id, +1)} />
@@ -116,3 +116,5 @@ export function LeftPanel() {
     </>
   );
 }
+
+

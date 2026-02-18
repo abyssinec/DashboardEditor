@@ -1,4 +1,4 @@
-import { produce } from "immer";
+﻿import { produce } from "immer";
 import { nanoid } from "nanoid";
 
 import type { AnyObj, Asset, AssetKind, Project, Screen } from "./types";
@@ -37,7 +37,7 @@ export const defaultProject = (): Project => {
   return {
     project: { id: "proj_" + nanoid(6), name: "Project name.dash" },
     assets: { images: [], fonts: [] },
-    screens: [screen1], // ✅ только один экран
+    screens: [screen1], // вњ… С‚РѕР»СЊРєРѕ РѕРґРёРЅ СЌРєСЂР°РЅ
   };
 };
 
@@ -373,3 +373,5 @@ export const Actions = {
     );
   },
 };
+
+

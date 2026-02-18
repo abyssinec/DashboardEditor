@@ -1,4 +1,4 @@
-export function clampInt(v: any, fallback: number) {
+﻿export function clampInt(v: any, fallback: number) {
   const n = parseInt(String(v), 10);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -21,3 +21,5 @@ export function normalizeHex(v: string) {
   if (s.length >= 7) return s.slice(0, 7).toUpperCase();
   return (s + "000000").slice(0, 7).toUpperCase();
 }
+
+

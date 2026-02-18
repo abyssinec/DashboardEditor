@@ -159,6 +159,29 @@ function Dropdown({
   );
 }
 
+function TrashSmall({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      className={"assetClearBtn" + (disabled ? " isDisabled" : "")}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!disabled) onClick(); }}
+      aria-label="Clear"
+      title="Clear"
+      disabled={disabled}
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M9 3h6m-8 4h10m-9 0 1 14h6l1-14M10 11v7m4-7v7"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export function ScreenInspector({ screen }: { screen: Screen }) {
   const images = useStore((s) => s.project.assets.images);
 
@@ -322,3 +345,7 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
     </div>
   );
 }
+
+
+
+

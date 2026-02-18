@@ -148,8 +148,55 @@ export function CanvasView() {
 
   // assets: fonts + bytes (С‡С‚РѕР±С‹ РїСЂРёРјРµРЅСЏР»СЃСЏ РІС‹Р±СЂР°РЅРЅС‹Р№ С€СЂРёС„С‚ РёР· asset manager)
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
+  const imageAssets = useStore((s) => (s.project as any).assets?.images ?? []);
   const assetBytes = useStore((s) => (s as any).assetBytes ?? {});
 
+
+  const bgImgRef = useRef<HTMLImageElement | null>(null);
+  const bgUrlRef = useRef<string | null>(null);
+  const [bgVersion, setBgVersion] = useState<number>(0);
+useEffect(() => {
+    const bgId = (screen as any).style?.backgroundImageAssetId as string | undefined;
+    if (bgUrlRef.current) {
+      try { URL.revokeObjectURL(bgUrlRef.current); } catch { /* ignore */ }
+      bgUrlRef.current = null;
+    }
+    bgImgRef.current = null;
+
+    if (!bgId) {
+      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));return;
+    }
+
+    const a: any = (imageAssets as any[]).find((x) => x.id === bgId);
+    const bytes: any = (assetBytes as any)[bgId];
+    if (!a || !bytes) {
+      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));return;
+    }
+
+    // bytes may be Uint8Array/ArrayBufferLike; normalize to ArrayBuffer for BlobPart
+    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const ab = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+
+    const blob = new Blob([ab], { type: a.mime || "image/png" });
+    const url = URL.createObjectURL(blob);
+    bgUrlRef.current = url;
+
+    const img = new Image();
+    img.onload = () => {
+      bgImgRef.current = img;
+      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));};
+    img.onerror = () => {
+      bgImgRef.current = null;
+      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));};
+    img.src = url;
+
+    return () => {
+      if (bgUrlRef.current) {
+        try { URL.revokeObjectURL(bgUrlRef.current); } catch { /* ignore */ }
+        bgUrlRef.current = null;
+      }
+    };
+  }, [screen.id, (screen as any).style?.backgroundImageAssetId, (screen as any).style?.fill, imageAssets, assetBytes]);
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
@@ -300,6 +347,52 @@ export function CanvasView() {
     ctx.fillStyle = hexToRgba(screen.style.color || "#000000", bgAlpha);
     ctx.fillRect(tl.sx, tl.sy, srW, srH);
     ctx.restore();
+
+    // draw screen background image (if set)
+    // (bgVersion is used only to trigger redraw when image loads)
+    void bgVersion;
+const bgImg = bgImgRef.current;
+    if (bgImg) {
+      const srcW = (bgImg as any).naturalWidth || bgImg.width;
+      const srcH = (bgImg as any).naturalHeight || bgImg.height;
+
+      if (srcW > 0 && srcH > 0) {
+        const fillMode = (screen.style as any).fill || "Fit";
+
+        ctx.save();
+        ctx.globalAlpha = bgAlpha;
+
+        if (fillMode === "Stretch") {
+          ctx.drawImage(bgImg, tl.sx, tl.sy, srW, srH);
+        } else {
+          const screenAR = srW / srH;
+          const imgAR = srcW / srcH;
+
+          if (fillMode === "Fill") {
+            let sx = 0, sy = 0, sw = srcW, sh = srcH;
+
+            if (screenAR > imgAR) {
+              sh = Math.round(srcW / screenAR);
+              sy = Math.round((srcH - sh) / 2);
+            } else {
+              sw = Math.round(srcH * screenAR);
+              sx = Math.round((srcW - sw) / 2);
+            }
+
+            ctx.drawImage(bgImg, sx, sy, sw, sh, tl.sx, tl.sy, srW, srH);
+          } else {
+            const scale = Math.min(srW / srcW, srH / srcH);
+            const dw = srcW * scale;
+            const dh = srcH * scale;
+            const dx = tl.sx + (srW - dw) / 2;
+            const dy = tl.sy + (srH - dh) / 2;
+            ctx.drawImage(bgImg, dx, dy, dw, dh);
+          }
+        }
+
+        ctx.restore();
+      }
+    }
 
     // screen border
     ctx.save();
@@ -530,8 +623,7 @@ export function CanvasView() {
     screen.style.color,
     screen.style.alpha,
     fontAssets,
-    assetBytes,
-  ]);
+    assetBytes, bgVersion]);
 
   function onMouseDown(e: React.MouseEvent) {
     const c = canvasRef.current!;
@@ -643,3 +735,14 @@ export function CanvasView() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
