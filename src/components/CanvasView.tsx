@@ -18,6 +18,19 @@ function hexToRgba(hex: string, alpha01: number) {
   return `rgba(${r},${g},${b},${clamp(alpha01, 0, 1)})`;
 }
 
+function normalizeHex(v: string) {
+  let s = (v || "").trim();
+  if (!s) return "#000000";
+  if (!s.startsWith("#")) s = "#" + s;
+  s = "#" + s.slice(1).replace(/[^0-9a-fA-F]/g, "");
+  if (s.length === 4) {
+    const r = s[1], g = s[2], b = s[3];
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+  if (s.length >= 7) return s.slice(0, 7).toUpperCase();
+  return (s + "000000").slice(0, 7).toUpperCase();
+}
+
 function objectBounds(o: AnyObj) {
   if (o.type === "Label") return { x: o.transform.x, y: o.transform.y, w: 220, h: 60 };
   if (o.type === "Image") {
@@ -30,6 +43,96 @@ function objectBounds(o: AnyObj) {
   return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
 }
 
+function degToRad(deg: number) {
+  return (deg * Math.PI) / 180;
+}
+
+function wrapLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  mode: "No wrap" | "Word" | "Char"
+) {
+  const t = (text ?? "").replace(/\r/g, "");
+  if (!t) return [""];
+
+  const baseLines = t.split("\n");
+  if (mode === "No wrap") return baseLines;
+
+  const out: string[] = [];
+
+  for (const base of baseLines) {
+    if (!base) {
+      out.push("");
+      continue;
+    }
+
+    if (mode === "Char") {
+      let cur = "";
+      for (const ch of base) {
+        const next = cur + ch;
+        if (ctx.measureText(next).width <= maxWidth || cur.length === 0) {
+          cur = next;
+        } else {
+          out.push(cur);
+          cur = ch;
+        }
+      }
+      if (cur.length) out.push(cur);
+      continue;
+    }
+
+    // Word wrap
+    const parts = base.split(/(\s+)/);
+    let cur = "";
+    for (const p of parts) {
+      const next = cur + p;
+      if (ctx.measureText(next).width <= maxWidth || cur.trim().length === 0) {
+        cur = next;
+      } else {
+        out.push(cur.trimEnd());
+        cur = p.trimStart();
+      }
+    }
+    if (cur.length) out.push(cur.trimEnd());
+  }
+
+  return out;
+}
+
+function buildFont(sizePx: number, family: string, bold: boolean, italic: boolean) {
+  return `${italic ? "italic " : ""}${bold ? "700" : "400"} ${Math.max(6, Math.round(sizePx))}px ${family}`;
+}
+
+function fitFontSize(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  family: string,
+  bold: boolean,
+  italic: boolean,
+  startSize: number,
+  maxW: number,
+  maxH: number,
+  wrapMode: "No wrap" | "Word" | "Char"
+) {
+  let size = Math.max(6, startSize);
+  for (let i = 0; i < 80; i++) {
+    ctx.font = buildFont(size, family, bold, italic);
+    const lines = wrapLines(ctx, text, maxW, wrapMode);
+    const lineH = Math.ceil(size * 1.2);
+    const totalH = lines.length * lineH;
+
+    let maxLineW = 0;
+    for (const l of lines) maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+
+    if (maxLineW <= maxW + 0.5 && totalH <= maxH + 0.5) return size;
+
+    size -= 1;
+    if (size <= 6) return 6;
+  }
+  return Math.max(6, size);
+}
+
 export function CanvasView() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -39,10 +142,45 @@ export function CanvasView() {
 
   const sorted = useMemo(() => [...screen.objects].sort((a, b) => a.z - b.z), [screen.objects]);
 
+  // assets: fonts + bytes (чтобы применялся выбранный шрифт из asset manager)
+  const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
+  const assetBytes = useStore((s) => (s as any).assetBytes ?? {});
+
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
+
+  // Register fonts (FontFace)
+  useEffect(() => {
+    const anyWin = window as any;
+    if (!anyWin.__dash_fontReg) anyWin.__dash_fontReg = new Set<string>();
+    const reg: Set<string> = anyWin.__dash_fontReg;
+
+    (async () => {
+      for (const a of fontAssets) {
+        const id = a?.id;
+        if (!id) continue;
+        if (reg.has(id)) continue;
+
+        const bytes: Uint8Array | undefined = assetBytes[id];
+        if (!bytes) continue;
+
+        try {
+          const blob = new Blob([bytes], { type: a.mime || "font/ttf" });
+          const url = URL.createObjectURL(blob);
+          const family = `dash_font_${id}`;
+          const ff = new FontFace(family, `url(${url})`);
+          await ff.load();
+          (document as any).fonts.add(ff);
+          reg.add(id);
+        } catch {
+          // если не загрузился — просто fallback на Inter
+          reg.add(id);
+        }
+      }
+    })();
+  }, [fontAssets, assetBytes]);
 
   // Key handling (Space for pan)
   useEffect(() => {
@@ -122,27 +260,26 @@ export function CanvasView() {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-// softer grid (less visible)
-ctx.save();
-ctx.globalAlpha = 0.07;           
-ctx.strokeStyle = "#9E9E9E";      
-ctx.lineWidth = 1;
+    // softer grid (less visible)
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.strokeStyle = "#9E9E9E";
+    ctx.lineWidth = 1;
 
-const step = 140 * vp.zoom;       
-for (let x = (c.width / 2) % step; x < c.width; x += step) {
-  ctx.beginPath();
-  ctx.moveTo(x, 0);
-  ctx.lineTo(x, c.height);
-  ctx.stroke();
-}
-for (let y = (c.height / 2) % step; y < c.height; y += step) {
-  ctx.beginPath();
-  ctx.moveTo(0, y);
-  ctx.lineTo(c.width, y);
-  ctx.stroke();
-}
-ctx.restore();
-
+    const step = 140 * vp.zoom;
+    for (let x = (c.width / 2) % step; x < c.width; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, c.height);
+      ctx.stroke();
+    }
+    for (let y = (c.height / 2) % step; y < c.height; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(c.width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
 
     // screen rect (centered at world origin)
     const tl = worldToScreen(-sw / 2, -sh / 2);
@@ -171,16 +308,135 @@ ctx.restore();
       const w = b.w * vp.zoom;
       const h = b.h * vp.zoom;
 
+      // rotation (в градусах)
+      const rotDeg = (o.transform as any).rotation ?? 0;
+      const rot = degToRad(rotDeg);
+      const cx = p.sx + w / 2;
+      const cy = p.sy + h / 2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rot);
+      ctx.translate(-cx, -cy);
+
       // preview draw per type
       if (o.type === "Label") {
         const alpha = (o.style.alpha ?? 100) / 100;
-        ctx.save();
-        ctx.fillStyle = hexToRgba(o.style.color || "#3EA3FF", alpha);
-        ctx.globalAlpha = 1;
-        ctx.font = `${o.settings.bold === "Yes" ? "700" : "400"} ${Math.max(10, (o.settings.fontSize || 20) * vp.zoom)}px Inter`;
-        ctx.textBaseline = "top";
+
         const txt = o.settings.text?.length ? o.settings.text : o.name;
-        ctx.fillText(txt, p.sx + 6, p.sy + 6);
+
+        const bold = o.settings.bold === "Yes";
+        const italic = o.settings.italic === "Yes";
+
+        const wrapMode = (o.settings.wrap as any) ?? "No wrap";
+        const align = (o.settings.align as any) ?? "Left";
+        const autoSize = (o.settings.autoSize as any) === "Yes";
+
+        // font asset
+        const fontAssetId = (o.settings as any).fontAssetId;
+        const family = fontAssetId ? `dash_font_${fontAssetId}` : "Inter";
+
+        // padding inside label box (world px -> screen px via zoom)
+        const padX = 6 * vp.zoom;
+        const padY = 6 * vp.zoom;
+
+        // available box for text (in screen px)
+        const maxW = Math.max(10, w - padX * 2);
+        const maxH = Math.max(10, h - padY * 2);
+
+        // base font size in screen px
+        const baseSize = Math.max(10, (o.settings.fontSize || 20)) * vp.zoom;
+
+        // compute size (autosize shrinks)
+        let fontSize = baseSize;
+        if (autoSize) {
+          // IMPORTANT: fitFontSize expects unscaled sizes, so we fit in screen px with screen px size
+          const tmpStart = Math.max(6, Math.round(baseSize));
+          fontSize = fitFontSize(ctx, txt, family, bold, italic, tmpStart, maxW, maxH, wrapMode);
+        }
+
+        ctx.font = buildFont(fontSize, family, bold, italic);
+        ctx.textBaseline = "top";
+
+        if (align === "Center") ctx.textAlign = "center";
+        else if (align === "Right") ctx.textAlign = "right";
+        else ctx.textAlign = "left";
+
+        const lines = wrapLines(ctx, txt, maxW, wrapMode);
+        const lineH = Math.ceil(fontSize * 1.2);
+
+        const x =
+          align === "Center"
+            ? p.sx + w / 2
+            : align === "Right"
+              ? p.sx + w - padX
+              : p.sx + padX;
+        const y0 = p.sy + padY;
+
+        // ----- STYLE FX -----
+        const textColor = normalizeHex(o.style.color || "#3EA3FF");
+        const glow = Math.max(0, (o.style as any).glow ?? 0);
+        const shadowColor = normalizeHex((o.style as any).shadowColor || "#000000");
+        const shadowBlur = Math.max(0, (o.style as any).shadowBlur ?? 0);
+        const shadowOffX = (o.style as any).shadowOffsetX ?? 0;
+        const shadowOffY = (o.style as any).shadowOffsetY ?? 0;
+
+        const outlineColor = normalizeHex((o.style as any).outlineColor || "#000000");
+        const outlineThickness = Math.max(0, (o.style as any).outlineThickness ?? 0);
+
+        // 1) glow pass (behind)
+        if (glow > 0) {
+          ctx.save();
+          ctx.globalAlpha = 1;
+          ctx.shadowBlur = glow * vp.zoom;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+
+          // glowAlpha не делаем огромным — чтобы не засвечивало
+          const glowAlpha = clamp((glow / 200) * alpha, 0, 0.9);
+          ctx.shadowColor = hexToRgba(textColor, glowAlpha);
+          ctx.fillStyle = hexToRgba(textColor, alpha);
+
+          for (let i = 0; i < lines.length; i++) {
+            const yy = y0 + i * lineH;
+            ctx.fillText(lines[i], x, yy);
+          }
+          ctx.restore();
+        }
+
+        // 2) shadow + outline + fill
+        ctx.save();
+        ctx.globalAlpha = 1;
+
+        if (shadowBlur > 0 || shadowOffX !== 0 || shadowOffY !== 0) {
+          ctx.shadowBlur = shadowBlur * vp.zoom;
+          ctx.shadowOffsetX = shadowOffX * vp.zoom;
+          ctx.shadowOffsetY = shadowOffY * vp.zoom;
+          ctx.shadowColor = hexToRgba(shadowColor, alpha);
+        } else {
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.shadowColor = "transparent";
+        }
+
+        // outline first
+        if (outlineThickness > 0) {
+          ctx.lineWidth = outlineThickness * vp.zoom;
+          ctx.strokeStyle = hexToRgba(outlineColor, alpha);
+          for (let i = 0; i < lines.length; i++) {
+            const yy = y0 + i * lineH;
+            ctx.strokeText(lines[i], x, yy);
+          }
+        }
+
+        // fill
+        ctx.fillStyle = hexToRgba(textColor, alpha);
+        for (let i = 0; i < lines.length; i++) {
+          const yy = y0 + i * lineH;
+          ctx.fillText(lines[i], x, yy);
+        }
+
         ctx.restore();
       } else if (o.type === "Image") {
         ctx.save();
@@ -197,8 +453,8 @@ ctx.restore();
         ctx.restore();
       } else if (o.type === "Arc") {
         const alpha = (o.style.alpha ?? 100) / 100;
-        const cx = p.sx + w / 2;
-        const cy = p.sy + h / 2;
+        const ccx = p.sx + w / 2;
+        const ccy = p.sy + h / 2;
         const r = Math.min(w, h) * 0.38;
         const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
 
@@ -208,7 +464,7 @@ ctx.restore();
         ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
         ctx.lineWidth = thickness;
         ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.arc(ccx, ccy, r, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
 
@@ -219,7 +475,7 @@ ctx.restore();
         ctx.strokeStyle = o.style.color || "#3EA3FF";
         ctx.lineWidth = thickness;
         ctx.beginPath();
-        ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * value);
+        ctx.arc(ccx, ccy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * value);
         ctx.stroke();
         ctx.restore();
       } else if (o.type === "Bar") {
@@ -259,8 +515,20 @@ ctx.restore();
         ctx.strokeRect(p.sx, p.sy, w, h);
         ctx.restore();
       }
+
+      ctx.restore(); // rotation scope
     }
-  }, [sorted, selectedObjectId, vp, screen.settings.width, screen.settings.height, screen.style.color, screen.style.alpha]);
+  }, [
+    sorted,
+    selectedObjectId,
+    vp,
+    screen.settings.width,
+    screen.settings.height,
+    screen.style.color,
+    screen.style.alpha,
+    fontAssets,
+    assetBytes,
+  ]);
 
   function onMouseDown(e: React.MouseEvent) {
     const c = canvasRef.current!;
@@ -309,8 +577,8 @@ ctx.restore();
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    const newX = (w.x - dragObj.dx) + sw / 2;
-    const newY = (w.y - dragObj.dy) + sh / 2;
+    const newX = w.x - dragObj.dx + sw / 2;
+    const newY = w.y - dragObj.dy + sh / 2;
 
     Actions.updateObjectDeep(dragObj.id, ["transform", "x"], Math.round(newX));
     Actions.updateObjectDeep(dragObj.id, ["transform", "y"], Math.round(newY));
