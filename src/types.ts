@@ -1,4 +1,4 @@
-export type AssetKind = "image" | "font";
+﻿export type AssetKind = "image" | "font";
 
 export type Asset = {
   id: string;
@@ -52,8 +52,8 @@ export type LabelSettings = {
   fontAssetId?: string;
   fontSize: number;
   autoSize: "No";
-  bold: "No";
-  italic: "No";
+  bold: "Yes" | "No";
+  italic: "Yes" | "No";
   align: "Left";
   wrap: "No wrap";
 };

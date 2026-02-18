@@ -1,5 +1,6 @@
 import { produce } from "immer";
 import { nanoid } from "nanoid";
+
 import type { AnyObj, Asset, AssetKind, Project, Screen } from "./types";
 
 export type AssetsPanelState = {
@@ -113,7 +114,7 @@ export const Actions = {
         d.project.screens.push(screen);
         d.selectedScreenId = id;
         d.selectedObjectId = undefined;
-      })
+      }),
     );
   },
 
@@ -126,7 +127,7 @@ export const Actions = {
           d.selectedScreenId = d.project.screens[0].id;
           d.selectedObjectId = undefined;
         }
-      })
+      }),
     );
   },
 
@@ -232,7 +233,7 @@ export const Actions = {
         const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
         s.objects.push(obj);
         d.selectedObjectId = id;
-      })
+      }),
     );
   },
 
@@ -242,7 +243,7 @@ export const Actions = {
         const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
         s.objects = s.objects.filter((o) => o.id !== objectId);
         if (d.selectedObjectId === objectId) d.selectedObjectId = undefined;
-      })
+      }),
     );
   },
 
@@ -259,7 +260,7 @@ export const Actions = {
         const tmp = a.z;
         a.z = b.z;
         b.z = tmp;
-      })
+      }),
     );
   },
 
@@ -269,7 +270,7 @@ export const Actions = {
         const s = d.project.screens.find((x) => x.id === screenId);
         if (!s) return;
         Object.assign(s, patch);
-      })
+      }),
     );
   },
 
@@ -280,7 +281,7 @@ export const Actions = {
         const obj = s.objects.find((o) => o.id === objectId);
         if (!obj) return;
         Object.assign(obj as any, patch);
-      })
+      }),
     );
   },
 
@@ -293,7 +294,7 @@ export const Actions = {
         let cur = obj;
         for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]];
         cur[path[path.length - 1]] = value;
-      })
+      }),
     );
   },
 
@@ -325,15 +326,14 @@ export const Actions = {
         if (kind === "image") d.project.assets.images.push(asset);
         else d.project.assets.fonts.push(asset);
         d.assetBytes[id] = bytes;
-      })
+      }),
     );
   },
 
   deleteAsset(kind: AssetKind, assetId: string) {
     setState(
       produce(state, (d) => {
-        if (kind === "image")
-          d.project.assets.images = d.project.assets.images.filter((a) => a.id !== assetId);
+        if (kind === "image") d.project.assets.images = d.project.assets.images.filter((a) => a.id !== assetId);
         else d.project.assets.fonts = d.project.assets.fonts.filter((a) => a.id !== assetId);
 
         delete d.assetBytes[assetId];
@@ -347,7 +347,7 @@ export const Actions = {
             if (o.type === "Label" && o.settings.fontAssetId === assetId) o.settings.fontAssetId = undefined;
           }
         }
-      })
+      }),
     );
   },
 
@@ -369,7 +369,7 @@ export const Actions = {
         }
 
         d.assetsPanel = { isOpen: false, tab: "Images" };
-      })
+      }),
     );
   },
 };

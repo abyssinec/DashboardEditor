@@ -1,15 +1,25 @@
 import JSZip from "jszip";
-import { crc32 } from "./crc32";
+
 import type { Manifest, Project } from "../types";
 
-const MAGIC = new Uint8Array([0x4E,0x46,0x44,0x41,0x53,0x48,0x00,0x01]); // NFDASH\0\1
+import { crc32 } from "./crc32";
+
+const MAGIC = new Uint8Array([0x4e, 0x46, 0x44, 0x41, 0x53, 0x48, 0x00, 0x01]); // NFDASH\0\1
 const HEADER_SIZE = 32;
 const ZIP_OFFSET = 4096;
 
-function writeU16LE(dv: DataView, off: number, v: number) { dv.setUint16(off, v, true); }
-function writeU32LE(dv: DataView, off: number, v: number) { dv.setUint32(off, v >>> 0, true); }
-function readU16LE(dv: DataView, off: number) { return dv.getUint16(off, true); }
-function readU32LE(dv: DataView, off: number) { return dv.getUint32(off, true); }
+function writeU16LE(dv: DataView, off: number, v: number) {
+  dv.setUint16(off, v, true);
+}
+function writeU32LE(dv: DataView, off: number, v: number) {
+  dv.setUint32(off, v >>> 0, true);
+}
+function readU16LE(dv: DataView, off: number) {
+  return dv.getUint16(off, true);
+}
+function readU32LE(dv: DataView, off: number) {
+  return dv.getUint32(off, true);
+}
 
 export async function exportDashboard(project: Project, editorVersion = "0.1.0"): Promise<Blob> {
   const zip = new JSZip();
@@ -19,7 +29,7 @@ export async function exportDashboard(project: Project, editorVersion = "0.1.0")
     version: 1,
     createdUtc: new Date().toISOString(),
     app: { editor: "DashboardEditor", editorVersion },
-    minViewerVersion: 1
+    minViewerVersion: 1,
   };
 
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
@@ -44,18 +54,23 @@ export async function exportDashboard(project: Project, editorVersion = "0.1.0")
 
   const dv = new DataView(out.buffer);
   writeU16LE(dv, 0x08, HEADER_SIZE);
-  writeU16LE(dv, 0x0A, 0);
-  writeU32LE(dv, 0x0C, ZIP_OFFSET);
+  writeU16LE(dv, 0x0a, 0);
+  writeU32LE(dv, 0x0c, ZIP_OFFSET);
   writeU32LE(dv, 0x10, zipBytes.length);
   writeU32LE(dv, 0x14, zipCrc);
   writeU32LE(dv, 0x18, 0);
-  writeU32LE(dv, 0x1C, 0);
+  writeU32LE(dv, 0x1c, 0);
 
   out.set(zipBytes, ZIP_OFFSET);
   return new Blob([out], { type: "application/octet-stream" });
 }
 
-export type ImportedDashboard = { manifest: Manifest; project: Project; screens: any[]; assetBytes: Record<string, Uint8Array> };
+export type ImportedDashboard = {
+  manifest: Manifest;
+  project: Project;
+  screens: any[];
+  assetBytes: Record<string, Uint8Array>;
+};
 
 export async function importDashboard(fileBytes: Uint8Array): Promise<ImportedDashboard> {
   if (fileBytes.length < ZIP_OFFSET) throw new Error("File too small");
@@ -63,14 +78,21 @@ export async function importDashboard(fileBytes: Uint8Array): Promise<ImportedDa
 
   const dv = new DataView(fileBytes.buffer);
   const headerSize = readU16LE(dv, 0x08);
-  const zipOffset  = readU32LE(dv, 0x0C);
-  const zipSize    = readU32LE(dv, 0x10);
-  const zipCrc     = readU32LE(dv, 0x14);
+  const zipOffset = readU32LE(dv, 0x0c);
+  const zipSize = readU32LE(dv, 0x10);
+  const zipCrc = readU32LE(dv, 0x14);
 
   if (headerSize !== HEADER_SIZE) throw new Error("Unsupported header size");
   if (zipOffset < headerSize || zipOffset + zipSize > fileBytes.length) throw new Error("Bad zip bounds");
 
-  if (!(fileBytes[zipOffset] === 0x50 && fileBytes[zipOffset+1] === 0x4B && fileBytes[zipOffset+2] === 0x03 && fileBytes[zipOffset+3] === 0x04)) {
+  if (
+    !(
+      fileBytes[zipOffset] === 0x50 &&
+      fileBytes[zipOffset + 1] === 0x4b &&
+      fileBytes[zipOffset + 2] === 0x03 &&
+      fileBytes[zipOffset + 3] === 0x04
+    )
+  ) {
     throw new Error("Zip signature not found");
   }
 
@@ -80,11 +102,11 @@ export async function importDashboard(fileBytes: Uint8Array): Promise<ImportedDa
   const zip = await JSZip.loadAsync(zipBytes);
 
   const manifestStr = await zip.file("manifest.json")?.async("string");
-  const projectStr  = await zip.file("project.json")?.async("string");
+  const projectStr = await zip.file("project.json")?.async("string");
   if (!manifestStr || !projectStr) throw new Error("Missing manifest.json or project.json");
 
   const manifest = JSON.parse(manifestStr) as Manifest;
-  const project  = JSON.parse(projectStr) as Project;
+  const project = JSON.parse(projectStr) as Project;
   if (manifest.format !== "nanoFIZ.dashboard" || manifest.version !== 1) throw new Error("Unsupported manifest");
 
   const screens: any[] = [];

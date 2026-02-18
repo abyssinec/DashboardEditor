@@ -44,10 +44,20 @@ async function del(key: string) {
 }
 
 export const Idb = {
-  async saveCurrentSkin(blob: Blob) { await put(KEY_SKIN, blob); },
-  async loadCurrentSkin(): Promise<Blob | undefined> { return await get<Blob>(KEY_SKIN); },
-  async clearCurrentSkin() { await del(KEY_SKIN); },
+  async saveCurrentSkin(blob: Blob) {
+    await put(KEY_SKIN, blob);
+  },
+  async loadCurrentSkin(): Promise<Blob | undefined> {
+    return await get<Blob>(KEY_SKIN);
+  },
+  async clearCurrentSkin() {
+    await del(KEY_SKIN);
+  },
 
-  async saveLastProject(json: any) { await put(KEY_PROJECT, json); },
-  async loadLastProject<T>(): Promise<T | undefined> { return await get<T>(KEY_PROJECT); }
+  async saveLastProject(json: any) {
+    await put(KEY_PROJECT, json);
+  },
+  async loadLastProject<T>(): Promise<T | undefined> {
+    return await get<T>(KEY_PROJECT);
+  },
 };

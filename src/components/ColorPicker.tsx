@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
-  value: string;            // hex "#RRGGBB"
-  alpha: number;            // 0..100
+  value: string; // hex "#RRGGBB"
+  alpha: number; // 0..100
   onChange: (hex: string, alpha: number) => void;
 };
 
@@ -16,7 +16,9 @@ function normalizeHex(v: string) {
   if (!s.startsWith("#")) s = "#" + s;
   s = "#" + s.slice(1).replace(/[^0-9a-fA-F]/g, "");
   if (s.length === 4) {
-    const r = s[1], g = s[2], b = s[3];
+    const r = s[1],
+      g = s[2],
+      b = s[3];
     return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
   }
   if (s.length >= 7) return s.slice(0, 7).toUpperCase();
@@ -38,8 +40,11 @@ function rgbToHex(r: number, g: number, b: number) {
 
 // HSV <-> RGB
 function rgbToHsv(r: number, g: number, b: number) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
   const d = max - min;
 
   let h = 0;
@@ -61,13 +66,34 @@ function hsvToRgb(h: number, s: number, v: number) {
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = v - c;
 
-  let rp = 0, gp = 0, bp = 0;
-  if (0 <= h && h < 60) { rp = c; gp = x; bp = 0; }
-  else if (60 <= h && h < 120) { rp = x; gp = c; bp = 0; }
-  else if (120 <= h && h < 180) { rp = 0; gp = c; bp = x; }
-  else if (180 <= h && h < 240) { rp = 0; gp = x; bp = c; }
-  else if (240 <= h && h < 300) { rp = x; gp = 0; bp = c; }
-  else { rp = c; gp = 0; bp = x; }
+  let rp = 0,
+    gp = 0,
+    bp = 0;
+  if (0 <= h && h < 60) {
+    rp = c;
+    gp = x;
+    bp = 0;
+  } else if (60 <= h && h < 120) {
+    rp = x;
+    gp = c;
+    bp = 0;
+  } else if (120 <= h && h < 180) {
+    rp = 0;
+    gp = c;
+    bp = x;
+  } else if (180 <= h && h < 240) {
+    rp = 0;
+    gp = x;
+    bp = c;
+  } else if (240 <= h && h < 300) {
+    rp = x;
+    gp = 0;
+    bp = c;
+  } else {
+    rp = c;
+    gp = 0;
+    bp = x;
+  }
 
   return {
     r: (rp + m) * 255,
@@ -110,7 +136,8 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
     const ctx = c.getContext("2d");
     if (!ctx) return;
 
-    const w = c.width, hgt = c.height;
+    const w = c.width,
+      hgt = c.height;
 
     ctx.clearRect(0, 0, w, hgt);
     ctx.fillStyle = `hsl(${h}, 100%, 50%)`;
@@ -248,7 +275,9 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
             onChange={(e) => {
               const nr = clamp(parseInt(e.target.value, 10) || 0, 0, 255);
               const { h, s, v } = rgbToHsv(nr, rgb.g, rgb.b);
-              setH(h); setS(s); setV(v);
+              setH(h);
+              setS(s);
+              setV(v);
               commit(h, s, v, a);
             }}
           />
@@ -261,7 +290,9 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
             onChange={(e) => {
               const ng = clamp(parseInt(e.target.value, 10) || 0, 0, 255);
               const { h, s, v } = rgbToHsv(rgb.r, ng, rgb.b);
-              setH(h); setS(s); setV(v);
+              setH(h);
+              setS(s);
+              setV(v);
               commit(h, s, v, a);
             }}
           />
@@ -274,7 +305,9 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
             onChange={(e) => {
               const nb = clamp(parseInt(e.target.value, 10) || 0, 0, 255);
               const { h, s, v } = rgbToHsv(rgb.r, rgb.g, nb);
-              setH(h); setS(s); setV(v);
+              setH(h);
+              setS(s);
+              setV(v);
               commit(h, s, v, a);
             }}
           />

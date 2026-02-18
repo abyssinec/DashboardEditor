@@ -1,20 +1,18 @@
 import React from "react";
+
 import { useStore } from "../hooks/useStore";
 import type { AnyObj, Screen } from "../types";
-import { ScreenInspector } from "./ScreenInspector";
+
 import { LabelInspector } from "./LabelInspector";
+import { ScreenInspector } from "./ScreenInspector";
 
 function useSelectedScreen(): Screen {
-  return useStore(
-    (s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!
-  );
+  return useStore((s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!);
 }
 
 function useSelectedObject(): AnyObj | undefined {
   return useStore((s) => {
-    const sc = s.project.screens.find(
-      (x: Screen) => x.id === s.selectedScreenId
-    )!;
+    const sc = s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!;
     if (!s.selectedObjectId) return undefined;
     return sc.objects.find((o: AnyObj) => o.id === s.selectedObjectId);
   });

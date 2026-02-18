@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { AnyObj } from "../types";
@@ -11,7 +12,13 @@ function clamp(n: number, a: number, b: number) {
 
 function hexToRgba(hex: string, alpha01: number) {
   const h = (hex || "#000000").replace("#", "").trim();
-  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h.padEnd(6, "0").slice(0, 6);
+  const full =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h.padEnd(6, "0").slice(0, 6);
   const r = parseInt(full.slice(0, 2), 16) || 0;
   const g = parseInt(full.slice(2, 4), 16) || 0;
   const b = parseInt(full.slice(4, 6), 16) || 0;
@@ -24,7 +31,9 @@ function normalizeHex(v: string) {
   if (!s.startsWith("#")) s = "#" + s;
   s = "#" + s.slice(1).replace(/[^0-9a-fA-F]/g, "");
   if (s.length === 4) {
-    const r = s[1], g = s[2], b = s[3];
+    const r = s[1],
+      g = s[2],
+      b = s[3];
     return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
   }
   if (s.length >= 7) return s.slice(0, 7).toUpperCase();
@@ -47,12 +56,7 @@ function degToRad(deg: number) {
   return (deg * Math.PI) / 180;
 }
 
-function wrapLines(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-  mode: "No wrap" | "Word" | "Char"
-) {
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, mode: "No wrap" | "Word" | "Char") {
   const t = (text ?? "").replace(/\r/g, "");
   if (!t) return [""];
 
@@ -113,7 +117,7 @@ function fitFontSize(
   startSize: number,
   maxW: number,
   maxH: number,
-  wrapMode: "No wrap" | "Word" | "Char"
+  wrapMode: "No wrap" | "Word" | "Char",
 ) {
   let size = Math.max(6, startSize);
   for (let i = 0; i < 80; i++) {
@@ -142,7 +146,7 @@ export function CanvasView() {
 
   const sorted = useMemo(() => [...screen.objects].sort((a, b) => a.z - b.z), [screen.objects]);
 
-  // assets: fonts + bytes (чтобы применялся выбранный шрифт из asset manager)
+  // assets: fonts + bytes (С‡С‚РѕР±С‹ РїСЂРёРјРµРЅСЏР»СЃСЏ РІС‹Р±СЂР°РЅРЅС‹Р№ С€СЂРёС„С‚ РёР· asset manager)
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
   const assetBytes = useStore((s) => (s as any).assetBytes ?? {});
 
@@ -167,7 +171,11 @@ export function CanvasView() {
         if (!bytes) continue;
 
         try {
-          const blob = new Blob([bytes], { type: a.mime || "font/ttf" });
+          const ab =
+            bytes.buffer instanceof ArrayBuffer
+              ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+              : new Uint8Array(bytes).buffer.slice(0);
+          const blob = new Blob([ab], { type: a.mime || "font/ttf" });
           const url = URL.createObjectURL(blob);
           const family = `dash_font_${id}`;
           const ff = new FontFace(family, `url(${url})`);
@@ -175,7 +183,7 @@ export function CanvasView() {
           (document as any).fonts.add(ff);
           reg.add(id);
         } catch {
-          // если не загрузился — просто fallback на Inter
+          // РµСЃР»Рё РЅРµ Р·Р°РіСЂСѓР·РёР»СЃСЏ вЂ” РїСЂРѕСЃС‚Рѕ fallback РЅР° Inter
           reg.add(id);
         }
       }
@@ -220,7 +228,7 @@ export function CanvasView() {
     });
     if (wrapRef.current) ro.observe(wrapRef.current);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [screen.id, screen.settings.width, screen.settings.height]);
 
   function worldToScreen(x: number, y: number) {
@@ -308,7 +316,7 @@ export function CanvasView() {
       const w = b.w * vp.zoom;
       const h = b.h * vp.zoom;
 
-      // rotation (в градусах)
+      // rotation (РІ РіСЂР°РґСѓСЃР°С…)
       const rotDeg = (o.transform as any).rotation ?? 0;
       const rot = degToRad(rotDeg);
       const cx = p.sx + w / 2;
@@ -345,7 +353,7 @@ export function CanvasView() {
         const maxH = Math.max(10, h - padY * 2);
 
         // base font size in screen px
-        const baseSize = Math.max(10, (o.settings.fontSize || 20)) * vp.zoom;
+        const baseSize = Math.max(10, o.settings.fontSize || 20) * vp.zoom;
 
         // compute size (autosize shrinks)
         let fontSize = baseSize;
@@ -365,12 +373,7 @@ export function CanvasView() {
         const lines = wrapLines(ctx, txt, maxW, wrapMode);
         const lineH = Math.ceil(fontSize * 1.2);
 
-        const x =
-          align === "Center"
-            ? p.sx + w / 2
-            : align === "Right"
-              ? p.sx + w - padX
-              : p.sx + padX;
+        const x = align === "Center" ? p.sx + w / 2 : align === "Right" ? p.sx + w - padX : p.sx + padX;
         const y0 = p.sy + padY;
 
         // ----- STYLE FX -----
@@ -392,7 +395,7 @@ export function CanvasView() {
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
 
-          // glowAlpha не делаем огромным — чтобы не засвечивало
+          // glowAlpha РЅРµ РґРµР»Р°РµРј РѕРіСЂРѕРјРЅС‹Рј вЂ” С‡С‚РѕР±С‹ РЅРµ Р·Р°СЃРІРµС‡РёРІР°Р»Рѕ
           const glowAlpha = clamp((glow / 200) * alpha, 0, 0.9);
           ctx.shadowColor = hexToRgba(textColor, glowAlpha);
           ctx.fillStyle = hexToRgba(textColor, alpha);

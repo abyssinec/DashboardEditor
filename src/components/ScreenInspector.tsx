@@ -1,30 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { Screen } from "../types";
-import { ColorPicker } from "./ColorPicker";
+import { clamp, clampInt, normalizeHex } from "../utils/ui";
 
-function clampInt(v: any, fallback: number) {
-  const n = parseInt(String(v), 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
-}
-function normalizeHex(v: string) {
-  let s = (v || "").trim();
-  if (!s) return "#000000";
-  if (!s.startsWith("#")) s = "#" + s;
-  s = "#" + s.slice(1).replace(/[^0-9a-fA-F]/g, "");
-  if (s.length === 4) {
-    const r = s[1],
-      g = s[2],
-      b = s[3];
-    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
-  }
-  if (s.length >= 7) return s.slice(0, 7).toUpperCase();
-  return (s + "000000").slice(0, 7).toUpperCase();
-}
+import { ColorPicker } from "./ColorPicker";
 
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
@@ -110,7 +91,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
           aria-label="Increase"
         >
-          ▲
+          в–І
         </button>
         <button
           type="button"
@@ -118,7 +99,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
           aria-label="Decrease"
         >
-          ▼
+          в–ј
         </button>
       </div>
     </div>
@@ -153,11 +134,7 @@ function Dropdown({
 
   return (
     <div ref={rootRef} className="insDrop">
-      <button
-        type="button"
-        className="insDropBtn"
-        onClick={() => setOpen((v) => !v)}
-      >
+      <button type="button" className="insDropBtn" onClick={() => setOpen((v) => !v)}>
         <span>{label}</span>
         <span className="insDropCaret" />
       </button>
@@ -219,16 +196,9 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
       <div className="insTypeBar">Screen</div>
 
       <Label>Name</Label>
-      <TextField
-        value={screen.name}
-        onChange={(e) => Actions.updateScreen(screen.id, { name: e.target.value })}
-      />
+      <TextField value={screen.name} onChange={(e) => Actions.updateScreen(screen.id, { name: e.target.value })} />
 
-      <Collapse
-        title="Settings"
-        open={openSettings}
-        onToggle={() => setOpenSettings((v) => !v)}
-      >
+      <Collapse title="Settings" open={openSettings} onToggle={() => setOpenSettings((v) => !v)}>
         <Row2>
           <div>
             <Label>Width</Label>
@@ -259,11 +229,7 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
         </Row2>
       </Collapse>
 
-      <Collapse
-        title="Style"
-        open={openStyle}
-        onToggle={() => setOpenStyle((v) => !v)}
-      >
+      <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
         <Row2>
           <div style={{ position: "relative" }}>
             <Label>Color</Label>
@@ -328,9 +294,7 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
             <button
               className="insBtn"
               type="button"
-              onClick={() =>
-                Actions.openAssets("Images", { objectId: "", field: "screenBackground" })
-              }
+              onClick={() => Actions.openAssets("Images", { objectId: "", field: "screenBackground" })}
             >
               Select
             </button>

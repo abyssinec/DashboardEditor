@@ -95,6 +95,6 @@ export function InspectorPopover({
     >
       {children}
     </div>,
-    document.body
+    document.body,
   );
 }

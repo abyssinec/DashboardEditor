@@ -1,4 +1,5 @@
 import React from "react";
+
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 
@@ -13,18 +14,8 @@ function TrashIcon({ onClick }: { onClick: () => void }) {
       }}
     >
       <svg viewBox="0 0 24 24" fill="none">
-        <path
-          d="M9 3h6m-9 4h12m-1 0-1 16H8L7 7"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M10 11v8M14 11v8"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
+        <path d="M9 3h6m-9 4h12m-1 0-1 16H8L7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M10 11v8M14 11v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -69,9 +60,7 @@ export function LeftPanel() {
   const selectedScreenId = useStore((s) => s.selectedScreenId);
   const selectedObjectId = useStore((s) => s.selectedObjectId);
 
-  const selectedScreen = useStore((s) =>
-    s.project.screens.find((x) => x.id === s.selectedScreenId)
-  );
+  const selectedScreen = useStore((s) => s.project.screens.find((x) => x.id === s.selectedScreenId));
 
   const objects = React.useMemo(() => {
     const list = selectedScreen?.objects ?? [];

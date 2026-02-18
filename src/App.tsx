@@ -1,11 +1,12 @@
 import React, { useRef } from "react";
+
+import { AssetsPanel } from "./components/AssetsPanel";
+import { Inspector } from "./components/Inspector";
+import { LeftPanel } from "./components/LeftPanel";
+import { ViewPanel } from "./components/ViewPanel";
 import { useStore } from "./hooks/useStore";
 import { Actions } from "./store";
 import { exportDashboard, importDashboard } from "./utils/dashboardFormat";
-import { LeftPanel } from "./components/LeftPanel";
-import { Inspector } from "./components/Inspector";
-import { AssetsPanel } from "./components/AssetsPanel";
-import { ViewPanel } from "./components/ViewPanel";
 
 export default function App() {
   const project = useStore((s) => s.project);
