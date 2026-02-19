@@ -276,51 +276,6 @@ export function CanvasView() {
   }, [screen.id, (screen as any).style?.backgroundImageAssetId, (screen as any).style?.fill, imageAssets, assetBytes]);
 
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
-  // Keep latest viewport in a ref so native wheel handler always uses fresh values
-  const vpRef = useRef(vp);
-  useEffect(() => { vpRef.current = vp; }, [vp]);
-
-  // Wheel zoom: native listener with { passive:false } so preventDefault works (no console warnings)
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-
-    const onWheelNative = (ev: WheelEvent) => {
-      ev.preventDefault();
-
-      const c = canvasRef.current;
-      if (!c) return;
-
-      const r = c.getBoundingClientRect();
-      const sx = ev.clientX - r.left;
-      const sy = ev.clientY - r.top;
-
-      const v0 = vpRef.current;
-
-      // screen -> world using latest vp
-      const beforeX = (sx - c.width / 2) / v0.zoom - v0.panX;
-      const beforeY = (sy - c.height / 2) / v0.zoom - v0.panY;
-
-      const delta = -ev.deltaY;
-      const factor = delta > 0 ? 1.08 : 0.92;
-
-      setVp((v) => {
-        const nz = clamp(v.zoom * factor, 0.15, 3);
-
-        // keep cursor point stable
-        const x2 = (sx - c.width / 2) / nz - v.panX;
-        const y2 = (sy - c.height / 2) / nz - v.panY;
-
-        const dx = beforeX - x2;
-        const dy = beforeY - y2;
-
-        return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
-      });
-    };
-
-    el.addEventListener("wheel", onWheelNative, { passive: false });
-    return () => el.removeEventListener("wheel", onWheelNative);
-  }, []);
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
@@ -1010,7 +965,7 @@ export function CanvasView() {
       onMouseMove={onMouseMove}
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
-      
+      onWheelCapture={onWheel}
     >
       <canvas
         ref={canvasRef}
@@ -1025,5 +980,3 @@ export function CanvasView() {
     </div>
   );
 }
-
-
