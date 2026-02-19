@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { Screen } from "../types";
-import { clamp, clampInt, normalizeHex } from "../utils/ui";
-
 import { ColorPicker } from "./ColorPicker";
+import { clamp, clampInt, normalizeHex } from "../utils/inspector";
 
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
@@ -91,9 +89,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
           aria-label="Increase"
         >
-          <svg className="stepperIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-  <path d="M1 6 L5 2 L9 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-</svg>
+          ▲
         </button>
         <button
           type="button"
@@ -101,9 +97,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
           aria-label="Decrease"
         >
-          <svg className="stepperIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-  <path d="M1 4 L5 8 L9 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-</svg>
+          ▼
         </button>
       </div>
     </div>
@@ -138,7 +132,11 @@ function Dropdown({
 
   return (
     <div ref={rootRef} className="insDrop">
-      <button type="button" className="insDropBtn" onClick={() => setOpen((v) => !v)}>
+      <button
+        type="button"
+        className="insDropBtn"
+        onClick={() => setOpen((v) => !v)}
+      >
         <span>{label}</span>
         <span className="insDropCaret" />
       </button>
@@ -160,29 +158,6 @@ function Dropdown({
         </div>
       ) : null}
     </div>
-  );
-}
-
-function TrashSmall({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      className={"assetClearBtn" + (disabled ? " isDisabled" : "")}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!disabled) onClick(); }}
-      aria-label="Clear"
-      title="Clear"
-      disabled={disabled}
-    >
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M9 3h6m-8 4h10m-9 0 1 14h6l1-14M10 11v7m4-7v7"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
   );
 }
 
@@ -223,9 +198,16 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
       <div className="insTypeBar">Screen</div>
 
       <Label>Name</Label>
-      <TextField value={screen.name} onChange={(e) => Actions.updateScreen(screen.id, { name: e.target.value })} />
+      <TextField
+        value={screen.name}
+        onChange={(e) => Actions.updateScreen(screen.id, { name: e.target.value })}
+      />
 
-      <Collapse title="Settings" open={openSettings} onToggle={() => setOpenSettings((v) => !v)}>
+      <Collapse
+        title="Settings"
+        open={openSettings}
+        onToggle={() => setOpenSettings((v) => !v)}
+      >
         <Row2>
           <div>
             <Label>Width</Label>
@@ -256,7 +238,11 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
         </Row2>
       </Collapse>
 
-      <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
+      <Collapse
+        title="Style"
+        open={openStyle}
+        onToggle={() => setOpenStyle((v) => !v)}
+      >
         <Row2>
           <div style={{ position: "relative" }}>
             <Label>Color</Label>
@@ -318,15 +304,64 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
         <div style={{ marginTop: 12 }}>
           <Label>Background Image</Label>
           <div className="insBgRow">
-            <button
-              className="insBtn"
-              type="button"
-              onClick={() => Actions.openAssets("Images", { objectId: "", field: "screenBackground" })}
-            >
-              Select
-            </button>
-            <TextField value={bgAssetName} readOnly />
-          </div>
+  <button
+    className="insBtn"
+    type="button"
+    onClick={() =>
+      Actions.openAssets("Images", { objectId: "", field: "screenBackground" })
+    }
+  >
+    Select
+  </button>
+
+  <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+    <TextField value={bgAssetName} readOnly />
+
+    <button
+      type="button"
+      aria-label="Clear background image"
+      disabled={!screen.style.backgroundImageAssetId}
+      onClick={() =>
+        Actions.updateScreen(screen.id, {
+          style: { ...screen.style, backgroundImageAssetId: undefined },
+        })
+      }
+      style={{
+        position: "absolute",
+        right: 10,
+        top: "50%",
+        transform: "translateY(-50%)",
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        margin: 0,
+        lineHeight: 0,
+        cursor: screen.style.backgroundImageAssetId ? "pointer" : "default",
+        opacity: screen.style.backgroundImageAssetId ? 1 : 0.35,
+      }}
+    >
+      <svg
+  width="16"
+  height="16"
+  viewBox="0 0 24 24"
+  fill="none"
+>
+  <path
+    d="M9 3h6m-9 4h12m-1 0-1 16H8L7 7"
+    stroke="#ffffff"
+    strokeWidth="2"
+    strokeLinecap="round"
+  />
+  <path
+    d="M10 11v8M14 11v8"
+    stroke="#ffffff"
+    strokeWidth="2"
+    strokeLinecap="round"
+  />
+</svg>
+    </button>
+  </div>
+</div>
         </div>
 
         <div style={{ marginTop: 12 }}>
@@ -349,7 +384,4 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
     </div>
   );
 }
-
-
-
 
