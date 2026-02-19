@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Dropdown } from "./Dropdown";
 
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
@@ -114,58 +115,6 @@ function SpinNumber({
   );
 }
 
-/** Custom dropdown (so options are readable and styled) */
-function Dropdown({
-  value,
-  options,
-  onChange,
-}: {
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!open) return;
-      const t = e.target as Node;
-      if (rootRef.current && rootRef.current.contains(t)) return;
-      setOpen(false);
-    }
-    window.addEventListener("mousedown", onDown, true);
-    return () => window.removeEventListener("mousedown", onDown, true);
-  }, [open]);
-
-  const label = options.find((o) => o.value === value)?.label ?? value;
-
-  return (
-    <div ref={rootRef} className="insDrop">
-      <button type="button" className="insDropBtn" onClick={() => setOpen((v) => !v)}>
-        <span>{label}</span>
-        <span className="insDropCaret" />
-      </button>
-      {open ? (
-        <div className="insDropMenu">
-          {options.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              className={`insDropItem ${o.value === value ? "active" : ""}`}
-              onClick={() => {
-                onChange(o.value);
-                setOpen(false);
-              }}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 /** Portal popover (NOT clipped by scroll/overflow) */
 function PortalPopover({
@@ -631,6 +580,8 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
     </div>
   );
 }
+
+
 
 
 

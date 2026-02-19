@@ -1404,3 +1404,141 @@ input[type="number"] {
   pointer-events: none;
   opacity: 0.7;
 }
+/* --- Portal Dropdown --- */
+.ddWrap { display: inline-block; position: relative; }
+.ddButton {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 0px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.ddButton:disabled { opacity: 0.45; cursor: default; }
+.ddButton.isOpen { border-color: rgba(62,163,255,0.55); box-shadow: 0 0 0 2px rgba(62,163,255,0.18); }
+
+.ddValue { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ddCaret { opacity: 0.8; font-size: 12px; line-height: 1; }
+
+.ddPopover {
+  background: rgba(20,20,20,0.98);
+  border: 0px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+  overflow: hidden;
+
+  opacity: 0;
+  transform: translateY(-4px) scale(0.985);
+  transition: opacity 120ms ease, transform 120ms ease;
+  will-change: transform, opacity;
+}
+.ddPopover.isOpen { opacity: 1; transform: translateY(0) scale(1); }
+.ddPopover.flip { transform-origin: bottom left; }
+.ddList { max-height: 260px; overflow: auto; padding: 6px; }
+
+.ddItem {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+}
+.ddItem:hover { background: rgba(255,255,255,0.08); }
+.ddItem.isActive { background: rgba(62,163,255,0.22); }
+
+/* === Shared Dropdown (portal) === */
+.dropdownRoot { position: relative; display: inline-block; width: 100%; }
+
+.dropdownTrigger{
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 0;
+  outline: none;
+  background: rgba(255,255,255,0.06);
+  color: #e8eef6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.dropdownTrigger:hover{
+  box-shadow: inset 0 0 0 1px rgba(62,163,255,0.35);
+}
+
+.dropdownTrigger.isDisabled{
+  opacity: 0.45;
+  cursor: default;
+}
+
+.dropdownTriggerLabel{
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.dropdownTriggerCaret{
+  opacity: 0.8;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+/* portal menu */
+.dropdownPortal{
+  background: #0f1216;
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.65);
+  overflow: hidden;
+  transform-origin: top;
+  animation: ddIn 140ms ease-out;
+  will-change: transform, opacity;
+}
+
+.dropdownPortal.flip{
+  transform-origin: bottom;
+}
+
+@keyframes ddIn{
+  from{ opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to{ opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dropdownMenu{
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px;
+}
+
+.dropdownItem{
+  width: 100%;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #dfe8f4;
+  border-radius: 10px;
+  text-align: left;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.dropdownItem:hover{
+  background: rgba(62,163,255,0.14);
+}
+
+.dropdownItem.isActive{
+  background: rgba(62,163,255,0.22);
+}
+
