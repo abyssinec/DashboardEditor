@@ -16,7 +16,7 @@ function Caret({ open }: { open: boolean }) {
 function Trash({ onClick }: { onClick: () => void }) {
   return (
     <button
-      className="assetsIconBtn"
+        className="assetsIconBtn assetsTrashBtn"
       type="button"
       onClick={(e) => {
         e.stopPropagation();

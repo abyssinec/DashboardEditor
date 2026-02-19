@@ -4,46 +4,84 @@ import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 
 import { CanvasView } from "./CanvasView";
-
 function IconPlus() {
+  // выглядит как "выделение/рамка" (как на 2 скрине)
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      {/* рамка */}
+      <rect x="6" y="6" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="2" />
+      {/* уголки/хэндлы */}
+      <path d="M6 9V6h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 9V6h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 15v3h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 15v3h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
+
 function IconLabel() {
+  // буква "A" (как на 2 скрине)
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path d="M7 19V5h10v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M9 9h6M9 13h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M7 19 12 5l5 14"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 15h6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
+
 function IconImage() {
+  // картинка в "плашке" (как на 2 скрине)
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path d="M4 6h16v12H4V6Z" stroke="currentColor" strokeWidth="2" />
-      <path d="m7 14 2-2 3 3 2-2 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="4" y="6" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="m7 15 2-2 3 3 2-2 3 3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="10" r="1" fill="currentColor" />
     </svg>
   );
 }
+
 function IconArc() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path d="M4 16a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 4v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M6 15a6 6 0 0 1 12 0"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
+
 function IconBar() {
+  // "тумблер" (как на 2 скрине)
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path d="M5 10h14v4H5v-4Z" stroke="currentColor" strokeWidth="2" />
-      <path d="M7 12h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="5" y="9" width="14" height="6" rx="3" stroke="currentColor" strokeWidth="2" />
+      <circle cx="9" cy="12" r="2" fill="currentColor" />
     </svg>
   );
 }
+
 
 export function ViewPanel() {
   const screens = useStore((s) => s.project.screens);

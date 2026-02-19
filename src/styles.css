@@ -1,4 +1,4 @@
-/* DashboardEditor Р Р†Р вЂљРІР‚Сњ responsive app layout (no page scroll) */
+﻿/* DashboardEditor Р Р†Р вЂљРІР‚Сњ responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -1391,4 +1391,17 @@ input[type="number"] {
 .stepperIcon {
   display: block;
   pointer-events: none;
+}
+
+.assetsTrashBtn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.assetsTrashBtn:hover,
+.assetsTrashBtn:active,
+.assetsTrashBtn:focus {
+  background: transparent !important;
+  box-shadow: none !important;
 }
