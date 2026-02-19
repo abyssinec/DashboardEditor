@@ -20,6 +20,7 @@ export function Dropdown({
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number; width: number; flip: boolean }>({
@@ -99,6 +100,8 @@ export function Dropdown({
       const t = e.target as Node | null;
       if (!t) return;
       if (rootRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) return;
+
       close();
     };
 
@@ -143,38 +146,40 @@ export function Dropdown({
   }
 
   const menu = open ? (
-    <div
-      className={"dropdownPortal " + (pos.flip ? "flip" : "down")}
-      style={{
-        position: "fixed",
-        left: pos.left,
-        top: pos.top,
-        width: pos.width,
-        zIndex: 99999,
-      }}
-      role="listbox"
-      aria-label="Dropdown"
-    >
-      <div className="dropdownMenu">
-        {options.map((o) => {
-          const active = o.value === value;
-          return (
-            <button
-              key={o.value}
-              type="button"
-              className={"dropdownItem" + (active ? " isActive" : "")}
-              onMouseDown={(e) => e.preventDefault()} // чтобы фокус не прыгал и не закрывало раньше времени
-              onClick={() => pick(o.value)}
-              role="option"
-              aria-selected={active}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
+  <div
+    ref={menuRef}
+    className={"dropdownPortal " + (pos.flip ? "flip" : "down")}
+    style={{
+      position: "fixed",
+      left: pos.left,
+      top: pos.top,
+      width: pos.width,
+      zIndex: 99999,
+    }}
+    role="listbox"
+    aria-label="Dropdown"
+  >
+    <div className="dropdownMenu">
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            className={"dropdownItem" + (active ? " isActive" : "")}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => pick(o.value)}
+            role="option"
+            aria-selected={active}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
-  ) : null;
+  </div>
+) : null;
+
 
   return (
     <div ref={rootRef} className={"dropdownRoot " + (className ?? "")}>
@@ -189,7 +194,17 @@ export function Dropdown({
         disabled={disabled}
       >
         <span className="dropdownTriggerLabel">{selectedLabel}</span>
-        <span className="dropdownTriggerCaret" aria-hidden="true">▾</span>
+        <span className="dropdownTriggerCaret" aria-hidden="true">
+        <svg viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+          <path
+            d="M2.2 4.2 6 8 9.8 4.2"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        </span>
       </button>
 
       {open ? createPortal(menu, document.body) : null}
