@@ -1,4 +1,4 @@
-﻿/* DashboardEditor Р Р†Р вЂљРІР‚Сњ responsive app layout (no page scroll) */
+﻿/* DashboardEditor — responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -21,17 +21,16 @@ body,
   height: 100%;
   margin: 0;
 }
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family:
     Roboto,
-    Roboto,
     -apple-system,
     Segoe UI,
-    Roboto,
-    Roboto,
-    Roboto;
+    Arial,
+    sans-serif;
   overflow: hidden;
 }
 
@@ -54,36 +53,40 @@ body {
   padding: 10px 14px;
   border-radius: 10px;
 }
+
 .brand {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
 }
+
 .brand .title {
   font-size: 18px;
   font-family:
     "Anonymous Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
 .brand .version {
   font-size: 12px;
   opacity: 0.8;
   font-family:
     "Anonymous Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
 .topActions {
   display: flex;
   gap: 18px;
   justify-self: start;
 }
+
 .topBtn {
   cursor: pointer;
   user-select: none;
   font-size: 14px;
   opacity: 0.92;
 }
-.topBtn:hover {
-  opacity: 1;
-}
+.topBtn:hover { opacity: 1; }
+
 .projectName {
   justify-self: center;
   font-size: 14px;
@@ -93,6 +96,7 @@ body {
   text-overflow: ellipsis;
   max-width: min(60vw, 720px);
 }
+
 .account {
   justify-self: end;
   font-size: 14px;
@@ -114,7 +118,9 @@ body {
   border-radius: 10px;
   overflow: hidden;
   min-height: 0;
+  border: none;
 }
+
 .panelInner {
   height: 100%;
   display: flex;
@@ -129,9 +135,8 @@ body {
   opacity: 0.85;
   background: transparent;
 }
-.insPanelTitle {
-  text-align: center;
-} 
+
+.insPanelTitle { text-align: center; }
 
 .scrollArea {
   flex: 1 1 auto;
@@ -146,6 +151,7 @@ body {
   flex-direction: column;
   gap: 8px;
 }
+
 .listItem {
   height: 38px;
   border-radius: 10px;
@@ -156,17 +162,19 @@ body {
   opacity: 0.75;
   cursor: pointer;
   user-select: none;
+  border: none;
 }
+
 .listItem:hover {
   opacity: 0.95;
   background: rgba(255, 255, 255, 0.03);
-  border-color: var(--border2);
 }
+
 .listItem.active {
   opacity: 1;
   background: rgba(62, 163, 255, 0.12);
-  border-color: rgba(62, 163, 255, 0.35);
 }
+
 .listItem .name {
   padding-left: 12px;
   font-size: 13px;
@@ -176,6 +184,7 @@ body {
   white-space: nowrap;
   max-width: 200px;
 }
+
 .itemRight {
   margin-left: auto;
   display: flex;
@@ -183,6 +192,7 @@ body {
   align-items: center;
   padding-right: 8px;
 }
+
 .iconBtn {
   width: 28px;
   height: 28px;
@@ -192,15 +202,16 @@ body {
   justify-content: center;
   cursor: pointer;
   opacity: 0.75;
+  border: none;
+  background: transparent;
 }
+
 .iconBtn:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.04);
 }
-.iconBtn svg {
-  width: 16px;
-  height: 16px;
-}
+
+.iconBtn svg { width: 16px; height: 16px; }
 
 /* View */
 .viewWrap {
@@ -209,6 +220,7 @@ body {
   flex-direction: column;
   min-height: 0;
 }
+
 .canvasHost {
   flex: 1 1 auto;
   min-height: 0;
@@ -217,15 +229,17 @@ body {
   justify-content: center;
   padding: 0px;
 }
+
 .canvasFrame {
   width: 100%;
   height: 100%;
-  background: #000;
+  background: rgb(17, 17, 17);
   border-radius: 10px;
   border: none;
   position: relative;
   overflow: hidden;
 }
+
 .canvasOverlayTag {
   position: absolute;
   left: 12px;
@@ -236,6 +250,19 @@ body {
   font-size: 13px;
   opacity: 0.95;
 }
+
+.canvasTitleOverlay {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 500;
+  color: #cfcfcf;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .viewTools {
   position: absolute;
   left: 50%;
@@ -249,6 +276,7 @@ body {
   background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(6px);
 }
+
 .toolBtn {
   width: 50px;
   height: 50px;
@@ -258,15 +286,12 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  border: none;
 }
-.toolBtn:hover {
-  background: rgba(255, 255, 255, 0.09);
-}
-.toolBtn svg {
-  width: 26px;
-  height: 26px;
-  opacity: 0.95;
-}
+
+.toolBtn:hover { background: rgba(255, 255, 255, 0.09); }
+.toolBtn svg { width: 26px; height: 26px; opacity: 0.95; }
+
 .counter {
   width: 110px;
   height: 50px;
@@ -276,43 +301,18 @@ body {
   font-size: 12px;
   opacity: 0.9;
 }
-.counter .k1 {
-  position: absolute;
-  left: 10px;
-  top: 9px;
-}
-.counter .v1 {
-  position: absolute;
-  right: 10px;
-  top: 9px;
-}
-.counter .k2 {
-  position: absolute;
-  left: 10px;
-  top: 27px;
-}
-.counter .v2 {
-  position: absolute;
-  right: 10px;
-  top: 27px;
-}
+.counter .k1 { position: absolute; left: 10px; top: 9px; }
+.counter .v1 { position: absolute; right: 10px; top: 9px; }
+.counter .k2 { position: absolute; left: 10px; top: 27px; }
+.counter .v2 { position: absolute; right: 10px; top: 27px; }
 
 /* Scrollbars */
-.scrollArea::-webkit-scrollbar {
-  width: 6px;
-}
-.scrollArea::-webkit-scrollbar-thumb {
-  background: #323232;
-  border-radius: 4px;
-}
+.scrollArea::-webkit-scrollbar { width: 6px; }
+.scrollArea::-webkit-scrollbar-thumb { background: #323232; border-radius: 4px; }
 
 /* ===== Inspector like reference ===== */
-.inspector-scroll {
-  padding: 0;
-} /* padding Р РЋРЎвЂњР В Р’В¶Р В Р’Вµ Р В Р вЂ¦Р В Р’В° scrollArea */
-.insRoot {
-  padding: 10px;
-}
+.inspector-scroll { padding: 0; }
+.insRoot { padding: 10px; }
 
 .insTypeBar {
   height: 32px;
@@ -345,20 +345,18 @@ body {
   height: 36px;
   padding: 0 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   outline: none;
+  border: none;
   font-size: 13px;
 }
 .insField:focus {
-  border-color: rgba(62, 163, 255, 0.45);
   box-shadow: 0 0 0 2px rgba(62, 163, 255, 0.12);
 }
 
 /* Keep number spinners */
-.insField[type="number"] {
-  appearance: auto;
-}
+.insField[type="number"] { appearance: auto; }
 
 /* Select arrow like ref */
 .insSelect {
@@ -378,10 +376,9 @@ body {
   background-repeat: no-repeat;
 }
 
-/* Sections like ref (no underlines) */
-.insSection {
-  margin-top: 12px;
-}
+/* Sections like ref */
+.insSection { margin-top: 12px; }
+
 .insSectionHead {
   width: 100%;
   height: 30px;
@@ -396,9 +393,8 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
-.insSectionBody {
-  padding-top: 10px;
-}
+
+.insSectionBody { padding-top: 10px; }
 
 .insCaret {
   width: 18px;
@@ -409,96 +405,88 @@ body {
   color: rgba(255, 255, 255, 0.75);
   transition: transform 0.15s ease;
 }
-.insCaret svg {
-  width: 14px;
-  height: 14px;
-}
-.insCaret.open {
-  transform: rotate(180deg);
+.insCaret svg { width: 14px; height: 14px; }
+.insCaret.open { transform: rotate(180deg); }
+
+.insTextarea {
+  min-height: 74px;
+  padding: 10px 12px;
+  resize: none;
+  line-height: 1.35;
 }
 
-/* Color row (wide swatch + hex) */
+/* Color row */
 .insColorRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   align-items: center;
 }
+
+.insColorSwatchBtn,
 .insColorSwatch {
   width: 100%;
   height: 36px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
   cursor: pointer;
+  border: none;
 }
 
-/* Р РЋРЎвЂњР В Р’В±Р В РЎвЂР РЋР вЂљР В Р’В°Р В Р’ВµР В РЎВ Р В Р вЂ Р В Р вЂ¦Р РЋРЎвЂњР РЋРІР‚С™Р РЋР вЂљР В Р’ВµР В Р вЂ¦Р В Р вЂ¦Р В РЎвЂР В Р’Вµ Р В РЎвЂўР РЋРІР‚С™Р РЋР С“Р РЋРІР‚С™Р РЋРЎвЂњР В РЎвЂ”Р РЋРІР‚в„– Р В РЎвЂ Р В РўвЂР В Р’ВµР В Р’В»Р В Р’В°Р В Р’ВµР В РЎВ Р В Р’В·Р В Р’В°Р В Р’В»Р В РЎвЂР В Р вЂ Р В РЎвЂќР РЋРЎвЂњ Р В Р вЂ¦Р В Р’В° Р В Р вЂ Р В Р’ВµР РЋР С“Р РЋР Р‰ Р РЋР вЂљР В Р’В°Р В Р’В·Р В РЎВР В Р’ВµР РЋР вЂљ */
-.insColorSwatch::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-.insColorSwatch::-webkit-color-swatch {
-  border: none;
-  border-radius: 12px;
-}
-.insColorSwatch::-moz-color-swatch {
-  border: none;
-  border-radius: 12px;
-}
+.insColorSwatch::-webkit-color-swatch-wrapper { padding: 0; }
+.insColorSwatch::-webkit-color-swatch { border: none; border-radius: 12px; }
+.insColorSwatch::-moz-color-swatch { border: none; border-radius: 12px; }
 
-/* Background image row (Select + filename) */
+/* Background image row */
 .insBgRow {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: center;
 }
+
 .insBtn {
   height: 34px;
   padding: 0 14px;
   border-radius: 12px;
-
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-
+  border: none;
+  box-shadow: none;
+  outline: none;
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-size: 13px;
   cursor: pointer;
-
   transition: background 0.15s ease;
 }
+.insBtn:hover { background: rgba(255, 255, 255, 0.1); }
 
-.insBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.insBtn:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Responsive tweaks */
-@media (max-width: 1280px) {
-  .mainGrid {
-    grid-template-columns: 280px 1fr 360px;
-  }
-}
-@media (max-width: 1080px) {
-  .mainGrid {
-    grid-template-columns: 260px 1fr 340px;
-  }
-}
-/* Color Picker popover */
-.insColorSwatchBtn {
+.assetValueRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  height: 36px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  cursor: pointer;
 }
+
+.assetClearBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.assetClearBtn:hover {
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.92);
+}
+.assetClearBtn svg { width: 18px; height: 18px; }
+.assetClearBtn.isDisabled,
+.assetClearBtn:disabled { opacity: 0.45; cursor: default; }
 
 .insPickerPopover {
   position: absolute;
@@ -510,25 +498,13 @@ body {
   border-radius: 14px;
   background: rgba(20, 20, 20, 0.98);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  border: none;
 }
 
 /* Picker UI */
-.cpRoot {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.cpSVWrap {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.cpSV {
-  width: 100%;
-  height: auto;
-  display: block;
-  cursor: crosshair;
-}
+.cpRoot { display: flex; flex-direction: column; gap: 10px; }
+.cpSVWrap { position: relative; border-radius: 12px; overflow: hidden; }
+.cpSV { width: 100%; height: auto; display: block; cursor: crosshair; }
 .cpSVCursor {
   position: absolute;
   width: 12px;
@@ -540,17 +516,9 @@ body {
   pointer-events: none;
 }
 
-.cpRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.cpHueIcon {
-  width: 18px;
-  height: 18px;
-  opacity: 0.7;
-  border-radius: 4px;
-}
+.cpRow { display: flex; align-items: center; gap: 10px; }
+.cpHueIcon { width: 18px; height: 18px; opacity: 0.7; border-radius: 4px; }
+
 .cpChecker {
   width: 18px;
   height: 18px;
@@ -561,26 +529,12 @@ body {
     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.12) 75%),
     linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.12) 75%);
   background-size: 8px 8px;
-  background-position:
-    0 0,
-    0 4px,
-    4px -4px,
-    -4px 0px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
 }
 
-.cpSlider {
-  position: relative;
-  flex: 1;
-  height: 14px;
-}
-.cpTrack {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-}
-.cpAlphaTrack {
-  background-blend-mode: multiply;
-}
+.cpSlider { position: relative; flex: 1; height: 14px; }
+.cpTrack { position: absolute; inset: 0; border-radius: 999px; }
+.cpAlphaTrack { background-blend-mode: multiply; }
 .cpRange {
   position: absolute;
   inset: 0;
@@ -607,12 +561,7 @@ body {
   border: 2px solid rgba(0, 0, 0, 0.55);
 }
 
-.cpPct {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 78px;
-}
+.cpPct { display: flex; align-items: center; gap: 6px; width: 78px; }
 .cpPctInput {
   width: 54px;
   height: 28px;
@@ -620,37 +569,23 @@ body {
   padding: 0 10px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+  border: none;
 }
-.cpPctSym {
-  opacity: 0.8;
-}
+.cpPctSym { opacity: 0.8; }
 
-.cpBottom {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.cpMode {
-  height: 28px;
-  border-radius: 10px;
-  padding: 0 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-.cpRgb {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
+.cpBottom { display: flex; align-items: center; gap: 10px; }
+.cpMode,
 .cpNum {
-  width: 100%;
   height: 28px;
   border-radius: 10px;
   padding: 0 10px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+  border: none;
 }
-/* RGB label as plain text (not dropdown) */
+.cpRgb { display: flex; gap: 8px; flex: 1; }
+
+/* RGB label as plain text */
 .cpModeText {
   width: 58px;
   height: 28px;
@@ -662,15 +597,13 @@ body {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   font-size: 13px;
+  border: none;
 }
 
 /* ===== Inspector: custom number spinner like ref ===== */
-.insSpin {
-  position: relative;
-}
-.insSpinInput {
-  padding-right: 38px; /* Р В РЎВР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў Р В РЎвЂ”Р В РЎвЂўР В РўвЂ Р РЋР С“Р РЋРІР‚С™Р РЋР вЂљР В Р’ВµР В Р’В»Р В РЎвЂќР В РЎвЂ */
-}
+.insSpin { position: relative; }
+.insSpinInput { padding-right: 38px; }
+
 .insSpinBtns {
   position: absolute;
   right: 8px;
@@ -679,784 +612,44 @@ body {
   display: flex;
   flex-direction: column;
   gap: 3px;
-
-  background: none !important;
+  background: none;
 }
 
 .insSpinBtn {
   width: 10px;
   height: 12px;
-
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
-
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
   color: rgba(255, 255, 255, 0.75);
   font-size: 10px;
   line-height: 1;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   cursor: pointer;
   padding: 0;
 }
+.insSpinBtn:hover { color: #ffffff; }
 
-.insSpinBtn:hover {
-  color: #ffffff;
-  background: transparent !important;
-}
+/* FIX: keep stepper svg visible */
+.stepperIcon { display: block; pointer-events: none; }
 
-/* ===== Inspector: custom dropdown (Fill) so options are visible and styled ===== */
-.insDrop {
-  position: relative;
-}
-.insDropBtn {
-  width: 100%;
-  height: 36px;
-  border-radius: 12px;
-  padding: 0 12px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-}
-.insDropCaret {
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 7px solid rgba(255, 255, 255, 0.75);
-  margin-left: 10px;
-}
-.insDropMenu {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 40px;
-  z-index: 60;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(18, 18, 18, 0.98);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
-}
-.insDropItem {
-  width: 100%;
-  height: 34px;
-  padding: 0 12px;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-}
-.insDropItem:hover {
-  background: rgba(62, 163, 255, 0.18);
-}
-.insDropItem.active {
-  background: rgba(62, 163, 255, 0.28);
-}
-
-/* (Р В РЎвЂўР В РЎвЂ”Р РЋРІР‚В Р В РЎвЂР В РЎвЂўР В Р вЂ¦Р В Р’В°Р В Р’В»Р РЋР Р‰Р В Р вЂ¦Р В РЎвЂў) Р РЋР С“Р В РЎвЂќР РЋР вЂљР РЋРІР‚в„–Р РЋРІР‚С™Р РЋР Р‰ Р В Р вЂ¦Р В Р’В°Р РЋРІР‚С™Р В РЎвЂР В Р вЂ Р В Р вЂ¦Р РЋРІР‚в„–Р В Р’Вµ Р РЋР С“Р В РЎвЂ”Р В РЎвЂР В Р вЂ¦Р В Р вЂ¦Р В Р’ВµР РЋР вЂљР РЋРІР‚в„– Р В Р вЂ¦Р В Р’В° number (Р В РЎВР РЋРІР‚в„– Р В РЎвЂР РЋРІР‚В¦ Р В Р’В±Р В РЎвЂўР В Р’В»Р РЋР Р‰Р РЋРІвЂљВ¬Р В Р’Вµ Р В Р вЂ¦Р В Р’Вµ Р В РЎвЂР РЋР С“Р В РЎвЂ”Р В РЎвЂўР В Р’В»Р РЋР Р‰Р В Р’В·Р РЋРЎвЂњР В Р’ВµР В РЎВ Р В Р вЂ  Р В РЎвЂР В Р вЂ¦Р РЋР С“Р В РЎвЂ”Р В Р’ВµР В РЎвЂќР РЋРІР‚С™Р В РЎвЂўР РЋР вЂљР В Р’Вµ) */
+/* Disable native webkit number arrows if needed */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-input[type="number"] {
-  -moz-appearance: textfield;
-}
+input[type="number"] { -moz-appearance: textfield; }
+
 /* ============================= */
-/* GLOBAL SOFT UI Р Р†Р вЂљРІР‚Сљ no hard borders */
+/* Shared Dropdown (portal)      */
 /* ============================= */
-
-.panel,
-.canvasFrame,
-.insField,
-.insSpinBtn,
-.insDropBtn,
-.insDropMenu,
-.insColorSwatchBtn,
-.insPickerPopover {
-  border: none !important;
-}
-
-/* Р В РЎВР РЋР РЏР В РЎвЂ“Р В РЎвЂќР В РЎвЂР В Р’Вµ Р РЋРІР‚С›Р В РЎвЂўР В Р вЂ¦Р В РЎвЂўР В Р вЂ Р РЋРІР‚в„–Р В Р’Вµ Р В РЎвЂќР В Р’В°Р РЋР вЂљР РЋРІР‚С™Р В РЎвЂўР РЋРІР‚РЋР В РЎвЂќР В РЎвЂ */
-.panel,
-.insDropMenu,
-.insPickerPopover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-}
-
-/* Р В РЎВР РЋР РЏР В РЎвЂ“Р В РЎвЂќР В РЎвЂР В Р’Вµ input Р В РЎвЂ”Р В РЎвЂўР В Р’В»Р РЋР РЏ */
-.insField,
-.insSpinInput,
-.insDropBtn {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.canvasFrame {
-  background: rgb(17, 17, 17) !important;
-}
-.insTextarea {
-  min-height: 74px;
-  padding: 10px 12px;
-  resize: none;
-  line-height: 1.35;
-}
-.insPopPortal {
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgba(22, 22, 22, 0.98);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
-}
-
-/* ===== Assets panel (scroll + footer) ===== */
-.assetsPanelRoot { height: 100%; display: flex; flex-direction: column; min-height: 0; }
-.assetsScroll { flex: 1 1 auto; min-height: 0; padding: 10px; }
-
-/* headers like the reference */
-.assetsSection { margin-bottom: 10px; }
-.assetsSectionHead {
-  width: 100%;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 6px;
-  border: none;
-  background: transparent;
-  color: rgba(255,255,255,0.9);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.assetsSectionTitle { opacity: 0.9; }
-.assetsSectionBody { padding-top: 8px; }
-
-/* list rows */
-.assetsRow { opacity: 0.95; background: rgba(255,255,255,0.04); }
-.assetsRow:hover { background: rgba(255,255,255,0.06); }
-
-/* footer button pinned bottom */
-.assetsFooter { flex: 0 0 auto; padding: 10px; }
-.assetsUploadBtn {
-  width: 100%;
-  height: 44px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  color: #fff;
-  background: rgba(62,163,255,0.55);
-}
-.assetsUploadBtn:hover { background: rgba(62,163,255,0.7); }
-
-
-/* ===== Assets Header + Close Button ===== */
-.assetsHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px 6px 14px;
-}
-
-.assetsCloseBtn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: rgba(255,255,255,0.7);
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.assetsCloseBtn:hover {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-}
-
-
-/* ===== Assets overlay blur ===== */
-.assetsOverlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.18);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 10px;
-  z-index: 50;
-}
-
-/* keep panel size same as before; ensure it doesn't stretch */
-.assetsPanelRoot{
-  width: min(360px, 94vw);
-  max-height: calc(100vh - 20px);
-}
-
-/* ===== Header like Inspector (center title, same height/position) ===== */
-.assetsHeaderLike{
-  position: relative;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-}
-
-.assetsHeaderTitle{
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: 0.2px;
-}
-
-/* Close button stays right */
-.assetsCloseBtn{
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: rgba(255,255,255,0.7);
-  font-size: 16px;
-  cursor: pointer;
-}
-.assetsCloseBtn:hover{
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-}
-
-/* Adjust scroll padding because header now has its own padding/border */
-.assetsScroll{ padding: 10px; }
-
-
-/* ===== Assets modal (premium) ===== */
-.assetsOverlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.22);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 18px;
-  z-index: 1000;
-}
-
-.assetsModal{
-  width: min(420px, 94vw);
-  max-height: calc(100vh - 36px);
-  border-radius: 18px;
-  background: rgba(20,20,20,0.92);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
-  overflow: hidden;
-}
-
-.assetsHeaderLike{
-  position: relative;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-}
-
-.assetsHeaderTitle{
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.88);
-  letter-spacing: 0.2px;
-}
-
-.assetsCloseBtn{
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: rgba(255,255,255,0.7);
-  font-size: 16px;
-  cursor: pointer;
-}
-.assetsCloseBtn:hover{
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.95);
-}
-
-.assetsBody{
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  max-height: calc(100vh - 36px - 44px);
-}
-
-.assetsScrollArea{
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-  padding: 10px 10px 12px 10px;
-}
-
-/* sections */
-.assetsSection{ margin-bottom: 10px; }
-.assetsSectionHead{
-  width: 100%;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  border: none;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-  color: rgba(255,255,255,0.9);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.assetsSectionHead:hover{
-  background: rgba(255,255,255,0.05);
-}
-.assetsSectionBody{ padding-top: 8px; }
-
-.assetsCaret{
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255,255,255,0.65);
-  transition: transform 120ms ease;
-}
-.assetsCaret.open{ transform: rotate(180deg); }
-.assetsCaret svg{ width: 18px; height: 18px; }
-
-/* list rows */
-.assetsList{ display: flex; flex-direction: column; gap: 8px; }
-
-.assetsRow{
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
-  color: rgba(255,255,255,0.86);
-  cursor: pointer;
-  text-align: left;
-}
-.assetsRow:hover{
-  background: rgba(255,255,255,0.05);
-}
-.assetsRowName{
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.assetsRowRight{
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.assetsIconBtn{
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  border: none;
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.65);
-  cursor: pointer;
-}
-.assetsIconBtn:hover{
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.95);
-}
-.assetsIconBtn svg{ width: 16px; height: 16px; }
-
-/* footer pinned */
-.assetsFooter{
-  flex: 0 0 auto;
-  padding: 12px 10px 12px 10px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  background: rgba(18,18,18,0.72);
-}
-
-.assetsUploadBtn{
-  width: 100%;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  cursor: pointer;
-  color: rgba(255,255,255,0.95);
-  background: rgba(62,163,255,0.42);
-}
-.assetsUploadBtn:hover{
-  background: rgba(62,163,255,0.56);
-}
-
-
-/* ===== Assets modal: scrollbar + no 1px borders (override) ===== */
-.assetsModal,
-.assetsHeaderLike,
-.assetsFooter,
-.assetsSectionHead,
-.assetsRow,
-.assetsUploadBtn { border: none !important; }
-
-.assetsHeaderLike { box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04) !important; }
-.assetsFooter      { box-shadow: inset 0  1px 0 rgba(255,255,255,0.04) !important; }
-.assetsSectionHead { box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset !important; }
-.assetsRow         { box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset !important; }
-
-.assetsRow.isDisabled { opacity: 0.45; cursor: default; }
-.assetsRow.isDisabled:hover { background: rgba(255,255,255,0.03); }
-
-/* Scrollbar like Inspector */
-.assetsScrollArea{
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.18) transparent;
-}
-.assetsScrollArea::-webkit-scrollbar{ width: 10px; }
-.assetsScrollArea::-webkit-scrollbar-track{ background: transparent; }
-.assetsScrollArea::-webkit-scrollbar-thumb{
-  background: rgba(255,255,255,0.14);
-  border-radius: 999px;
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-.assetsScrollArea::-webkit-scrollbar-thumb:hover{
-  background: rgba(255,255,255,0.22);
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-
-/* Assets: no 1px outlines anywhere */
-.assetsSectionHead,
-.assetsRow{
-  box-shadow: none !important;
-}
-
-/* Assets: remove background from section headers */
-.assetsSectionHead{
-  background: transparent !important;
-}
-
-.assetsSectionHead:hover{
-  background: rgba(255,255,255,0.04) !important; /* Р В»РЎвЂР С–Р С”Р С‘Р в„– hover, Р В±Р ВµР В· Р С—Р С•Р Т‘Р В»Р С•Р В¶Р С”Р С‘ */
-}
-
-/* ===== Assets full-height layout ===== */
-
-.assetsOverlay{
-  display: flex;
-  align-items: flex-start !important;   /* Р Р…Р Вµ РЎвЂ Р ВµР Р…РЎвЂљРЎР‚Р С‘РЎР‚РЎС“Р ВµР С Р С—Р С• Р Р†Р ВµРЎР‚РЎвЂљР С‘Р С”Р В°Р В»Р С‘ */
-  justify-content: center;
-  padding-top: 40px;                    /* Р Р†Р ВµРЎР‚РЎвЂ¦Р Р…Р С‘Р в„– Р С•РЎвЂљРЎРѓРЎвЂљРЎС“Р С— */
-  padding-bottom: 40px;                 /* РЎвЂљР В°Р С”Р С•Р в„– Р В¶Р Вµ РЎРѓР Р…Р С‘Р В·РЎС“ */
-}
-
-.assetsModal{
-  height: calc(100vh - 80px);           /* 40 + 40 */
-  max-height: calc(100vh - 80px);
-  display: flex;
-  flex-direction: column;
-}
-
-/* scroll area stretches */
-.assetsScrollArea{
-  flex: 1;
-  overflow-y: auto;
-}
-
-/* footer stays pinned */
-.assetsFooter{
-  flex-shrink: 0;
-}
-
-
-/* ===== Assets modal layout fix (pro layout) ===== */
-
-.assetsModal {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 48px); /* same top spacing */
-}
-
-.assetsScrollArea {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px 12px 24px;
-}
-
-.assetsFooter {
-  padding: 16px 24px 24px 24px;
-}
-
-.assetsUploadBtn {
-  width: 100%;
-}
-
-/* ensure overlay doesn't scroll */
-.assetsOverlay {
-  overflow: hidden;
-}
-
-
-/* ===== Assets footer pin fix v2 ===== */
-
-/* overlay sizing (keep equal top/bottom padding) */
-.assetsOverlay{
-  display: flex;
-  align-items: flex-start !important;
-  justify-content: center !important;
-  padding: 40px 20px 40px 20px !important;
-}
-
-/* modal full height within padding */
-.assetsModal{
-  height: calc(100vh - 80px) !important;      /* 40 top + 40 bottom */
-  max-height: calc(100vh - 80px) !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-/* IMPORTANT: the wrapper between header and footer must be flex too */
-.assetsBody{
-  flex: 1 1 auto !important;
-  min-height: 0 !important;                   /* allows internal scrolling */
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-/* scroll area consumes remaining height */
-.assetsScrollArea{
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-}
-
-/* footer stays at bottom */
-.assetsFooter{
-  margin-top: auto !important;
-  flex: 0 0 auto !important;
-
-  /* remove "underlay" look */
-  background: transparent !important;
-  backdrop-filter: none !important;
-
-  /* subtle separation like Inspector */
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04) !important;
-}
-
-
-/* ===== Inspector spinner arrows fix ===== */
-.inspector button,
-.inspector .numSpin button,
-.inspector .spinBtn,
-.inspector .stepBtn{
-  font-family: inherit !important;
-  line-height: 1 !important;
-}
-
-.inspector .numSpin button,
-.inspector .spinBtn,
-.inspector .stepBtn{
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-
-
-/* ===== ScreenInspector: clear background image button ===== */
-.assetValueRow{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.assetClearBtn{
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.75);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-.assetClearBtn:hover{
-  background: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.92);
-}
-.assetClearBtn svg{
-  width: 18px;
-  height: 18px;
-}
-.assetClearBtn.isDisabled,
-.assetClearBtn:disabled{
-  opacity: 0.45;
-  cursor: default;
-}
-
-
-/* ===== Stepper arrow safety-net (unknown classnames) =====
-   If any icon-font still leaks, hide it and show РІвЂ“Р†/РІвЂ“С via ::before.
-*/
-.inspector button[class*="Spin"],
-.inspector button[class*="spin"],
-.inspector button[class*="Step"],
-.inspector button[class*="step"],
-.inspector button[class*="Arrow"],
-.inspector button[class*="arrow"]{
-  font-family: inherit !important;
-}
-
-.inspector button[class*="Spin"] *,
-.inspector button[class*="spin"] *,
-.inspector button[class*="Step"] *,
-.inspector button[class*="step"] *,
-.inspector button[class*="Arrow"] *,
-.inspector button[class*="arrow"] *{
-  display: none !important;
-}
-
-.inspector button[class*="Spin"]::before,
-.inspector button[class*="spin"]::before,
-.inspector button[class*="Step"]::before,
-.inspector button[class*="step"]::before,
-.inspector button[class*="Arrow"]::before,
-.inspector button[class*="arrow"]::before{
-  content: "РІвЂ“Р†";
-  font-size: 13px;
-  line-height: 1;
-  color: rgba(255,255,255,0.85);
-}
-
-/* if it's the second button in a vertical pair -> РІвЂ“С */
-.inspector button[class*="Spin"]:nth-of-type(2)::before,
-.inspector button[class*="spin"]:nth-of-type(2)::before,
-.inspector button[class*="Step"]:nth-of-type(2)::before,
-.inspector button[class*="step"]:nth-of-type(2)::before,
-.inspector button[class*="Arrow"]:nth-of-type(2)::before,
-.inspector button[class*="arrow"]:nth-of-type(2)::before{
-  content: "РІвЂ“С";
-}
-
-
-
-/* FIX: stepper svg */
-.stepperIcon {
-  display: block;
-  pointer-events: none;
-}
-
-.assetsTrashBtn {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.assetsTrashBtn:hover,
-.assetsTrashBtn:active,
-.assetsTrashBtn:focus {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.canvasTitleOverlay {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 13px;
-  font-weight: 500;
-  color: #cfcfcf;
-  pointer-events: none;
-  opacity: 0.7;
-}
-/* --- Portal Dropdown --- */
-.ddWrap { display: inline-block; position: relative; }
-.ddButton {
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 0px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.92);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-.ddButton:disabled { opacity: 0.45; cursor: default; }
-.ddButton.isOpen { border-color: rgba(62,163,255,0.55); box-shadow: 0 0 0 2px rgba(62,163,255,0.18); }
-
-.ddValue { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ddCaret { opacity: 0.8; font-size: 12px; line-height: 1; }
-
-.ddPopover {
-  background: rgba(20,20,20,0.98);
-  border: 0px solid rgba(255,255,255,0.10);
-  border-radius: 10px;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.55);
-  overflow: hidden;
-
-  opacity: 0;
-  transform: translateY(-4px) scale(0.985);
-  transition: opacity 120ms ease, transform 120ms ease;
-  will-change: transform, opacity;
-}
-.ddPopover.isOpen { opacity: 1; transform: translateY(0) scale(1); }
-.ddPopover.flip { transform-origin: bottom left; }
-.ddList { max-height: 260px; overflow: auto; padding: 6px; }
-
-.ddItem {
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 0;
-  background: transparent;
-  color: rgba(255,255,255,0.92);
-  cursor: pointer;
-}
-.ddItem:hover { background: rgba(255,255,255,0.08); }
-.ddItem.isActive { background: rgba(62,163,255,0.22); }
-
-/* === Shared Dropdown (portal) === */
 .dropdownRoot { position: relative; display: inline-block; width: 100%; }
 
-.dropdownTrigger{
+.dropdownTrigger {
   width: 100%;
   height: 34px;
   padding: 0 10px;
@@ -1470,58 +663,46 @@ input[type="number"] {
   justify-content: space-between;
   gap: 10px;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+
+  /* IMPORTANT: remove 1px "border" effect */
+  box-shadow: none;
 }
 
-.dropdownTrigger:hover{
-  box-shadow: inset 0 0 0 1px rgba(62,163,255,0.35);
-}
+.dropdownTrigger:focus,
+.dropdownTrigger:active { outline: none; box-shadow: none; }
 
-.dropdownTrigger.isDisabled{
-  opacity: 0.45;
-  cursor: default;
-}
+.dropdownTrigger.isDisabled { opacity: 0.45; cursor: default; }
 
-.dropdownTriggerLabel{
+.dropdownTriggerLabel {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 13px;
 }
 
-.dropdownTriggerCaret{
-  opacity: 0.8;
-  font-size: 12px;
-  flex: 0 0 auto;
-}
+.dropdownTriggerCaret { opacity: 0.8; font-size: 12px; flex: 0 0 auto; }
 
 /* portal menu */
-.dropdownPortal{
-  background: #0f1216;
+.dropdownPortal {
+  background: #101010;
   border-radius: 14px;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.65);
+  border: none;
   overflow: hidden;
   transform-origin: top;
   animation: ddIn 140ms ease-out;
   will-change: transform, opacity;
 }
 
-.dropdownPortal.flip{
-  transform-origin: bottom;
+.dropdownPortal.flip { transform-origin: bottom; }
+
+@keyframes ddIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes ddIn{
-  from{ opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to{ opacity: 1; transform: translateY(0) scale(1); }
-}
+.dropdownMenu { max-height: 320px; overflow: auto; padding: 6px; }
 
-.dropdownMenu{
-  max-height: 320px;
-  overflow: auto;
-  padding: 6px;
-}
-
-.dropdownItem{
+.dropdownItem {
   width: 100%;
   height: 34px;
   border: 0;
@@ -1532,106 +713,201 @@ input[type="number"] {
   padding: 0 10px;
   cursor: pointer;
   font-size: 13px;
+  outline: none;
+}
+.dropdownItem:hover { background: rgba(114, 114, 114,0.14); }
+.dropdownItem.isActive { background: rgba(114, 114, 114, 0.22); }
+
+/* ===== Assets modal (single final version, no duplicates) ===== */
+.assetsOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  z-index: 1000;
+  overflow: hidden;
 }
 
-.dropdownItem:hover{
-  background: rgba(62,163,255,0.14);
+.assetsModal {
+  width: min(420px, 94vw);
+  height: calc(100vh - 80px);
+  max-height: calc(100vh - 80px);
+  border-radius: 18px;
+  background: rgba(20,20,20,0.92);
+  border: none;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.dropdownItem.isActive{
-  background: rgba(62,163,255,0.22);
+.assetsHeaderLike {
+  position: relative;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
 }
 
+.assetsHeaderTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.88);
+  letter-spacing: 0.2px;
+}
 
- /* ==== FIX: remove 1px borders from custom Dropdown ==== */
+.assetsCloseBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  cursor: pointer;
+}
+.assetsCloseBtn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.95); }
 
-.dropdownButton {
+.assetsBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.assetsScrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 24px 12px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+.assetsScrollArea::-webkit-scrollbar { width: 10px; }
+.assetsScrollArea::-webkit-scrollbar-track { background: transparent; }
+.assetsScrollArea::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.assetsScrollArea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.22);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.assetsSection { margin-bottom: 10px; }
+.assetsSectionHead {
+  width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.assetsSectionHead:hover { background: rgba(255,255,255,0.04); }
+
+.assetsCaret {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.65);
+  transition: transform 120ms ease;
+}
+.assetsCaret.open { transform: rotate(180deg); }
+.assetsCaret svg { width: 18px; height: 18px; }
+
+.assetsList { display: flex; flex-direction: column; gap: 8px; }
+
+.assetsRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.86);
+  cursor: pointer;
+  text-align: left;
+}
+.assetsRow:hover { background: rgba(255,255,255,0.05); }
+.assetsRow.isDisabled { opacity: 0.45; cursor: default; }
+.assetsRow.isDisabled:hover { background: rgba(255,255,255,0.03); }
+
+.assetsRowName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assetsRowRight { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
+
+.assetsIconBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.65);
+  cursor: pointer;
+}
+.assetsIconBtn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.95); }
+.assetsIconBtn svg { width: 16px; height: 16px; }
+
+.assetsTrashBtn {
+  background: transparent !important;
   border: none !important;
-  outline: none !important;
+  box-shadow: none !important;
 }
-
-.dropdownPortal {
-  border: none !important;
-}
-
-.dropdownItem {
-  border: none !important;
-}
-
-.dropdownButton:focus,
-.dropdownButton:active {
-  outline: none !important;
+.assetsTrashBtn:hover,
+.assetsTrashBtn:active,
+.assetsTrashBtn:focus {
+  background: transparent !important;
   box-shadow: none !important;
 }
 
-/* === Dropdown border override (auto) === */
-/* Kills 1px borders that sometimes appear on trigger or menu */
-.dropdown,
-.dropdown *,
-.dropdownBtn,
-.dropdownTrigger,
-.dropdownPortal,
-.dropdownMenu,
-.dropdownList,
-.select,
-.selectBtn,
-.selectTrigger,
-.selectMenu,
-.selectList {
-  border: 0 !important;
-  outline: none !important;
-  box-shadow: none;
+.assetsFooter {
+  margin-top: auto;
+  flex: 0 0 auto;
+  padding: 16px 24px 24px 24px;
+  background: transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
-/* If your dropdown uses <button>, browsers may add border via UA styles */
-button.dropdownBtn,
-button.dropdownTrigger,
-button.select,
-button.selectBtn,
-button.selectTrigger {
-  border: 0 !important;
-  outline: none !important;
+.assetsUploadBtn {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.95);
+  background: rgba(62,163,255,0.42);
 }
+.assetsUploadBtn:hover { background: rgba(62,163,255,0.56); }
 
-/* Keep your look (pill + soft edge) without borders */
-.dropdownBtn,
-.dropdownTrigger,
-.select,
-.selectBtn,
-.selectTrigger {
-  
+/* Responsive tweaks */
+@media (max-width: 1280px) {
+  .mainGrid { grid-template-columns: 280px 1fr 360px; }
 }
-
-/* Popup should still look like a floating card (shadow only) */
-.dropdownPortal,
-.dropdownMenu,
-.dropdownList,
-.selectMenu,
-.selectList {
- 
+@media (max-width: 1080px) {
+  .mainGrid { grid-template-columns: 260px 1fr 340px; }
 }
-
-/* === End Dropdown border override === */
-
-
-/* === Dropdown inset-kill (auto) === */
-.dropdownBtn,
-.dropdownTrigger,
-.select,
-.selectBtn,
-.selectTrigger,
-.dropdownPortal,
-.dropdownMenu,
-.dropdownList,
-.selectMenu,
-.selectList {
-  
-}
-.dropdownBtn:focus,
-.dropdownTrigger:focus,
-.select:focus,
-.selectBtn:focus,
-.selectTrigger:focus {
-  
-}
-/* === End Dropdown inset-kill === */

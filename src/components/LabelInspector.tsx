@@ -1,13 +1,11 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Dropdown } from "./Dropdown";
-
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { LabelObj } from "../types";
-import { clamp, clampInt, normalizeHex } from "../utils/ui";
-
 import { ColorPicker } from "./ColorPicker";
+import { clamp, clampInt, normalizeHex } from "../utils/inspector";
+import { Dropdown } from "./Dropdown";
 
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
@@ -96,9 +94,7 @@ function SpinNumber({
           onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
           aria-label="Increase"
         >
-          <svg className="stepperIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-  <path d="M1 6 L5 2 L9 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-</svg>
+          ▲
         </button>
         <button
           type="button"
@@ -106,14 +102,13 @@ function SpinNumber({
           onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
           aria-label="Decrease"
         >
-          <svg className="stepperIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-  <path d="M1 4 L5 8 L9 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-</svg>
+          ▼
         </button>
       </div>
     </div>
   );
 }
+
 
 
 /** Portal popover (NOT clipped by scroll/overflow) */
@@ -191,7 +186,7 @@ function PortalPopover({
     >
       {children}
     </div>,
-    document.body,
+    document.body
   );
 }
 
@@ -237,40 +232,13 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
         <Row2>
           <div>
             <Label>Position X</Label>
-            <SpinNumber
-              value={obj.transform.x}
-              onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "x"], v)}
-            />
+            <SpinNumber value={obj.transform.x} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "x"], v)} />
           </div>
           <div>
             <Label>Position Y</Label>
-            <SpinNumber
-              value={obj.transform.y}
-              onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "y"], v)}
-            />
+            <SpinNumber value={obj.transform.y} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "y"], v)} />
           </div>
         </Row2>
-
-        <div style={{ marginTop: 12 }}>
-          <Row2>
-            <div>
-              <Label>Width</Label>
-              <SpinNumber
-                value={(obj.transform as any).width ?? 220}
-                min={1}
-                onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "width"], v)}
-              />
-            </div>
-            <div>
-              <Label>Height</Label>
-              <SpinNumber
-                value={(obj.transform as any).height ?? 60}
-                min={1}
-                onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "height"], v)}
-              />
-            </div>
-          </Row2>
-        </div>
 
         <div style={{ marginTop: 12 }}>
           <Label>Rotation</Label>
@@ -515,9 +483,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
             />
             <TextField
               value={outlineHex}
-              onChange={(e) =>
-                Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(e.target.value))
-              }
+              onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(e.target.value))}
             />
           </div>
 
@@ -580,9 +546,3 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
     </div>
   );
 }
-
-
-
-
-
-
