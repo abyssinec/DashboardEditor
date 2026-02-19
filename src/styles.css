@@ -802,7 +802,7 @@ input[type="number"] {
 }
 
 .canvasFrame {
-  background: #080808 !important;
+  background: rgb(17, 17, 17) !important;
 }
 .insTextarea {
   min-height: 74px;
@@ -1392,4 +1392,15 @@ input[type="number"] {
 .assetsTrashBtn:focus {
   background: transparent !important;
   box-shadow: none !important;
+}
+.canvasTitleOverlay {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 500;
+  color: #cfcfcf;
+  pointer-events: none;
+  opacity: 0.7;
 }

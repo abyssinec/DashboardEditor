@@ -97,11 +97,12 @@ export function ViewPanel() {
   return (
     <div className="viewWrap">
       <div className="viewHeader">
-        <div className="panelTitle insPanelTitle">View</div>
       </div>
 
       <div className="canvasHost">
         <div className="canvasFrame">
+          <div className="canvasTitleOverlay">View</div>
+
           <CanvasView />
 
           <div className="viewTools">

@@ -321,7 +321,7 @@ ctx.globalAlpha = 0.07;
 ctx.strokeStyle = "#9E9E9E";
 ctx.lineWidth = 1;
 
-const step = 140 * vp.zoom;
+const step = 150 * vp.zoom;
 
 // привязываем грид к мировым координатам (чтобы ехал вместе с паном)
 const offX = ((c.width / 2) + vp.panX * vp.zoom) % step;
@@ -402,7 +402,7 @@ const bgImg = bgImgRef.current;
 
     // screen border
     ctx.save();
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.25;
     ctx.strokeStyle = "#3EA3FF";
     ctx.lineWidth = 2;
     ctx.strokeRect(tl.sx, tl.sy, srW, srH);
