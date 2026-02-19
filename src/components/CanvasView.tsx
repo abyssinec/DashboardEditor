@@ -270,7 +270,7 @@ useEffect(() => {
       const c = canvasRef.current;
       const w = wrapRef.current;
       if (!c || !w) return;
-      const fit = Math.min(c.width / screen.settings.width, c.height / screen.settings.height) * 0.9;
+      const fit = Math.min(c.width / screen.settings.width, c.height / screen.settings.height) * 0.8;
       setVp((v) => ({ ...v, zoom: clamp(fit || 1, 0.15, 3) }));
     });
     if (wrapRef.current) ro.observe(wrapRef.current);
@@ -315,26 +315,32 @@ useEffect(() => {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    // softer grid (less visible)
-    ctx.save();
-    ctx.globalAlpha = 0.07;
-    ctx.strokeStyle = "#9E9E9E";
-    ctx.lineWidth = 1;
+// softer grid (less visible)
+ctx.save();
+ctx.globalAlpha = 0.07;
+ctx.strokeStyle = "#9E9E9E";
+ctx.lineWidth = 1;
 
-    const step = 140 * vp.zoom;
-    for (let x = (c.width / 2) % step; x < c.width; x += step) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, c.height);
-      ctx.stroke();
-    }
-    for (let y = (c.height / 2) % step; y < c.height; y += step) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(c.width, y);
-      ctx.stroke();
-    }
-    ctx.restore();
+const step = 140 * vp.zoom;
+
+// привязываем грид к мировым координатам (чтобы ехал вместе с паном)
+const offX = ((c.width / 2) + vp.panX * vp.zoom) % step;
+const offY = ((c.height / 2) + vp.panY * vp.zoom) % step;
+
+for (let x = offX; x < c.width; x += step) {
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, c.height);
+  ctx.stroke();
+}
+for (let y = offY; y < c.height; y += step) {
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(c.width, y);
+  ctx.stroke();
+}
+ctx.restore();
+
 
     // screen rect (centered at world origin)
     const tl = worldToScreen(-sw / 2, -sh / 2);
@@ -735,14 +741,3 @@ const bgImg = bgImgRef.current;
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

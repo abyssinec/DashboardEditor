@@ -90,7 +90,7 @@ export function LeftPanel() {
 
         <div style={{ height: 12 }} />
 
-        <div className="panelTitle" style={{ borderBottom: "none", padding: "0 0 8px 0" }}>
+        <div className="panelTitle insPanelTitle" style={{ borderBottom: "none", padding: "0 0 8px 0" }}>
           Objects
         </div>
 

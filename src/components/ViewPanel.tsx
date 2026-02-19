@@ -102,7 +102,6 @@ export function ViewPanel() {
 
       <div className="canvasHost">
         <div className="canvasFrame">
-          <div className="canvasOverlayTag">{screen.name}</div>
           <CanvasView />
 
           <div className="viewTools">
