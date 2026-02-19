@@ -95,7 +95,9 @@ function SpinNumber({
           onClick={() => onChange(clamp(value + step, min ?? -1e9, max ?? 1e9))}
           aria-label="Increase"
         >
-          ▲
+          <svg className="stepperIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+  <path d="M1 6 L5 2 L9 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+</svg>
         </button>
         <button
           type="button"
@@ -103,7 +105,9 @@ function SpinNumber({
           onClick={() => onChange(clamp(value - step, min ?? -1e9, max ?? 1e9))}
           aria-label="Decrease"
         >
-          ▼
+          <svg className="stepperIcon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+  <path d="M1 4 L5 8 L9 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+</svg>
         </button>
       </div>
     </div>

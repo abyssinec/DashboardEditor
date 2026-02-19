@@ -1,4 +1,4 @@
-/* DashboardEditor вЂ” responsive app layout (no page scroll) */
+/* DashboardEditor РІР‚вЂќ responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -133,7 +133,7 @@ body {
 }
 .insPanelTitle {
   text-align: center;
-} /* РєР°Рє РІ СЂРµС„Рµ */
+} /* Р С”Р В°Р С” Р Р† РЎР‚Р ВµРЎвЂћР Вµ */
 
 .scrollArea {
   flex: 1 1 auto;
@@ -319,7 +319,7 @@ body {
 /* ===== Inspector like reference ===== */
 .inspector-scroll {
   padding: 0;
-} /* padding СѓР¶Рµ РЅР° scrollArea */
+} /* padding РЎС“Р В¶Р Вµ Р Р…Р В° scrollArea */
 .insRoot {
   padding: 10px;
 }
@@ -444,7 +444,7 @@ body {
   cursor: pointer;
 }
 
-/* СѓР±РёСЂР°РµРј РІРЅСѓС‚СЂРµРЅРЅРёРµ РѕС‚СЃС‚СѓРїС‹ Рё РґРµР»Р°РµРј Р·Р°Р»РёРІРєСѓ РЅР° РІРµСЃСЊ СЂР°Р·РјРµСЂ */
+/* РЎС“Р В±Р С‘РЎР‚Р В°Р ВµР С Р Р†Р Р…РЎС“РЎвЂљРЎР‚Р ВµР Р…Р Р…Р С‘Р Вµ Р С•РЎвЂљРЎРѓРЎвЂљРЎС“Р С—РЎвЂ№ Р С‘ Р Т‘Р ВµР В»Р В°Р ВµР С Р В·Р В°Р В»Р С‘Р Р†Р С”РЎС“ Р Р…Р В° Р Р†Р ВµРЎРѓРЎРЉ РЎР‚Р В°Р В·Р СР ВµРЎР‚ */
 .insColorSwatch::-webkit-color-swatch-wrapper {
   padding: 0;
 }
@@ -679,7 +679,7 @@ body {
   position: relative;
 }
 .insSpinInput {
-  padding-right: 38px; /* РјРµСЃС‚Рѕ РїРѕРґ СЃС‚СЂРµР»РєРё */
+  padding-right: 38px; /* Р СР ВµРЎРѓРЎвЂљР С• Р С—Р С•Р Т‘ РЎРѓРЎвЂљРЎР‚Р ВµР В»Р С”Р С‘ */
 }
 .insSpinBtns {
   position: absolute;
@@ -773,7 +773,7 @@ body {
   background: rgba(62, 163, 255, 0.28);
 }
 
-/* (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ) СЃРєСЂС‹С‚СЊ РЅР°С‚РёРІРЅС‹Рµ СЃРїРёРЅРЅРµСЂС‹ РЅР° number (РјС‹ РёС… Р±РѕР»СЊС€Рµ РЅРµ РёСЃРїРѕР»СЊР·СѓРµРј РІ РёРЅСЃРїРµРєС‚РѕСЂРµ) */
+/* (Р С•Р С—РЎвЂ Р С‘Р С•Р Р…Р В°Р В»РЎРЉР Р…Р С•) РЎРѓР С”РЎР‚РЎвЂ№РЎвЂљРЎРЉ Р Р…Р В°РЎвЂљР С‘Р Р†Р Р…РЎвЂ№Р Вµ РЎРѓР С—Р С‘Р Р…Р Р…Р ВµРЎР‚РЎвЂ№ Р Р…Р В° number (Р СРЎвЂ№ Р С‘РЎвЂ¦ Р В±Р С•Р В»РЎРЉРЎв‚¬Р Вµ Р Р…Р Вµ Р С‘РЎРѓР С—Р С•Р В»РЎРЉР В·РЎС“Р ВµР С Р Р† Р С‘Р Р…РЎРѓР С—Р ВµР С”РЎвЂљР С•РЎР‚Р Вµ) */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -783,7 +783,7 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 /* ============================= */
-/* GLOBAL SOFT UI вЂ“ no hard borders */
+/* GLOBAL SOFT UI РІР‚вЂњ no hard borders */
 /* ============================= */
 
 .panel,
@@ -797,14 +797,14 @@ input[type="number"] {
   border: none !important;
 }
 
-/* РјСЏРіРєРёРµ С„РѕРЅРѕРІС‹Рµ РєР°СЂС‚РѕС‡РєРё */
+/* Р СРЎРЏР С–Р С”Р С‘Р Вµ РЎвЂћР С•Р Р…Р С•Р Р†РЎвЂ№Р Вµ Р С”Р В°РЎР‚РЎвЂљР С•РЎвЂЎР С”Р С‘ */
 .panel,
 .insDropMenu,
 .insPickerPopover {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
 }
 
-/* РјСЏРіРєРёРµ input РїРѕР»СЏ */
+/* Р СРЎРЏР С–Р С”Р С‘Р Вµ input Р С—Р С•Р В»РЎРЏ */
 .insField,
 .insSpinInput,
 .insDropBtn {
@@ -1180,17 +1180,17 @@ input[type="number"] {
 }
 
 .assetsSectionHead:hover{
-  background: rgba(255,255,255,0.04) !important; /* лёгкий hover, без подложки */
+  background: rgba(255,255,255,0.04) !important; /* Р»С‘РіРєРёР№ hover, Р±РµР· РїРѕРґР»РѕР¶РєРё */
 }
 
 /* ===== Assets full-height layout ===== */
 
 .assetsOverlay{
   display: flex;
-  align-items: flex-start !important;   /* не центрируем по вертикали */
+  align-items: flex-start !important;   /* РЅРµ С†РµРЅС‚СЂРёСЂСѓРµРј РїРѕ РІРµСЂС‚РёРєР°Р»Рё */
   justify-content: center;
-  padding-top: 40px;                    /* верхний отступ */
-  padding-bottom: 40px;                 /* такой же снизу */
+  padding-top: 40px;                    /* РІРµСЂС…РЅРёР№ РѕС‚СЃС‚СѓРї */
+  padding-bottom: 40px;                 /* С‚Р°РєРѕР№ Р¶Рµ СЃРЅРёР·Сѓ */
 }
 
 .assetsModal{
@@ -1343,7 +1343,7 @@ input[type="number"] {
 
 
 /* ===== Stepper arrow safety-net (unknown classnames) =====
-   If any icon-font still leaks, hide it and show ▲/▼ via ::before.
+   If any icon-font still leaks, hide it and show в–І/в–ј via ::before.
 */
 .inspector button[class*="Spin"],
 .inspector button[class*="spin"],
@@ -1369,20 +1369,26 @@ input[type="number"] {
 .inspector button[class*="step"]::before,
 .inspector button[class*="Arrow"]::before,
 .inspector button[class*="arrow"]::before{
-  content: "▲";
+  content: "в–І";
   font-size: 13px;
   line-height: 1;
   color: rgba(255,255,255,0.85);
 }
 
-/* if it's the second button in a vertical pair -> ▼ */
+/* if it's the second button in a vertical pair -> в–ј */
 .inspector button[class*="Spin"]:nth-of-type(2)::before,
 .inspector button[class*="spin"]:nth-of-type(2)::before,
 .inspector button[class*="Step"]:nth-of-type(2)::before,
 .inspector button[class*="step"]:nth-of-type(2)::before,
 .inspector button[class*="Arrow"]:nth-of-type(2)::before,
 .inspector button[class*="arrow"]:nth-of-type(2)::before{
-  content: "▼";
+  content: "в–ј";
 }
 
 
+
+/* FIX: stepper svg */
+.stepperIcon {
+  display: block;
+  pointer-events: none;
+}
