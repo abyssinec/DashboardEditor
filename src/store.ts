@@ -35,9 +35,9 @@ export const defaultProject = (): Project => {
   };
 
   return {
-    project: { id: "proj_" + nanoid(6), name: "Project name.dash" },
+    project: { id: "proj_" + nanoid(6), name: "ProjectName.dashboard" },
     assets: { images: [], fonts: [] },
-    screens: [screen1], // вњ… С‚РѕР»СЊРєРѕ РѕРґРёРЅ СЌРєСЂР°РЅ
+    screens: [screen1],
   };
 };
 

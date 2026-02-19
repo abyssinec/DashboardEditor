@@ -69,7 +69,7 @@ export function LeftPanel() {
 
   return (
     <>
-      <div className="panelTitle">Screens</div>
+      <div className="panelTitle insPanelTitle">Screens</div>
       <div className="scrollArea">
         <div className="list">
           {screens.map((sc) => (

@@ -50,9 +50,8 @@ body {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: 40px;
   padding: 10px 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
   border-radius: 10px;
 }
 .brand {
@@ -133,7 +132,7 @@ body {
 }
 .insPanelTitle {
   text-align: center;
-} /* Р В РЎвЂќР В Р’В°Р В РЎвЂќ Р В Р вЂ  Р РЋР вЂљР В Р’ВµР РЋРІР‚С›Р В Р’Вµ */
+} 
 
 .scrollArea {
   flex: 1 1 auto;
@@ -210,14 +209,6 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-.viewHeader {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border2);
-}
-.viewHeader .viewTitle {
-  font-size: 13px;
-  opacity: 0.85;
 }
 .canvasHost {
   flex: 1 1 auto;

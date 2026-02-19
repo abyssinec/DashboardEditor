@@ -60,7 +60,7 @@ export default function App() {
           <div className="projectName">{project.project.name}</div>
         </div>
 
-        <div className="account">Account</div>
+        {/* <div className="account">Account</div> */}
       </div>
 
       {/* Main */}
