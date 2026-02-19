@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useStore } from "../hooks/useStore";
@@ -301,6 +301,27 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
             />
           </div>
         </Row2>
+
+        <div style={{ marginTop: 12 }}>
+          <Row2>
+            <div>
+              <Label>Width</Label>
+              <SpinNumber
+                value={(obj.transform as any).width ?? 220}
+                min={1}
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "width"], v)}
+              />
+            </div>
+            <div>
+              <Label>Height</Label>
+              <SpinNumber
+                value={(obj.transform as any).height ?? 60}
+                min={1}
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "height"], v)}
+              />
+            </div>
+          </Row2>
+        </div>
 
         <div style={{ marginTop: 12 }}>
           <Label>Rotation</Label>
@@ -610,6 +631,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
     </div>
   );
 }
+
 
 
 

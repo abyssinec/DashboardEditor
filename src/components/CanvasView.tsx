@@ -1,10 +1,24 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { AnyObj } from "../types";
 
 type Viewport = { zoom: number; panX: number; panY: number };
+
+type ResizeHandle = "nw" | "ne" | "se" | "sw";
+type ResizeState = {
+  id: string;
+  handle: ResizeHandle;
+  startWorldX: number;
+  startWorldY: number;
+  startX: number;
+  startY: number;
+  startW: number;
+  startH: number;
+};
+
+const MIN_LABEL_W = 40;
+const MIN_LABEL_H = 20;
 
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
@@ -41,7 +55,11 @@ function normalizeHex(v: string) {
 }
 
 function objectBounds(o: AnyObj) {
-  if (o.type === "Label") return { x: o.transform.x, y: o.transform.y, w: 220, h: 60 };
+  if (o.type === "Label") {
+    const w = (o.transform as any).width ?? 220;
+    const h = (o.transform as any).height ?? 60;
+    return { x: o.transform.x, y: o.transform.y, w, h };
+  }
   if (o.type === "Image") {
     const w = 220 * (o.transform.scaleX || 1);
     const h = 140 * (o.transform.scaleY || 1);
@@ -141,39 +159,94 @@ export function CanvasView() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const screen = useStore((s) => s.project.screens.find((x) => x.id === s.selectedScreenId)!);
+  const selectedScreenId = useStore((s) => s.selectedScreenId);
+  const screen = useStore((s) => s.project.screens.find((x) => x.id === selectedScreenId)!);
   const selectedObjectId = useStore((s) => s.selectedObjectId);
 
-  const sorted = useMemo(() => [...screen.objects].sort((a, b) => a.z - b.z), [screen.objects]);
+  // Signature to force rerender on deep mutations (width/height/x/y/rotation/z/etc.)
+  const screenSig = useStore((s) => {
+    const sc = s.project.screens.find((x) => x.id === selectedScreenId);
+    if (!sc) return "";
+    return (
+      sc.id +
+      "|" +
+      sc.settings.width +
+      "x" +
+      sc.settings.height +
+      "|" +
+      (sc.style?.color ?? "") +
+      "|" +
+      (sc.style?.alpha ?? "") +
+      "|" +
+      ((sc.style as any)?.backgroundImageAssetId ?? "") +
+      "|" +
+      ((sc.style as any)?.fill ?? "") +
+      "|" +
+      sc.objects
+        .map((o: any) =>
+          [
+            o.id,
+            o.type,
+            o.z,
+            o.transform?.x,
+            o.transform?.y,
+            o.transform?.width,
+            o.transform?.height,
+            o.transform?.scaleX,
+            o.transform?.scaleY,
+            o.transform?.rotation,
+            // label settings affecting hit-test and layout
+            o.settings?.text,
+            o.settings?.fontSize,
+            o.settings?.wrap,
+            o.settings?.align,
+            o.settings?.bold,
+            o.settings?.italic,
+            o.settings?.autoSize,
+            o.settings?.fontAssetId,
+          ].join(":"),
+        )
+        .join(",")
+    );
+  });
 
-  // assets: fonts + bytes (С‡С‚РѕР±С‹ РїСЂРёРјРµРЅСЏР»СЃСЏ РІС‹Р±СЂР°РЅРЅС‹Р№ С€СЂРёС„С‚ РёР· asset manager)
+  const sorted = useMemo(() => {
+    // important: rely on screenSig so it updates even if objects mutated in place
+    void screenSig;
+    return [...screen.objects].sort((a, b) => a.z - b.z);
+  }, [screenSig, screen.objects]);
+
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
   const imageAssets = useStore((s) => (s.project as any).assets?.images ?? []);
   const assetBytes = useStore((s) => (s as any).assetBytes ?? {});
 
-
   const bgImgRef = useRef<HTMLImageElement | null>(null);
   const bgUrlRef = useRef<string | null>(null);
   const [bgVersion, setBgVersion] = useState<number>(0);
-useEffect(() => {
+
+  useEffect(() => {
     const bgId = (screen as any).style?.backgroundImageAssetId as string | undefined;
+
     if (bgUrlRef.current) {
-      try { URL.revokeObjectURL(bgUrlRef.current); } catch { /* ignore */ }
+      try {
+        URL.revokeObjectURL(bgUrlRef.current);
+      } catch {}
       bgUrlRef.current = null;
     }
     bgImgRef.current = null;
 
     if (!bgId) {
-      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));return;
+      requestAnimationFrame(() => setBgVersion((v) => v + 1));
+      return;
     }
 
     const a: any = (imageAssets as any[]).find((x) => x.id === bgId);
     const bytes: any = (assetBytes as any)[bgId];
     if (!a || !bytes) {
-      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));return;
+      requestAnimationFrame(() => setBgVersion((v) => v + 1));
+      return;
     }
 
-    // bytes may be Uint8Array/ArrayBufferLike; normalize to ArrayBuffer for BlobPart
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const ab = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
 
@@ -184,23 +257,29 @@ useEffect(() => {
     const img = new Image();
     img.onload = () => {
       bgImgRef.current = img;
-      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));};
+      requestAnimationFrame(() => setBgVersion((v) => v + 1));
+    };
     img.onerror = () => {
       bgImgRef.current = null;
-      requestAnimationFrame(() => setBgVersion((v: number) => v + 1));};
+      requestAnimationFrame(() => setBgVersion((v) => v + 1));
+    };
     img.src = url;
 
     return () => {
       if (bgUrlRef.current) {
-        try { URL.revokeObjectURL(bgUrlRef.current); } catch { /* ignore */ }
+        try {
+          URL.revokeObjectURL(bgUrlRef.current);
+        } catch {}
         bgUrlRef.current = null;
       }
     };
   }, [screen.id, (screen as any).style?.backgroundImageAssetId, (screen as any).style?.fill, imageAssets, assetBytes]);
+
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
+  const [resizing, setResizing] = useState<ResizeState | null>(null);
 
   // Register fonts (FontFace)
   useEffect(() => {
@@ -230,14 +309,13 @@ useEffect(() => {
           (document as any).fonts.add(ff);
           reg.add(id);
         } catch {
-          // РµСЃР»Рё РЅРµ Р·Р°РіСЂСѓР·РёР»СЃСЏ вЂ” РїСЂРѕСЃС‚Рѕ fallback РЅР° Inter
           reg.add(id);
         }
       }
     })();
   }, [fontAssets, assetBytes]);
 
-  // Key handling (Space for pan)
+  // Space for pan
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") setSpaceDown(true);
@@ -262,7 +340,6 @@ useEffect(() => {
     c.height = Math.max(1, Math.round(r.height));
   }
 
-  // Fit zoom on mount / screen change / resize
   useEffect(() => {
     resizeCanvas();
     const ro = new ResizeObserver(() => {
@@ -275,7 +352,6 @@ useEffect(() => {
     });
     if (wrapRef.current) ro.observe(wrapRef.current);
     return () => ro.disconnect();
-     
   }, [screen.id, screen.settings.width, screen.settings.height]);
 
   function worldToScreen(x: number, y: number) {
@@ -292,16 +368,93 @@ useEffect(() => {
     return { x, y };
   }
 
-  function hitTestWorld(wx: number, wy: number): AnyObj | undefined {
+  function hitResizeHandle(sel: AnyObj, sx: number, sy: number, sw: number, sh: number): ResizeHandle | null {
+    if (!sel || sel.type !== "Label") return null;
+
+    const b = objectBounds(sel);
+    const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
+    const w = b.w * vp.zoom;
+    const h = b.h * vp.zoom;
+
+    const hs = 10;
+    const half = hs / 2;
+
+    const corners = [
+      { h: "nw", x: p.sx, y: p.sy },
+      { h: "ne", x: p.sx + w, y: p.sy },
+      { h: "se", x: p.sx + w, y: p.sy + h },
+      { h: "sw", x: p.sx, y: p.sy + h },
+    ] as const;
+
+    for (const c2 of corners) {
+      if (sx >= c2.x - half && sx <= c2.x + half && sy >= c2.y - half && sy <= c2.y + half) return c2.h;
+    }
+    return null;
+  }
+
+  // IMPORTANT: Label hit-test ONLY by actual text bounds (not whole rect)
+  function hitTestScreen(sx: number, sy: number, ctx: CanvasRenderingContext2D): AnyObj | undefined {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
-    const lx = wx + sw / 2;
-    const ly = wy + sh / 2;
 
     for (const o of [...sorted].reverse()) {
       const b = objectBounds(o);
-      if (lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h) return o;
+      const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
+      const w = b.w * vp.zoom;
+      const h = b.h * vp.zoom;
+
+      if (o.type === "Label") {
+        const txt = o.settings?.text?.length ? o.settings.text : o.name;
+
+        const bold = o.settings?.bold === "Yes";
+        const italic = o.settings?.italic === "Yes";
+        const wrapMode = (o.settings?.wrap as any) ?? "No wrap";
+        const align = (o.settings?.align as any) ?? "Left";
+        const autoSize = (o.settings?.autoSize as any) === "Yes";
+
+        const fontAssetId = (o.settings as any)?.fontAssetId;
+        const family = fontAssetId ? `dash_font_${fontAssetId}` : "Inter";
+
+        const padX = 6 * vp.zoom;
+        const padY = 6 * vp.zoom;
+
+        const maxW = Math.max(10, w - padX * 2);
+        const maxH = Math.max(10, h - padY * 2);
+
+        const baseSize = Math.max(10, (o.settings?.fontSize || 20)) * vp.zoom;
+        let fontSize = baseSize;
+
+        if (autoSize) {
+          const tmpStart = Math.max(6, Math.round(baseSize));
+          fontSize = fitFontSize(ctx, txt, family, bold, italic, tmpStart, maxW, maxH, wrapMode);
+        }
+
+        ctx.font = buildFont(fontSize, family, bold, italic);
+
+        const lines = wrapLines(ctx, txt, maxW, wrapMode);
+        const lineH = Math.ceil(fontSize * 1.2);
+
+        let maxLineW = 0;
+        for (const l of lines) maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+
+        const textTop = p.sy + padY;
+        const textH = lines.length * lineH;
+
+        let textLeft = p.sx + padX;
+        if (align === "Center") textLeft = p.sx + w / 2 - maxLineW / 2;
+        else if (align === "Right") textLeft = p.sx + w - padX - maxLineW;
+
+        const textRight = textLeft + maxLineW;
+        const textBottom = textTop + textH;
+
+        if (sx >= textLeft && sx <= textRight && sy >= textTop && sy <= textBottom) return o;
+        continue;
+      }
+
+      // other types: rectangle hit-test
+      if (sx >= p.sx && sx <= p.sx + w && sy >= p.sy && sy <= p.sy + h) return o;
     }
+
     return undefined;
   }
 
@@ -315,49 +468,46 @@ useEffect(() => {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-// softer grid (less visible)
-ctx.save();
-ctx.globalAlpha = 0.07;
-ctx.strokeStyle = "#9E9E9E";
-ctx.lineWidth = 1;
+    // softer grid
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.strokeStyle = "#9E9E9E";
+    ctx.lineWidth = 1;
 
-const step = 150 * vp.zoom;
+    const step = 150 * vp.zoom;
+    const offX = (c.width / 2 + vp.panX * vp.zoom) % step;
+    const offY = (c.height / 2 + vp.panY * vp.zoom) % step;
 
-// привязываем грид к мировым координатам (чтобы ехал вместе с паном)
-const offX = ((c.width / 2) + vp.panX * vp.zoom) % step;
-const offY = ((c.height / 2) + vp.panY * vp.zoom) % step;
-
-for (let x = offX; x < c.width; x += step) {
-  ctx.beginPath();
-  ctx.moveTo(x, 0);
-  ctx.lineTo(x, c.height);
-  ctx.stroke();
-}
-for (let y = offY; y < c.height; y += step) {
-  ctx.beginPath();
-  ctx.moveTo(0, y);
-  ctx.lineTo(c.width, y);
-  ctx.stroke();
-}
-ctx.restore();
-
+    for (let x = offX; x < c.width; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, c.height);
+      ctx.stroke();
+    }
+    for (let y = offY; y < c.height; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(c.width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
 
     // screen rect (centered at world origin)
     const tl = worldToScreen(-sw / 2, -sh / 2);
     const srW = sw * vp.zoom;
     const srH = sh * vp.zoom;
 
-    // screen fill
     const bgAlpha = (screen.style.alpha ?? 100) / 100;
+
+    // fill
     ctx.save();
     ctx.fillStyle = hexToRgba(screen.style.color || "#000000", bgAlpha);
     ctx.fillRect(tl.sx, tl.sy, srW, srH);
     ctx.restore();
 
-    // draw screen background image (if set)
-    // (bgVersion is used only to trigger redraw when image loads)
+    // bg image
     void bgVersion;
-const bgImg = bgImgRef.current;
+    const bgImg = bgImgRef.current;
     if (bgImg) {
       const srcW = (bgImg as any).naturalWidth || bgImg.width;
       const srcH = (bgImg as any).naturalHeight || bgImg.height;
@@ -375,17 +525,20 @@ const bgImg = bgImgRef.current;
           const imgAR = srcW / srcH;
 
           if (fillMode === "Fill") {
-            let sx = 0, sy = 0, sw = srcW, sh = srcH;
+            let sx = 0,
+              sy = 0,
+              sw2 = srcW,
+              sh2 = srcH;
 
             if (screenAR > imgAR) {
-              sh = Math.round(srcW / screenAR);
-              sy = Math.round((srcH - sh) / 2);
+              sh2 = Math.round(srcW / screenAR);
+              sy = Math.round((srcH - sh2) / 2);
             } else {
-              sw = Math.round(srcH * screenAR);
-              sx = Math.round((srcW - sw) / 2);
+              sw2 = Math.round(srcH * screenAR);
+              sx = Math.round((srcW - sw2) / 2);
             }
 
-            ctx.drawImage(bgImg, sx, sy, sw, sh, tl.sx, tl.sy, srW, srH);
+            ctx.drawImage(bgImg, sx, sy, sw2, sh2, tl.sx, tl.sy, srW, srH);
           } else {
             const scale = Math.min(srW / srcW, srH / srcH);
             const dw = srcW * scale;
@@ -415,7 +568,7 @@ const bgImg = bgImgRef.current;
       const w = b.w * vp.zoom;
       const h = b.h * vp.zoom;
 
-      // rotation (РІ РіСЂР°РґСѓСЃР°С…)
+      // rotation
       const rotDeg = (o.transform as any).rotation ?? 0;
       const rot = degToRad(rotDeg);
       const cx = p.sx + w / 2;
@@ -426,38 +579,29 @@ const bgImg = bgImgRef.current;
       ctx.rotate(rot);
       ctx.translate(-cx, -cy);
 
-      // preview draw per type
       if (o.type === "Label") {
         const alpha = (o.style.alpha ?? 100) / 100;
-
         const txt = o.settings.text?.length ? o.settings.text : o.name;
 
         const bold = o.settings.bold === "Yes";
         const italic = o.settings.italic === "Yes";
-
         const wrapMode = (o.settings.wrap as any) ?? "No wrap";
         const align = (o.settings.align as any) ?? "Left";
         const autoSize = (o.settings.autoSize as any) === "Yes";
 
-        // font asset
         const fontAssetId = (o.settings as any).fontAssetId;
         const family = fontAssetId ? `dash_font_${fontAssetId}` : "Inter";
 
-        // padding inside label box (world px -> screen px via zoom)
         const padX = 6 * vp.zoom;
         const padY = 6 * vp.zoom;
 
-        // available box for text (in screen px)
         const maxW = Math.max(10, w - padX * 2);
         const maxH = Math.max(10, h - padY * 2);
 
-        // base font size in screen px
         const baseSize = Math.max(10, o.settings.fontSize || 20) * vp.zoom;
 
-        // compute size (autosize shrinks)
         let fontSize = baseSize;
         if (autoSize) {
-          // IMPORTANT: fitFontSize expects unscaled sizes, so we fit in screen px with screen px size
           const tmpStart = Math.max(6, Math.round(baseSize));
           fontSize = fitFontSize(ctx, txt, family, bold, italic, tmpStart, maxW, maxH, wrapMode);
         }
@@ -475,7 +619,7 @@ const bgImg = bgImgRef.current;
         const x = align === "Center" ? p.sx + w / 2 : align === "Right" ? p.sx + w - padX : p.sx + padX;
         const y0 = p.sy + padY;
 
-        // ----- STYLE FX -----
+        // STYLE FX
         const textColor = normalizeHex(o.style.color || "#3EA3FF");
         const glow = Math.max(0, (o.style as any).glow ?? 0);
         const shadowColor = normalizeHex((o.style as any).shadowColor || "#000000");
@@ -486,15 +630,12 @@ const bgImg = bgImgRef.current;
         const outlineColor = normalizeHex((o.style as any).outlineColor || "#000000");
         const outlineThickness = Math.max(0, (o.style as any).outlineThickness ?? 0);
 
-        // 1) glow pass (behind)
         if (glow > 0) {
           ctx.save();
           ctx.globalAlpha = 1;
           ctx.shadowBlur = glow * vp.zoom;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
-
-          // glowAlpha РЅРµ РґРµР»Р°РµРј РѕРіСЂРѕРјРЅС‹Рј вЂ” С‡С‚РѕР±С‹ РЅРµ Р·Р°СЃРІРµС‡РёРІР°Р»Рѕ
           const glowAlpha = clamp((glow / 200) * alpha, 0, 0.9);
           ctx.shadowColor = hexToRgba(textColor, glowAlpha);
           ctx.fillStyle = hexToRgba(textColor, alpha);
@@ -506,7 +647,6 @@ const bgImg = bgImgRef.current;
           ctx.restore();
         }
 
-        // 2) shadow + outline + fill
         ctx.save();
         ctx.globalAlpha = 1;
 
@@ -522,7 +662,6 @@ const bgImg = bgImgRef.current;
           ctx.shadowColor = "transparent";
         }
 
-        // outline first
         if (outlineThickness > 0) {
           ctx.lineWidth = outlineThickness * vp.zoom;
           ctx.strokeStyle = hexToRgba(outlineColor, alpha);
@@ -532,7 +671,6 @@ const bgImg = bgImgRef.current;
           }
         }
 
-        // fill
         ctx.fillStyle = hexToRgba(textColor, alpha);
         for (let i = 0; i < lines.length; i++) {
           const yy = y0 + i * lineH;
@@ -560,7 +698,6 @@ const bgImg = bgImgRef.current;
         const r = Math.min(w, h) * 0.38;
         const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
 
-        // background arc
         ctx.save();
         ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
         ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
@@ -570,7 +707,6 @@ const bgImg = bgImgRef.current;
         ctx.stroke();
         ctx.restore();
 
-        // value arc
         const value = clamp((o.settings.previewValue ?? 100) / 100, 0, 1);
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -584,14 +720,12 @@ const bgImg = bgImgRef.current;
         const alpha = (o.style.alpha ?? 100) / 100;
         const value = clamp((o.settings.previewValue ?? 50) / 100, 0, 1);
 
-        // background
         ctx.save();
         ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
         ctx.fillStyle = o.style.backgroundColor || "#3EA3FF";
         ctx.fillRect(p.sx, p.sy, w, h);
         ctx.restore();
 
-        // fill
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.fillStyle = o.style.color || "#3EA3FF";
@@ -599,15 +733,7 @@ const bgImg = bgImgRef.current;
         ctx.restore();
       }
 
-      // bounds (subtle)
-      ctx.save();
-      ctx.strokeStyle = "#D9D9D9";
-      ctx.globalAlpha = 0.18;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(p.sx, p.sy, w, h);
-      ctx.restore();
-
-      // selection highlight
+      // Selection highlight (only selected)
       if (o.id === selectedObjectId) {
         ctx.save();
         ctx.setLineDash([6, 4]);
@@ -618,9 +744,40 @@ const bgImg = bgImgRef.current;
         ctx.restore();
       }
 
+      // Resize handles (Label only, only when selected)
+      if (o.id === selectedObjectId && o.type === "Label") {
+        const hs = 8;
+        const half = hs / 2;
+
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#0B1C2A";
+        ctx.strokeStyle = "#3EA3FF";
+        ctx.lineWidth = 2;
+
+        const corners = [
+          { x: p.sx, y: p.sy },
+          { x: p.sx + w, y: p.sy },
+          { x: p.sx + w, y: p.sy + h },
+          { x: p.sx, y: p.sy + h },
+        ];
+
+        for (const c2 of corners) {
+          ctx.beginPath();
+          ctx.rect(c2.x - half, c2.y - half, hs, hs);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
       ctx.restore(); // rotation scope
     }
   }, [
+    // force redraw on deep changes
+    screenSig,
     sorted,
     selectedObjectId,
     vp,
@@ -629,7 +786,9 @@ const bgImg = bgImgRef.current;
     screen.style.color,
     screen.style.alpha,
     fontAssets,
-    assetBytes, bgVersion]);
+    assetBytes,
+    bgVersion,
+  ]);
 
   function onMouseDown(e: React.MouseEvent) {
     const c = canvasRef.current!;
@@ -644,13 +803,42 @@ const bgImg = bgImgRef.current;
     }
     if (e.button !== 0) return;
 
-    const w = screenToWorld(sx, sy);
-    const hit = hitTestWorld(w.x, w.y);
+    const sw = screen.settings.width;
+    const sh = screen.settings.height;
+
+    // RESIZE: only if selected object and cursor is on handle
+    if (selectedObjectId) {
+      const sel = sorted.find((x) => x.id === selectedObjectId);
+      if (sel) {
+        const h = hitResizeHandle(sel, sx, sy, sw, sh);
+        if (h) {
+          const w0 = screenToWorld(sx, sy);
+          const b0 = objectBounds(sel);
+
+          setResizing({
+            id: sel.id,
+            handle: h,
+            startWorldX: w0.x,
+            startWorldY: w0.y,
+            startX: b0.x,
+            startY: b0.y,
+            startW: b0.w,
+            startH: b0.h,
+          });
+          return;
+        }
+      }
+    }
+
+    // SELECT by screen hit-test (Label: only text)
+    const ctx = c.getContext("2d")!;
+    const hit = hitTestScreen(sx, sy, ctx);
+
     if (hit) {
       Actions.selectObject(hit.id);
 
-      const sw = screen.settings.width;
-      const sh = screen.settings.height;
+      // start drag (still uses world coords so moving works like before)
+      const w = screenToWorld(sx, sy);
       const b = objectBounds(hit);
       const objWorldX = b.x - sw / 2;
       const objWorldY = b.y - sh / 2;
@@ -667,6 +855,58 @@ const bgImg = bgImgRef.current;
       setVp((v) => ({ ...v, panX: panning.panX + dx / v.zoom, panY: panning.panY + dy / v.zoom }));
       return;
     }
+
+    if (resizing) {
+      const c = canvasRef.current!;
+      const r = c.getBoundingClientRect();
+      const sx = e.clientX - r.left;
+      const sy = e.clientY - r.top;
+
+      const wNow = screenToWorld(sx, sy);
+      const dx = wNow.x - resizing.startWorldX;
+      const dy = wNow.y - resizing.startWorldY;
+
+      let newX = resizing.startX;
+      let newY = resizing.startY;
+      let newW = resizing.startW;
+      let newH = resizing.startH;
+
+      if (resizing.handle === "se") {
+        newW = resizing.startW + dx;
+        newH = resizing.startH + dy;
+      } else if (resizing.handle === "ne") {
+        newW = resizing.startW + dx;
+        newH = resizing.startH - dy;
+        newY = resizing.startY + dy;
+      } else if (resizing.handle === "sw") {
+        newW = resizing.startW - dx;
+        newH = resizing.startH + dy;
+        newX = resizing.startX + dx;
+      } else if (resizing.handle === "nw") {
+        newW = resizing.startW - dx;
+        newH = resizing.startH - dy;
+        newX = resizing.startX + dx;
+        newY = resizing.startY + dy;
+      }
+
+      if (newW < MIN_LABEL_W) {
+        const diff = MIN_LABEL_W - newW;
+        if (resizing.handle === "nw" || resizing.handle === "sw") newX -= diff;
+        newW = MIN_LABEL_W;
+      }
+      if (newH < MIN_LABEL_H) {
+        const diff = MIN_LABEL_H - newH;
+        if (resizing.handle === "nw" || resizing.handle === "ne") newY -= diff;
+        newH = MIN_LABEL_H;
+      }
+
+      Actions.updateObjectDeep(resizing.id, ["transform", "x"], Math.round(newX));
+      Actions.updateObjectDeep(resizing.id, ["transform", "y"], Math.round(newY));
+      Actions.updateObjectDeep(resizing.id, ["transform", "width"], Math.round(newW));
+      Actions.updateObjectDeep(resizing.id, ["transform", "height"], Math.round(newH));
+      return;
+    }
+
     if (!dragObj) return;
 
     const c = canvasRef.current!;
@@ -688,10 +928,10 @@ const bgImg = bgImgRef.current;
   function endDrag() {
     setDragObj(null);
     setPanning(null);
+    setResizing(null);
   }
 
   function onWheel(e: React.WheelEvent) {
-    // IMPORTANT: prevent page/parent scroll
     e.preventDefault();
 
     const c = canvasRef.current!;
@@ -707,7 +947,6 @@ const bgImg = bgImgRef.current;
     setVp((v) => {
       const nz = clamp(v.zoom * factor, 0.15, 3);
 
-      // keep cursor point stable
       const c2 = canvasRef.current!;
       const x2 = (sx - c2.width / 2) / nz - v.panX;
       const y2 = (sy - c2.height / 2) / nz - v.panY;

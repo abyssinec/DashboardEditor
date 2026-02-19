@@ -15,12 +15,20 @@ function Caret({ open }: { open: boolean }) {
 
 function Trash({ onClick }: { onClick: () => void }) {
   return (
-    <button
-        className="assetsIconBtn assetsTrashBtn"
-      type="button"
+    <div
+      className="assetsIconBtn assetsTrashBtn"
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onClick();
+        }
       }}
       aria-label="Delete"
       title="Delete"
@@ -34,7 +42,7 @@ function Trash({ onClick }: { onClick: () => void }) {
           strokeLinejoin="round"
         />
       </svg>
-    </button>
+    </div>
   );
 }
 
@@ -194,7 +202,7 @@ export function AssetsPanel() {
                 if (!f) return;
 
                 await Actions.addAsset((isFontFile(f) ? "font" : "image") as any, f);
-                e.currentTarget.value = "";
+                if (e.currentTarget) { (e.currentTarget as HTMLInputElement).value = ""; }
               }}
             />
           </div>
@@ -203,6 +211,12 @@ export function AssetsPanel() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 
