@@ -1,4 +1,4 @@
-/* DashboardEditor РІР‚вЂќ responsive app layout (no page scroll) */
+/* DashboardEditor Р Р†Р вЂљРІР‚Сњ responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -133,7 +133,7 @@ body {
 }
 .insPanelTitle {
   text-align: center;
-} /* Р С”Р В°Р С” Р Р† РЎР‚Р ВµРЎвЂћР Вµ */
+} /* Р В РЎвЂќР В Р’В°Р В РЎвЂќ Р В Р вЂ  Р РЋР вЂљР В Р’ВµР РЋРІР‚С›Р В Р’Вµ */
 
 .scrollArea {
   flex: 1 1 auto;
@@ -319,7 +319,7 @@ body {
 /* ===== Inspector like reference ===== */
 .inspector-scroll {
   padding: 0;
-} /* padding РЎС“Р В¶Р Вµ Р Р…Р В° scrollArea */
+} /* padding Р РЋРЎвЂњР В Р’В¶Р В Р’Вµ Р В Р вЂ¦Р В Р’В° scrollArea */
 .insRoot {
   padding: 10px;
 }
@@ -444,7 +444,7 @@ body {
   cursor: pointer;
 }
 
-/* РЎС“Р В±Р С‘РЎР‚Р В°Р ВµР С Р Р†Р Р…РЎС“РЎвЂљРЎР‚Р ВµР Р…Р Р…Р С‘Р Вµ Р С•РЎвЂљРЎРѓРЎвЂљРЎС“Р С—РЎвЂ№ Р С‘ Р Т‘Р ВµР В»Р В°Р ВµР С Р В·Р В°Р В»Р С‘Р Р†Р С”РЎС“ Р Р…Р В° Р Р†Р ВµРЎРѓРЎРЉ РЎР‚Р В°Р В·Р СР ВµРЎР‚ */
+/* Р РЋРЎвЂњР В Р’В±Р В РЎвЂР РЋР вЂљР В Р’В°Р В Р’ВµР В РЎВ Р В Р вЂ Р В Р вЂ¦Р РЋРЎвЂњР РЋРІР‚С™Р РЋР вЂљР В Р’ВµР В Р вЂ¦Р В Р вЂ¦Р В РЎвЂР В Р’Вµ Р В РЎвЂўР РЋРІР‚С™Р РЋР С“Р РЋРІР‚С™Р РЋРЎвЂњР В РЎвЂ”Р РЋРІР‚в„– Р В РЎвЂ Р В РўвЂР В Р’ВµР В Р’В»Р В Р’В°Р В Р’ВµР В РЎВ Р В Р’В·Р В Р’В°Р В Р’В»Р В РЎвЂР В Р вЂ Р В РЎвЂќР РЋРЎвЂњ Р В Р вЂ¦Р В Р’В° Р В Р вЂ Р В Р’ВµР РЋР С“Р РЋР Р‰ Р РЋР вЂљР В Р’В°Р В Р’В·Р В РЎВР В Р’ВµР РЋР вЂљ */
 .insColorSwatch::-webkit-color-swatch-wrapper {
   padding: 0;
 }
@@ -460,7 +460,7 @@ body {
 /* Background image row (Select + filename) */
 .insBgRow {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: center;
 }
@@ -679,7 +679,7 @@ body {
   position: relative;
 }
 .insSpinInput {
-  padding-right: 38px; /* Р СР ВµРЎРѓРЎвЂљР С• Р С—Р С•Р Т‘ РЎРѓРЎвЂљРЎР‚Р ВµР В»Р С”Р С‘ */
+  padding-right: 38px; /* Р В РЎВР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў Р В РЎвЂ”Р В РЎвЂўР В РўвЂ Р РЋР С“Р РЋРІР‚С™Р РЋР вЂљР В Р’ВµР В Р’В»Р В РЎвЂќР В РЎвЂ */
 }
 .insSpinBtns {
   position: absolute;
@@ -773,7 +773,7 @@ body {
   background: rgba(62, 163, 255, 0.28);
 }
 
-/* (Р С•Р С—РЎвЂ Р С‘Р С•Р Р…Р В°Р В»РЎРЉР Р…Р С•) РЎРѓР С”РЎР‚РЎвЂ№РЎвЂљРЎРЉ Р Р…Р В°РЎвЂљР С‘Р Р†Р Р…РЎвЂ№Р Вµ РЎРѓР С—Р С‘Р Р…Р Р…Р ВµРЎР‚РЎвЂ№ Р Р…Р В° number (Р СРЎвЂ№ Р С‘РЎвЂ¦ Р В±Р С•Р В»РЎРЉРЎв‚¬Р Вµ Р Р…Р Вµ Р С‘РЎРѓР С—Р С•Р В»РЎРЉР В·РЎС“Р ВµР С Р Р† Р С‘Р Р…РЎРѓР С—Р ВµР С”РЎвЂљР С•РЎР‚Р Вµ) */
+/* (Р В РЎвЂўР В РЎвЂ”Р РЋРІР‚В Р В РЎвЂР В РЎвЂўР В Р вЂ¦Р В Р’В°Р В Р’В»Р РЋР Р‰Р В Р вЂ¦Р В РЎвЂў) Р РЋР С“Р В РЎвЂќР РЋР вЂљР РЋРІР‚в„–Р РЋРІР‚С™Р РЋР Р‰ Р В Р вЂ¦Р В Р’В°Р РЋРІР‚С™Р В РЎвЂР В Р вЂ Р В Р вЂ¦Р РЋРІР‚в„–Р В Р’Вµ Р РЋР С“Р В РЎвЂ”Р В РЎвЂР В Р вЂ¦Р В Р вЂ¦Р В Р’ВµР РЋР вЂљР РЋРІР‚в„– Р В Р вЂ¦Р В Р’В° number (Р В РЎВР РЋРІР‚в„– Р В РЎвЂР РЋРІР‚В¦ Р В Р’В±Р В РЎвЂўР В Р’В»Р РЋР Р‰Р РЋРІвЂљВ¬Р В Р’Вµ Р В Р вЂ¦Р В Р’Вµ Р В РЎвЂР РЋР С“Р В РЎвЂ”Р В РЎвЂўР В Р’В»Р РЋР Р‰Р В Р’В·Р РЋРЎвЂњР В Р’ВµР В РЎВ Р В Р вЂ  Р В РЎвЂР В Р вЂ¦Р РЋР С“Р В РЎвЂ”Р В Р’ВµР В РЎвЂќР РЋРІР‚С™Р В РЎвЂўР РЋР вЂљР В Р’Вµ) */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -783,7 +783,7 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 /* ============================= */
-/* GLOBAL SOFT UI РІР‚вЂњ no hard borders */
+/* GLOBAL SOFT UI Р Р†Р вЂљРІР‚Сљ no hard borders */
 /* ============================= */
 
 .panel,
@@ -797,14 +797,14 @@ input[type="number"] {
   border: none !important;
 }
 
-/* Р СРЎРЏР С–Р С”Р С‘Р Вµ РЎвЂћР С•Р Р…Р С•Р Р†РЎвЂ№Р Вµ Р С”Р В°РЎР‚РЎвЂљР С•РЎвЂЎР С”Р С‘ */
+/* Р В РЎВР РЋР РЏР В РЎвЂ“Р В РЎвЂќР В РЎвЂР В Р’Вµ Р РЋРІР‚С›Р В РЎвЂўР В Р вЂ¦Р В РЎвЂўР В Р вЂ Р РЋРІР‚в„–Р В Р’Вµ Р В РЎвЂќР В Р’В°Р РЋР вЂљР РЋРІР‚С™Р В РЎвЂўР РЋРІР‚РЋР В РЎвЂќР В РЎвЂ */
 .panel,
 .insDropMenu,
 .insPickerPopover {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
 }
 
-/* Р СРЎРЏР С–Р С”Р С‘Р Вµ input Р С—Р С•Р В»РЎРЏ */
+/* Р В РЎВР РЋР РЏР В РЎвЂ“Р В РЎвЂќР В РЎвЂР В Р’Вµ input Р В РЎвЂ”Р В РЎвЂўР В Р’В»Р РЋР РЏ */
 .insField,
 .insSpinInput,
 .insDropBtn {
@@ -1180,17 +1180,17 @@ input[type="number"] {
 }
 
 .assetsSectionHead:hover{
-  background: rgba(255,255,255,0.04) !important; /* Р»С‘РіРєРёР№ hover, Р±РµР· РїРѕРґР»РѕР¶РєРё */
+  background: rgba(255,255,255,0.04) !important; /* Р В»РЎвЂР С–Р С”Р С‘Р в„– hover, Р В±Р ВµР В· Р С—Р С•Р Т‘Р В»Р С•Р В¶Р С”Р С‘ */
 }
 
 /* ===== Assets full-height layout ===== */
 
 .assetsOverlay{
   display: flex;
-  align-items: flex-start !important;   /* РЅРµ С†РµРЅС‚СЂРёСЂСѓРµРј РїРѕ РІРµСЂС‚РёРєР°Р»Рё */
+  align-items: flex-start !important;   /* Р Р…Р Вµ РЎвЂ Р ВµР Р…РЎвЂљРЎР‚Р С‘РЎР‚РЎС“Р ВµР С Р С—Р С• Р Р†Р ВµРЎР‚РЎвЂљР С‘Р С”Р В°Р В»Р С‘ */
   justify-content: center;
-  padding-top: 40px;                    /* РІРµСЂС…РЅРёР№ РѕС‚СЃС‚СѓРї */
-  padding-bottom: 40px;                 /* С‚Р°РєРѕР№ Р¶Рµ СЃРЅРёР·Сѓ */
+  padding-top: 40px;                    /* Р Р†Р ВµРЎР‚РЎвЂ¦Р Р…Р С‘Р в„– Р С•РЎвЂљРЎРѓРЎвЂљРЎС“Р С— */
+  padding-bottom: 40px;                 /* РЎвЂљР В°Р С”Р С•Р в„– Р В¶Р Вµ РЎРѓР Р…Р С‘Р В·РЎС“ */
 }
 
 .assetsModal{
@@ -1343,7 +1343,7 @@ input[type="number"] {
 
 
 /* ===== Stepper arrow safety-net (unknown classnames) =====
-   If any icon-font still leaks, hide it and show в–І/в–ј via ::before.
+   If any icon-font still leaks, hide it and show РІвЂ“Р†/РІвЂ“С via ::before.
 */
 .inspector button[class*="Spin"],
 .inspector button[class*="spin"],
@@ -1369,20 +1369,20 @@ input[type="number"] {
 .inspector button[class*="step"]::before,
 .inspector button[class*="Arrow"]::before,
 .inspector button[class*="arrow"]::before{
-  content: "в–І";
+  content: "РІвЂ“Р†";
   font-size: 13px;
   line-height: 1;
   color: rgba(255,255,255,0.85);
 }
 
-/* if it's the second button in a vertical pair -> в–ј */
+/* if it's the second button in a vertical pair -> РІвЂ“С */
 .inspector button[class*="Spin"]:nth-of-type(2)::before,
 .inspector button[class*="spin"]:nth-of-type(2)::before,
 .inspector button[class*="Step"]:nth-of-type(2)::before,
 .inspector button[class*="step"]:nth-of-type(2)::before,
 .inspector button[class*="Arrow"]:nth-of-type(2)::before,
 .inspector button[class*="arrow"]:nth-of-type(2)::before{
-  content: "в–ј";
+  content: "РІвЂ“С";
 }
 
 
