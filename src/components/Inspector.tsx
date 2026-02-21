@@ -1,10 +1,11 @@
-﻿import React from "react";
+import React from "react";
 
 import { useStore } from "../hooks/useStore";
 import type { AnyObj, Screen } from "../types";
 
 import { LabelInspector } from "./LabelInspector";
 import { ScreenInspector } from "./ScreenInspector";
+import { ImageInspector } from "./ImageInspector";
 
 function useSelectedScreen(): Screen {
   return useStore((s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!);
@@ -30,12 +31,12 @@ export function Inspector() {
           <ScreenInspector screen={screen} />
         ) : obj.type === "Label" ? (
           <LabelInspector obj={obj} />
+        ) : obj.type === "Image" ? (
+          <ImageInspector obj={obj} />
         ) : (
-          <div className="insRoot">TODO: next РѕР±СЉРµРєС‚РЅС‹Рµ РёРЅСЃРїРµРєС‚РѕСЂС‹</div>
+          <div className="insRoot">TODO: next объектные инспекторы</div>
         )}
       </div>
     </>
   );
 }
-
-

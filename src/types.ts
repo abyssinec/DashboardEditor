@@ -43,7 +43,15 @@ export type TransformBase = {
 };
 
 export type LabelTransform = TransformBase;
-export type ImageTransform = TransformBase & { scaleX: number; scaleY: number };
+
+export type ImageTransform = TransformBase & {
+  width: number;
+  height: number;
+  // legacy (старые проекты могут иметь scale)
+  scaleX?: number;
+  scaleY?: number;
+};
+
 export type ArcTransform = TransformBase & { startAngle: number; endAngle: number };
 export type BarTransform = TransformBase & { width: number; height: number };
 
@@ -72,8 +80,8 @@ export type LabelStyle = {
 
 export type ImageSettings = {
   imageAssetId?: string;
-  keepAspect: "Yes";
-  fillMode: "Fill";
+  keepAspect: "Yes" | "No";
+  fillMode: "Fit" | "Fill" | "Stretch";
   flip: "None";
 };
 
@@ -164,5 +172,3 @@ export type Manifest = {
   app: { editor: "DashboardEditor"; editorVersion: string };
   minViewerVersion: number;
 };
-
-

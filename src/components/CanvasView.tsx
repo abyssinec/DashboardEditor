@@ -17,8 +17,8 @@ type ResizeState = {
   startH: number;
 };
 
-const MIN_LABEL_W = 40;
-const MIN_LABEL_H = 20;
+const MIN_OBJ_W = 20;
+const MIN_OBJ_H = 20;
 
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
@@ -60,11 +60,22 @@ function objectBounds(o: AnyObj) {
     const h = (o.transform as any).height ?? 60;
     return { x: o.transform.x, y: o.transform.y, w, h };
   }
-  if (o.type === "Image") {
-    const w = 220 * (o.transform.scaleX || 1);
-    const h = 140 * (o.transform.scaleY || 1);
-    return { x: o.transform.x, y: o.transform.y, w, h };
-  }
+ if (o.type === "Image") {
+  const t: any = o.transform as any;
+
+  // новый путь
+  const wNew = t.width;
+  const hNew = t.height;
+
+  // legacy путь (старые проекты)
+  const wLegacy = 220 * (t.scaleX || 1);
+  const hLegacy = 140 * (t.scaleY || 1);
+
+  const w = Number.isFinite(wNew) && wNew > 0 ? wNew : wLegacy;
+  const h = Number.isFinite(hNew) && hNew > 0 ? hNew : hLegacy;
+
+  return { x: o.transform.x, y: o.transform.y, w, h };
+}
   if (o.type === "Arc") return { x: o.transform.x, y: o.transform.y, w: 240, h: 240 };
   // Bar
   return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
@@ -414,7 +425,7 @@ export function CanvasView() {
   }
 
   function hitResizeHandle(sel: AnyObj, sx: number, sy: number, sw: number, sh: number): ResizeHandle | null {
-    if (!sel || sel.type !== "Label") return null;
+    if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar")) return null;
 
     const b = objectBounds(sel);
     const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
@@ -724,19 +735,109 @@ export function CanvasView() {
 
         ctx.restore();
       } else if (o.type === "Image") {
-        ctx.save();
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = "#D9D9D9";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(p.sx, p.sy, w, h);
+  const imgId = (o.settings as any)?.imageAssetId as string | undefined;
+
+  // если нет ассета или bytes — плейсхолдер
+  if (!imgId || !(assetBytes as any)[imgId]) {
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = "#D9D9D9";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p.sx, p.sy, w, h);
+    ctx.beginPath();
+    ctx.moveTo(p.sx, p.sy);
+    ctx.lineTo(p.sx + w, p.sy + h);
+    ctx.moveTo(p.sx + w, p.sy);
+    ctx.lineTo(p.sx, p.sy + h);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    // Кэш картинок по assetId
+    const cache = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
+    const urlCache = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
+
+    let img = cache.get(imgId) || null;
+
+    if (!img) {
+      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
+      const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
+
+      const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
+
+      const im = new Image();
+      im.onload = () => {
+        cache.set(imgId, im);
+        // триггерим перерисовку через screenSig (оно уже зависит от assetBytes)
+      };
+      im.src = url;
+
+      urlCache.set(imgId, url);
+      img = im;
+    }
+
+    // если ещё не загрузилась — рисуем рамку
+    if (!img || !(img as any).complete || (img as any).naturalWidth === 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = "#D9D9D9";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.sx, p.sy, w, h);
+      ctx.restore();
+    } else {
+      const keepAspect = ((o.settings as any)?.keepAspect ?? "Yes") === "Yes";
+      const fillMode = (o.settings as any)?.fillMode ?? "Fill"; // у тебя типом "Fill" пока
+
+      ctx.save();
+      ctx.globalAlpha = ((o.style as any)?.alpha ?? 100) / 100;
+
+      if (!keepAspect) {
+        // stretch
+        ctx.drawImage(img, p.sx, p.sy, w, h);
+      } else {
+        const iw = (img as any).naturalWidth || 1;
+        const ih = (img as any).naturalHeight || 1;
+        const ir = iw / ih;
+        const r = w / h;
+
+        let dw = w;
+        let dh = h;
+
+        // Fill: заполняем, обрезая лишнее
+        if (fillMode === "Fill") {
+          if (r > ir) {
+            dw = w;
+            dh = w / ir;
+          } else {
+            dh = h;
+            dw = h * ir;
+          }
+        } else {
+          // если потом добавишь Fit — тут будет Fit
+          if (r > ir) {
+            dh = h;
+            dw = h * ir;
+          } else {
+            dw = w;
+            dh = w / ir;
+          }
+        }
+
+        const dx = p.sx + (w - dw) / 2;
+        const dy = p.sy + (h - dh) / 2;
+
+        // clip чтобы Fill не выходил за рамку
         ctx.beginPath();
-        ctx.moveTo(p.sx, p.sy);
-        ctx.lineTo(p.sx + w, p.sy + h);
-        ctx.moveTo(p.sx + w, p.sy);
-        ctx.lineTo(p.sx, p.sy + h);
-        ctx.stroke();
-        ctx.restore();
-      } else if (o.type === "Arc") {
+        ctx.rect(p.sx, p.sy, w, h);
+        ctx.clip();
+
+        ctx.drawImage(img, dx, dy, dw, dh);
+      }
+
+      ctx.restore();
+    }
+  }
+} else if (o.type === "Arc") {
         const alpha = (o.style.alpha ?? 100) / 100;
         const ccx = p.sx + w / 2;
         const ccy = p.sy + h / 2;
@@ -790,7 +891,8 @@ export function CanvasView() {
       }
 
       // Resize handles (Label only, only when selected)
-      if (o.id === selectedObjectId && o.type === "Label") {
+      // Resize handles (Label/Image/Bar, only when selected)
+if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar")) {
         const hs = 8;
         const half = hs / 2;
 
@@ -934,15 +1036,15 @@ export function CanvasView() {
         newY = resizing.startY + dy;
       }
 
-      if (newW < MIN_LABEL_W) {
-        const diff = MIN_LABEL_W - newW;
+      if (newW < MIN_OBJ_W) {
+        const diff = MIN_OBJ_W - newW;
         if (resizing.handle === "nw" || resizing.handle === "sw") newX -= diff;
-        newW = MIN_LABEL_W;
+        newW = MIN_OBJ_W;
       }
-      if (newH < MIN_LABEL_H) {
-        const diff = MIN_LABEL_H - newH;
+      if (newH < MIN_OBJ_H) {
+        const diff = MIN_OBJ_H - newH;
         if (resizing.handle === "nw" || resizing.handle === "ne") newY -= diff;
-        newH = MIN_LABEL_H;
+        newH = MIN_OBJ_H;
       }
 
       Actions.updateObjectDeep(resizing.id, ["transform", "x"], Math.round(newX));
