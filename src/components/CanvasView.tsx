@@ -54,6 +54,26 @@ function normalizeHex(v: string) {
   return (s + "000000").slice(0, 7).toUpperCase();
 }
 
+function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  ctx.beginPath();
+  if (rr <= 0.001) {
+    ctx.rect(x, y, w, h);
+    return;
+  }
+  const x2 = x + w;
+  const y2 = y + h;
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x2 - rr, y);
+  ctx.quadraticCurveTo(x2, y, x2, y + rr);
+  ctx.lineTo(x2, y2 - rr);
+  ctx.quadraticCurveTo(x2, y2, x2 - rr, y2);
+  ctx.lineTo(x + rr, y2);
+  ctx.quadraticCurveTo(x, y2, x, y2 - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+}
+
 function objectBounds(o: AnyObj) {
   if (o.type === "Label") {
     const w = (o.transform as any).width ?? 220;
@@ -76,8 +96,11 @@ function objectBounds(o: AnyObj) {
 
   return { x: o.transform.x, y: o.transform.y, w, h };
 }
-  if (o.type === "Arc") return { x: o.transform.x, y: o.transform.y, w: 240, h: 240 };
-  // Bar
+ if (o.type === "Arc") {
+  const w = (o.transform as any).width ?? 240;
+  const h = (o.transform as any).height ?? 240;
+  return { x: o.transform.x, y: o.transform.y, w, h };
+}// Bar
   return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
 }
 
@@ -425,7 +448,7 @@ export function CanvasView() {
   }
 
   function hitResizeHandle(sel: AnyObj, sx: number, sy: number, sw: number, sh: number): ResizeHandle | null {
-    if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar")) return null;
+   if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc")) return null;
 
     const b = objectBounds(sel);
     const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
@@ -838,44 +861,115 @@ export function CanvasView() {
     }
   }
 } else if (o.type === "Arc") {
-        const alpha = (o.style.alpha ?? 100) / 100;
-        const ccx = p.sx + w / 2;
-        const ccy = p.sy + h / 2;
-        const r = Math.min(w, h) * 0.38;
-        const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
+  const capToCanvas = (cap: any) => (cap === "Round" ? "round" : "butt");
+  const alpha = (o.style.alpha ?? 100) / 100;
 
-        ctx.save();
-        ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
-        ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
-        ctx.lineWidth = thickness;
-        ctx.beginPath();
-        ctx.arc(ccx, ccy, r, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
+  const ccx = p.sx + w / 2;
+  const ccy = p.sy + h / 2;
 
-        const value = clamp((o.settings.previewValue ?? 100) / 100, 0, 1);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = o.style.color || "#3EA3FF";
-        ctx.lineWidth = thickness;
-        ctx.beginPath();
-        ctx.arc(ccx, ccy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * value);
-        ctx.stroke();
-        ctx.restore();
-      } else if (o.type === "Bar") {
+  const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
+  const bgThickness = Math.max(2, (o.style.backgroundThickness || (o.style.thickness || 20)) * vp.zoom);
+
+  const r = Math.max(1, Math.min(w, h) / 2 - Math.max(thickness, bgThickness) / 2);
+
+  const startDeg = (o.transform as any).startAngle ?? 0;
+  const endDeg = (o.transform as any).endAngle ?? 180;
+  const clockwise = ((o.settings as any)?.clockwise ?? "Yes") === "Yes";
+
+  // 0° сверху (как раньше с -PI/2)
+  const startRad0 = degToRad(startDeg) - Math.PI / 2;
+  let endRad0 = degToRad(endDeg) - Math.PI / 2;
+
+  let anticlockwise = false;
+  if (clockwise) {
+    if (endRad0 <= startRad0) endRad0 += Math.PI * 2;
+    anticlockwise = false;
+  } else {
+    if (endRad0 >= startRad0) endRad0 -= Math.PI * 2;
+    anticlockwise = true;
+  }
+
+  // background arc
+const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
+ctx.save();
+ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
+
+// glow
+ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
+ctx.shadowBlur = bgGlow;
+
+// stroke style
+ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
+ctx.lineWidth = bgThickness;
+ctx.lineCap = capToCanvas(o.style.backgroundCapStyle ?? "Flat");
+
+ctx.beginPath();
+ctx.arc(ccx, ccy, r, startRad0, endRad0, anticlockwise);
+ctx.stroke();
+ctx.restore();
+
+  // value arc
+  const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
+  const valueEnd = startRad0 + (endRad0 - startRad0) * value;
+
+  const mainGlow = (o.style.glow ?? 0) * vp.zoom;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // glow
+  ctx.shadowColor = o.style.color || "#3EA3FF";
+  ctx.shadowBlur = mainGlow;
+
+  // stroke style
+  ctx.strokeStyle = o.style.color || "#3EA3FF";
+  ctx.lineWidth = thickness;
+  ctx.lineCap = capToCanvas(o.style.capStyle ?? "Flat");
+
+  ctx.beginPath();
+  ctx.arc(ccx, ccy, r, startRad0, valueEnd, anticlockwise);
+  ctx.stroke();
+  ctx.restore();
+} else if (o.type === "Bar") {
         const alpha = (o.style.alpha ?? 100) / 100;
         const value = clamp((o.settings.previewValue ?? 50) / 100, 0, 1);
 
+        const radius = o.style.radius ?? 0;
+        const cap = (o.style.capStyle ?? "Flat") as any;
+        const bgCap = (o.style.backgroundCapStyle ?? "Flat") as any;
+
+        // NOTE: In this editor, CapStyle controls the bar end shape.
+        // Flat = square ends (ignore radius); Round = capsule ends (>= h/2).
+        const capRadius = (capStyle: any, baseRadius: number, hPx: number) =>
+          capStyle === "Round" ? Math.max(baseRadius, hPx / 2) : 0;
+
+        // Background (with glow)
+        const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
+
+        ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
+        ctx.shadowBlur = bgGlow;
+
         ctx.fillStyle = o.style.backgroundColor || "#3EA3FF";
-        ctx.fillRect(p.sx, p.sy, w, h);
+        const radBg = capRadius(bgCap, radius, h);
+        roundedRectPath(ctx, p.sx, p.sy, w, h, radBg);
+        ctx.fill();
         ctx.restore();
 
+        // Value fill (with glow)
+        const mainGlow = (o.style.glow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = alpha;
+
+        ctx.shadowColor = o.style.color || "#3EA3FF";
+        ctx.shadowBlur = mainGlow;
+
         ctx.fillStyle = o.style.color || "#3EA3FF";
-        ctx.fillRect(p.sx, p.sy, w * value, h);
+        const fillW = w * value;
+        const radMain = capRadius(cap, radius, h);
+        roundedRectPath(ctx, p.sx, p.sy, fillW, h, radMain);
+        ctx.fill();
         ctx.restore();
       }
 
@@ -892,7 +986,7 @@ export function CanvasView() {
 
       // Resize handles (Label only, only when selected)
       // Resize handles (Label/Image/Bar, only when selected)
-if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar")) {
+if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
         const hs = 8;
         const half = hs / 2;
 

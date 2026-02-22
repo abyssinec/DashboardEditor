@@ -15,6 +15,7 @@ export type Gauge = {
   updateRateMs: number;
   smoothingFactor: number;
 };
+export type CapStyle = "Flat" | "Round";
 
 export type ScreenStyle = {
   color: string;
@@ -52,7 +53,12 @@ export type ImageTransform = TransformBase & {
   scaleY?: number;
 };
 
-export type ArcTransform = TransformBase & { startAngle: number; endAngle: number };
+export type ArcTransform = TransformBase & {
+  width: number;
+  height: number;
+  startAngle: number;
+  endAngle: number;
+};
 export type BarTransform = TransformBase & { width: number; height: number };
 
 export type LabelSettings = {
@@ -89,7 +95,7 @@ export type ImageStyle = { alpha: number };
 
 export type ArcSettings = {
   segments: number;
-  clockwise: "Yes";
+  clockwise: "Yes" | "No";
   previewValue: number;
 };
 
@@ -119,6 +125,7 @@ export type BarStyle = {
   backgroundGlow: number;
   radius: number;
   capStyle: "Flat";
+  backgroundCapStyle: CapStyle;
 };
 
 export type ObjBase = {
