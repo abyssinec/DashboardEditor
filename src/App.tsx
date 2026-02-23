@@ -1,4 +1,4 @@
-﻿import React, { useRef } from "react";
+import React, { useRef } from "react";
 
 import { AssetsPanel } from "./components/AssetsPanel";
 import { Inspector } from "./components/Inspector";
@@ -10,11 +10,12 @@ import { exportDashboard, importDashboard } from "./utils/dashboardFormat";
 
 export default function App() {
   const project = useStore((s) => s.project);
+  const assetBytes = useStore((s) => s.assetBytes);
   const assetsOpen = useStore((s) => s.assetsPanel.isOpen);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   async function onExport() {
-    const blob = await exportDashboard(project, "0.0.1");
+    const blob = await exportDashboard(project, "0.0.1", assetBytes);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${project.project.name.replace(/\s+/g, "_") || "project"}.dashboard`;

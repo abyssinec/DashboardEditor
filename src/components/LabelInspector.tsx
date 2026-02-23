@@ -240,6 +240,23 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </div>
         </Row2>
 
+        <Row2>
+          <div>
+            <Label>Width</Label>
+            <SpinNumber
+              value={(obj.transform as any).width ?? 220}
+              onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "width"], Math.max(1, v))}
+            />
+          </div>
+          <div>
+            <Label>Height</Label>
+            <SpinNumber
+              value={(obj.transform as any).height ?? 60}
+              onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "height"], Math.max(1, v))}
+            />
+          </div>
+        </Row2>
+
         <div style={{ marginTop: 12 }}>
           <Label>Rotation</Label>
           <SpinNumber

@@ -1,4 +1,4 @@
-﻿const table = (() => {
+const table = (() => {
   const t = new Uint32Array(256);
   for (let i = 0; i < 256; i++) {
     let c = i;

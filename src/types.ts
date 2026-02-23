@@ -1,4 +1,4 @@
-﻿export type AssetKind = "image" | "font";
+export type AssetKind = "image" | "font";
 
 export type Asset = {
   id: string;
@@ -43,7 +43,10 @@ export type TransformBase = {
   rotation: number;
 };
 
-export type LabelTransform = TransformBase;
+export type LabelTransform = TransformBase & {
+  width: number;
+  height: number;
+};
 
 export type ImageTransform = TransformBase & {
   width: number;

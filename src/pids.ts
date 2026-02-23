@@ -1,4 +1,4 @@
-﻿export type PidInfo = { pid: string; name_en: string; name_ru: string; unit: string; kind: string; category: string };
+export type PidInfo = { pid: string; name_en: string; name_ru: string; unit: string; kind: string; category: string };
 export const PID_CATALOG: Record<string, PidInfo> = {
   "00": {
     pid: "00",

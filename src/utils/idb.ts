@@ -1,4 +1,4 @@
-﻿const DB = "nf_dash";
+const DB = "nf_dash";
 const STORE = "kv";
 const KEY_SKIN = "currentSkin";
 const KEY_PROJECT = "lastProject";

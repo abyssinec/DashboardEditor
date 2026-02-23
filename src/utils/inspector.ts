@@ -1,4 +1,4 @@
-﻿export function clampInt(v: any, fallback: number) {
+export function clampInt(v: any, fallback: number) {
   const n = parseInt(String(v), 10);
   return Number.isFinite(n) ? n : fallback;
 }

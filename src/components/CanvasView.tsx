@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { AnyObj } from "../types";
@@ -238,25 +238,34 @@ export function CanvasView() {
             o.settings?.italic,
             o.settings?.autoSize,
             o.settings?.fontAssetId,
+            // image settings
+            (o.settings as any)?.imageAssetId,
+            (o.settings as any)?.keepAspect,
+            (o.settings as any)?.fillMode,
+            // style
+            (o.style as any)?.alpha,
           ].join(":"),
         )
         .join(",")
     );
   });
 
+  const bgImgRef = useRef<HTMLImageElement | null>(null);
+  const bgUrlRef = useRef<string | null>(null);
+  const [bgVersion, setBgVersion] = useState<number>(0);
+  const [imgVersion, setImgVersion] = useState<number>(0);
+
+
   const sorted = useMemo(() => {
     // important: rely on screenSig so it updates even if objects mutated in place
     void screenSig;
+    void imgVersion;
     return [...screen.objects].sort((a, b) => a.z - b.z);
-  }, [screenSig, screen.objects]);
+  }, [screenSig, imgVersion, screen.objects]);
 
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
   const imageAssets = useStore((s) => (s.project as any).assets?.images ?? []);
   const assetBytes = useStore((s) => (s as any).assetBytes ?? {});
-
-  const bgImgRef = useRef<HTMLImageElement | null>(null);
-  const bgUrlRef = useRef<string | null>(null);
-  const [bgVersion, setBgVersion] = useState<number>(0);
 
   useEffect(() => {
     const bgId = (screen as any).style?.backgroundImageAssetId as string | undefined;
@@ -791,7 +800,8 @@ export function CanvasView() {
       const im = new Image();
       im.onload = () => {
         cache.set(imgId, im);
-        // триггерим перерисовку через screenSig (оно уже зависит от assetBytes)
+        // форсим перерисовку сразу после загрузки
+        requestAnimationFrame(() => setImgVersion((v) => v + 1));
       };
       im.src = url;
 
@@ -1221,5 +1231,4 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     </div>
   );
 }
-
 

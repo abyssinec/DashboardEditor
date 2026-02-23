@@ -1,4 +1,4 @@
-﻿import JSZip from "jszip";
+import JSZip from "jszip";
 
 import type { Manifest, Project } from "../types";
 
@@ -21,7 +21,11 @@ function readU32LE(dv: DataView, off: number) {
   return dv.getUint32(off, true);
 }
 
-export async function exportDashboard(project: Project, editorVersion = "0.1.0"): Promise<Blob> {
+export async function exportDashboard(
+  project: Project,
+  editorVersion = "0.1.0",
+  assetBytes: Record<string, Uint8Array> = {},
+): Promise<Blob> {
   const zip = new JSZip();
 
   const manifest: Manifest = {
@@ -38,8 +42,6 @@ export async function exportDashboard(project: Project, editorVersion = "0.1.0")
   for (const s of project.screens) {
     zip.file(`screens/${s.id}.json`, JSON.stringify(s, null, 2));
   }
-
-  const assetBytes: Record<string, Uint8Array> = (window as any).__assetBytes ?? {};
   for (const a of [...project.assets.images, ...project.assets.fonts]) {
     const b = assetBytes[a.id];
     if (b) zip.file(a.path, b);
@@ -76,7 +78,7 @@ export async function importDashboard(fileBytes: Uint8Array): Promise<ImportedDa
   if (fileBytes.length < ZIP_OFFSET) throw new Error("File too small");
   for (let i = 0; i < 8; i++) if (fileBytes[i] !== MAGIC[i]) throw new Error("Bad magic / unsupported format");
 
-  const dv = new DataView(fileBytes.buffer);
+  const dv = new DataView(fileBytes.buffer, fileBytes.byteOffset, fileBytes.byteLength);
   const headerSize = readU16LE(dv, 0x08);
   const zipOffset = readU32LE(dv, 0x0c);
   const zipSize = readU32LE(dv, 0x10);

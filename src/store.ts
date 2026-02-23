@@ -1,4 +1,4 @@
-﻿import { produce } from "immer";
+import { produce } from "immer";
 import { nanoid } from "nanoid";
 
 import type { AnyObj, Asset, AssetKind, Project, Screen } from "./types";
@@ -21,18 +21,7 @@ type State = {
 };
 
 export const defaultProject = (): Project => {
-  const screen1: Screen = {
-    id: "screen_1",
-    name: "Screen 1",
-    settings: { width: 1920, height: 1080 },
-    style: {
-      color: "#000000",
-      alpha: 100,
-      backgroundImageAssetId: undefined,
-      fill: "Fit",
-    },
-    objects: [],
-  };
+  const screen1: Screen = makeDefaultScreen("screen_1", "Screen 1");
 
   return {
     project: { id: "proj_" + nanoid(6), name: "ProjectName.dashboard" },
@@ -64,7 +53,6 @@ export function subscribe(fn: Listener) {
 
 function setState(next: State) {
   state = next;
-  (window as any).__assetBytes = next.assetBytes;
   listeners.forEach((l) => l());
 }
 
@@ -73,12 +61,48 @@ function nextZ(screen: Screen) {
   return max < 0 ? 0 : max + 1;
 }
 
+
+function makeDefaultScreen(id = "screen_1", name = "Screen 1"): Screen {
+  return {
+    id,
+    name,
+    settings: { width: 1920, height: 1080 },
+    style: {
+      color: "#000000",
+      alpha: 100,
+      backgroundImageAssetId: undefined,
+      fill: "Fit",
+    },
+    objects: [],
+  };
+}
+
+function ensureProjectHasAtLeastOneScreen(d: { project: Project; selectedScreenId: string }) {
+  if (!d.project.screens || d.project.screens.length === 0) {
+    const s = makeDefaultScreen("screen_1", "Screen 1");
+    d.project.screens = [s];
+    d.selectedScreenId = s.id;
+    return;
+  }
+  const exists = d.project.screens.some((s) => s.id === d.selectedScreenId);
+  if (!exists) d.selectedScreenId = d.project.screens[0].id;
+}
+
+function getSelectedScreenDraft(d: { project: Project; selectedScreenId: string }): Screen {
+  ensureProjectHasAtLeastOneScreen(d);
+  return d.project.screens.find((s) => s.id === d.selectedScreenId) ?? d.project.screens[0];
+}
+
 export const Actions = {
   hydrate(project: Project, assetBytes: Record<string, Uint8Array>) {
-    const first = project.screens[0]?.id ?? "screen_1";
+    const safeProject: Project = {
+      ...project,
+      screens: project.screens && project.screens.length ? project.screens : [makeDefaultScreen("screen_1", "Screen 1")],
+    };
+    const first = safeProject.screens[0].id;
     setState({
       ...state,
-      project,
+      project: safeProject,
       assetBytes,
       selectedScreenId: first,
       selectedObjectId: undefined,
@@ -87,7 +111,12 @@ export const Actions = {
   },
 
   selectScreen(id: string) {
-    setState({ ...state, selectedScreenId: id, selectedObjectId: undefined });
+    const ok = state.project.screens.some((s) => s.id === id);
+    setState({
+      ...state,
+      selectedScreenId: ok ? id : (state.project.screens[0]?.id ?? "screen_1"),
+      selectedObjectId: undefined,
+    });
   },
 
   selectObject(id?: string) {
@@ -132,7 +161,7 @@ export const Actions = {
   },
 
   addObject(type: AnyObj["type"]) {
-    const screen = state.project.screens.find((s) => s.id === state.selectedScreenId)!;
+    const screen = getSelectedScreenDraft(state);
     const id = "obj_" + nanoid(6);
     const z = nextZ(screen);
 
@@ -145,7 +174,7 @@ export const Actions = {
         name: `Label ${screen.objects.filter((o) => o.type === "Label").length + 1}`,
         z,
         gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
-        transform: { x: 0, y: 0, rotation: 0 },
+        transform: { x: 0, y: 0, width: 220, height: 60, rotation: 0 },
         settings: {
           text: "",
           fontAssetId: undefined,
@@ -230,7 +259,7 @@ export const Actions = {
 
     setState(
       produce(state, (d) => {
-        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const s = getSelectedScreenDraft(d);
         s.objects.push(obj);
         d.selectedObjectId = id;
       }),
@@ -240,7 +269,7 @@ export const Actions = {
   deleteObject(objectId: string) {
     setState(
       produce(state, (d) => {
-        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const s = getSelectedScreenDraft(d);
         s.objects = s.objects.filter((o) => o.id !== objectId);
         if (d.selectedObjectId === objectId) d.selectedObjectId = undefined;
       }),
@@ -250,7 +279,7 @@ export const Actions = {
   moveObject(objectId: string, dir: -1 | 1) {
     setState(
       produce(state, (d) => {
-        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const s = getSelectedScreenDraft(d);
         const sorted = [...s.objects].sort((a, b) => a.z - b.z);
         const idx = sorted.findIndex((o) => o.id === objectId);
         const j = idx + dir;
@@ -277,7 +306,7 @@ export const Actions = {
   updateObject(objectId: string, patch: any) {
     setState(
       produce(state, (d) => {
-        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const s = getSelectedScreenDraft(d);
         const obj = s.objects.find((o) => o.id === objectId);
         if (!obj) return;
         Object.assign(obj as any, patch);
@@ -288,7 +317,7 @@ export const Actions = {
   updateObjectDeep(objectId: string, path: string[], value: any) {
     setState(
       produce(state, (d) => {
-        const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+        const s = getSelectedScreenDraft(d);
         const obj: any = s.objects.find((o: any) => o.id === objectId);
         if (!obj) return;
         let cur = obj;
@@ -358,10 +387,10 @@ export const Actions = {
     setState(
       produce(state, (d) => {
         if (pick.field === "screenBackground") {
-          const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+          const s = getSelectedScreenDraft(d);
           s.style.backgroundImageAssetId = assetId;
         } else {
-          const s = d.project.screens.find((x) => x.id === d.selectedScreenId)!;
+          const s = getSelectedScreenDraft(d);
           const o: any = s.objects.find((x: any) => x.id === pick.objectId);
           if (!o) return;
           if (pick.field === "imageAssetId" && o.type === "Image") o.settings.imageAssetId = assetId;

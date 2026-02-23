@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../hooks/useStore";
 import { Dropdown } from "./Dropdown";
 import { Actions } from "../store";
