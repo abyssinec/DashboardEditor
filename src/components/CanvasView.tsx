@@ -80,27 +80,28 @@ function objectBounds(o: AnyObj) {
     const h = (o.transform as any).height ?? 60;
     return { x: o.transform.x, y: o.transform.y, w, h };
   }
- if (o.type === "Image") {
-  const t: any = o.transform as any;
+  if (o.type === "Image") {
+    const t: any = o.transform as any;
 
-  // новый путь
-  const wNew = t.width;
-  const hNew = t.height;
+    // новый путь
+    const wNew = t.width;
+    const hNew = t.height;
 
-  // legacy путь (старые проекты)
-  const wLegacy = 220 * (t.scaleX || 1);
-  const hLegacy = 140 * (t.scaleY || 1);
+    // legacy путь (старые проекты)
+    const wLegacy = 220 * (t.scaleX || 1);
+    const hLegacy = 140 * (t.scaleY || 1);
 
-  const w = Number.isFinite(wNew) && wNew > 0 ? wNew : wLegacy;
-  const h = Number.isFinite(hNew) && hNew > 0 ? hNew : hLegacy;
+    const w = Number.isFinite(wNew) && wNew > 0 ? wNew : wLegacy;
+    const h = Number.isFinite(hNew) && hNew > 0 ? hNew : hLegacy;
 
-  return { x: o.transform.x, y: o.transform.y, w, h };
-}
- if (o.type === "Arc") {
-  const w = (o.transform as any).width ?? 240;
-  const h = (o.transform as any).height ?? 240;
-  return { x: o.transform.x, y: o.transform.y, w, h };
-}// Bar
+    return { x: o.transform.x, y: o.transform.y, w, h };
+  }
+  if (o.type === "Arc") {
+    const w = (o.transform as any).width ?? 240;
+    const h = (o.transform as any).height ?? 240;
+    return { x: o.transform.x, y: o.transform.y, w, h };
+  }
+  // Bar
   return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
 }
 
@@ -255,13 +256,16 @@ export function CanvasView() {
   const [bgVersion, setBgVersion] = useState<number>(0);
   const [imgVersion, setImgVersion] = useState<number>(0);
 
+  // ✅ NEW: forces redraw when fonts finish loading
+  const [fontVersion, setFontVersion] = useState<number>(0);
 
   const sorted = useMemo(() => {
     // important: rely on screenSig so it updates even if objects mutated in place
     void screenSig;
     void imgVersion;
+    void fontVersion;
     return [...screen.objects].sort((a, b) => a.z - b.z);
-  }, [screenSig, imgVersion, screen.objects]);
+  }, [screenSig, imgVersion, fontVersion, screen.objects]);
 
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
   const imageAssets = useStore((s) => (s.project as any).assets?.images ?? []);
@@ -321,7 +325,9 @@ export function CanvasView() {
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
   // Keep latest viewport in a ref so native wheel handler always uses fresh values
   const vpRef = useRef(vp);
-  useEffect(() => { vpRef.current = vp; }, [vp]);
+  useEffect(() => {
+    vpRef.current = vp;
+  }, [vp]);
 
   // Wheel zoom: native listener with { passive:false } so preventDefault works (no console warnings)
   useEffect(() => {
@@ -364,18 +370,25 @@ export function CanvasView() {
     el.addEventListener("wheel", onWheelNative, { passive: false });
     return () => el.removeEventListener("wheel", onWheelNative);
   }, []);
+
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
 
-  // Register fonts (FontFace)
+  // ✅ Register fonts (FontFace) + force redraw when they become ready
   useEffect(() => {
+    let cancelled = false;
+
     const anyWin = window as any;
     if (!anyWin.__dash_fontReg) anyWin.__dash_fontReg = new Set<string>();
+    if (!anyWin.__dash_fontUrlReg) anyWin.__dash_fontUrlReg = new Map<string, string>();
     const reg: Set<string> = anyWin.__dash_fontReg;
+    const urlReg: Map<string, string> = anyWin.__dash_fontUrlReg;
 
     (async () => {
+      let loadedAny = false;
+
       for (const a of fontAssets) {
         const id = a?.id;
         if (!id) continue;
@@ -389,18 +402,42 @@ export function CanvasView() {
             bytes.buffer instanceof ArrayBuffer
               ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
               : new Uint8Array(bytes).buffer.slice(0);
+
           const blob = new Blob([ab], { type: a.mime || "font/ttf" });
           const url = URL.createObjectURL(blob);
+
           const family = `dash_font_${id}`;
           const ff = new FontFace(family, `url(${url})`);
           await ff.load();
           (document as any).fonts.add(ff);
+
           reg.add(id);
+          urlReg.set(id, url);
+          loadedAny = true;
         } catch {
+          // even if broken, mark as registered so we don't loop forever
           reg.add(id);
         }
       }
+
+      // IMPORTANT: even if fonts existed, importing old file may need a redraw after fonts are ready
+      try {
+        await (document as any).fonts.ready;
+      } catch {}
+
+      if (!cancelled) {
+        // force a redraw once fonts are ready / after loading any fonts
+        requestAnimationFrame(() => setFontVersion((v) => v + 1));
+      }
+
+      // (Optional) you could revoke URLs later if you implement unload.
+      // We keep them to avoid invalidating FontFace sources.
+      void loadedAny;
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fontAssets, assetBytes]);
 
   // Space for pan
@@ -457,7 +494,8 @@ export function CanvasView() {
   }
 
   function hitResizeHandle(sel: AnyObj, sx: number, sy: number, sw: number, sh: number): ResizeHandle | null {
-   if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc")) return null;
+    if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc"))
+      return null;
 
     const b = objectBounds(sel);
     const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
@@ -767,180 +805,180 @@ export function CanvasView() {
 
         ctx.restore();
       } else if (o.type === "Image") {
-  const imgId = (o.settings as any)?.imageAssetId as string | undefined;
+        const imgId = (o.settings as any)?.imageAssetId as string | undefined;
 
-  // если нет ассета или bytes — плейсхолдер
-  if (!imgId || !(assetBytes as any)[imgId]) {
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = "#D9D9D9";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(p.sx, p.sy, w, h);
-    ctx.beginPath();
-    ctx.moveTo(p.sx, p.sy);
-    ctx.lineTo(p.sx + w, p.sy + h);
-    ctx.moveTo(p.sx + w, p.sy);
-    ctx.lineTo(p.sx, p.sy + h);
-    ctx.stroke();
-    ctx.restore();
-  } else {
-    // Кэш картинок по assetId
-    const cache = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
-    const urlCache = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
-
-    let img = cache.get(imgId) || null;
-
-    if (!img) {
-      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
-      const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
-
-      const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
-
-      const im = new Image();
-      im.onload = () => {
-        cache.set(imgId, im);
-        // форсим перерисовку сразу после загрузки
-        requestAnimationFrame(() => setImgVersion((v) => v + 1));
-      };
-      im.src = url;
-
-      urlCache.set(imgId, url);
-      img = im;
-    }
-
-    // если ещё не загрузилась — рисуем рамку
-    if (!img || !(img as any).complete || (img as any).naturalWidth === 0) {
-      ctx.save();
-      ctx.globalAlpha = 0.2;
-      ctx.strokeStyle = "#D9D9D9";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(p.sx, p.sy, w, h);
-      ctx.restore();
-    } else {
-      const keepAspect = ((o.settings as any)?.keepAspect ?? "Yes") === "Yes";
-      const fillMode = (o.settings as any)?.fillMode ?? "Fill"; // у тебя типом "Fill" пока
-
-      ctx.save();
-      ctx.globalAlpha = ((o.style as any)?.alpha ?? 100) / 100;
-
-      if (!keepAspect) {
-        // stretch
-        ctx.drawImage(img, p.sx, p.sy, w, h);
-      } else {
-        const iw = (img as any).naturalWidth || 1;
-        const ih = (img as any).naturalHeight || 1;
-        const ir = iw / ih;
-        const r = w / h;
-
-        let dw = w;
-        let dh = h;
-
-        // Fill: заполняем, обрезая лишнее
-        if (fillMode === "Fill") {
-          if (r > ir) {
-            dw = w;
-            dh = w / ir;
-          } else {
-            dh = h;
-            dw = h * ir;
-          }
+        // если нет ассета или bytes — плейсхолдер
+        if (!imgId || !(assetBytes as any)[imgId]) {
+          ctx.save();
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = "#D9D9D9";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(p.sx, p.sy, w, h);
+          ctx.beginPath();
+          ctx.moveTo(p.sx, p.sy);
+          ctx.lineTo(p.sx + w, p.sy + h);
+          ctx.moveTo(p.sx + w, p.sy);
+          ctx.lineTo(p.sx, p.sy + h);
+          ctx.stroke();
+          ctx.restore();
         } else {
-          // если потом добавишь Fit — тут будет Fit
-          if (r > ir) {
-            dh = h;
-            dw = h * ir;
+          // Кэш картинок по assetId
+          const cache = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
+          const urlCache = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
+
+          let img = cache.get(imgId) || null;
+
+          if (!img) {
+            const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
+            const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
+
+            const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
+            const url = URL.createObjectURL(blob);
+
+            const im = new Image();
+            im.onload = () => {
+              cache.set(imgId, im);
+              // форсим перерисовку сразу после загрузки
+              requestAnimationFrame(() => setImgVersion((v) => v + 1));
+            };
+            im.src = url;
+
+            urlCache.set(imgId, url);
+            img = im;
+          }
+
+          // если ещё не загрузилась — рисуем рамку
+          if (!img || !(img as any).complete || (img as any).naturalWidth === 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.2;
+            ctx.strokeStyle = "#D9D9D9";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(p.sx, p.sy, w, h);
+            ctx.restore();
           } else {
-            dw = w;
-            dh = w / ir;
+            const keepAspect = ((o.settings as any)?.keepAspect ?? "Yes") === "Yes";
+            const fillMode = (o.settings as any)?.fillMode ?? "Fill"; // у тебя типом "Fill" пока
+
+            ctx.save();
+            ctx.globalAlpha = ((o.style as any)?.alpha ?? 100) / 100;
+
+            if (!keepAspect) {
+              // stretch
+              ctx.drawImage(img, p.sx, p.sy, w, h);
+            } else {
+              const iw = (img as any).naturalWidth || 1;
+              const ih = (img as any).naturalHeight || 1;
+              const ir = iw / ih;
+              const r = w / h;
+
+              let dw = w;
+              let dh = h;
+
+              // Fill: заполняем, обрезая лишнее
+              if (fillMode === "Fill") {
+                if (r > ir) {
+                  dw = w;
+                  dh = w / ir;
+                } else {
+                  dh = h;
+                  dw = h * ir;
+                }
+              } else {
+                // если потом добавишь Fit — тут будет Fit
+                if (r > ir) {
+                  dh = h;
+                  dw = h * ir;
+                } else {
+                  dw = w;
+                  dh = w / ir;
+                }
+              }
+
+              const dx = p.sx + (w - dw) / 2;
+              const dy = p.sy + (h - dh) / 2;
+
+              // clip чтобы Fill не выходил за рамку
+              ctx.beginPath();
+              ctx.rect(p.sx, p.sy, w, h);
+              ctx.clip();
+
+              ctx.drawImage(img, dx, dy, dw, dh);
+            }
+
+            ctx.restore();
           }
         }
+      } else if (o.type === "Arc") {
+        const capToCanvas = (cap: any) => (cap === "Round" ? "round" : "butt");
+        const alpha = (o.style.alpha ?? 100) / 100;
 
-        const dx = p.sx + (w - dw) / 2;
-        const dy = p.sy + (h - dh) / 2;
+        const ccx = p.sx + w / 2;
+        const ccy = p.sy + h / 2;
 
-        // clip чтобы Fill не выходил за рамку
+        const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
+        const bgThickness = Math.max(2, (o.style.backgroundThickness || (o.style.thickness || 20)) * vp.zoom);
+
+        const r = Math.max(1, Math.min(w, h) / 2 - Math.max(thickness, bgThickness) / 2);
+
+        const startDeg = (o.transform as any).startAngle ?? 0;
+        const endDeg = (o.transform as any).endAngle ?? 180;
+        const clockwise = ((o.settings as any)?.clockwise ?? "Yes") === "Yes";
+
+        // 0° сверху
+        const startRad0 = degToRad(startDeg) - Math.PI / 2;
+        let endRad0 = degToRad(endDeg) - Math.PI / 2;
+
+        let anticlockwise = false;
+        if (clockwise) {
+          if (endRad0 <= startRad0) endRad0 += Math.PI * 2;
+          anticlockwise = false;
+        } else {
+          if (endRad0 >= startRad0) endRad0 -= Math.PI * 2;
+          anticlockwise = true;
+        }
+
+        // background arc
+        const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
+        ctx.save();
+        ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
+
+        // glow
+        ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
+        ctx.shadowBlur = bgGlow;
+
+        // stroke style
+        ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
+        ctx.lineWidth = bgThickness;
+        ctx.lineCap = capToCanvas(o.style.backgroundCapStyle ?? "Flat");
+
         ctx.beginPath();
-        ctx.rect(p.sx, p.sy, w, h);
-        ctx.clip();
+        ctx.arc(ccx, ccy, r, startRad0, endRad0, anticlockwise);
+        ctx.stroke();
+        ctx.restore();
 
-        ctx.drawImage(img, dx, dy, dw, dh);
-      }
+        // value arc
+        const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
+        const valueEnd = startRad0 + (endRad0 - startRad0) * value;
 
-      ctx.restore();
-    }
-  }
-} else if (o.type === "Arc") {
-  const capToCanvas = (cap: any) => (cap === "Round" ? "round" : "butt");
-  const alpha = (o.style.alpha ?? 100) / 100;
+        const mainGlow = (o.style.glow ?? 0) * vp.zoom;
 
-  const ccx = p.sx + w / 2;
-  const ccy = p.sy + h / 2;
+        ctx.save();
+        ctx.globalAlpha = alpha;
 
-  const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
-  const bgThickness = Math.max(2, (o.style.backgroundThickness || (o.style.thickness || 20)) * vp.zoom);
+        // glow
+        ctx.shadowColor = o.style.color || "#3EA3FF";
+        ctx.shadowBlur = mainGlow;
 
-  const r = Math.max(1, Math.min(w, h) / 2 - Math.max(thickness, bgThickness) / 2);
+        // stroke style
+        ctx.strokeStyle = o.style.color || "#3EA3FF";
+        ctx.lineWidth = thickness;
+        ctx.lineCap = capToCanvas(o.style.capStyle ?? "Flat");
 
-  const startDeg = (o.transform as any).startAngle ?? 0;
-  const endDeg = (o.transform as any).endAngle ?? 180;
-  const clockwise = ((o.settings as any)?.clockwise ?? "Yes") === "Yes";
-
-  // 0° сверху (как раньше с -PI/2)
-  const startRad0 = degToRad(startDeg) - Math.PI / 2;
-  let endRad0 = degToRad(endDeg) - Math.PI / 2;
-
-  let anticlockwise = false;
-  if (clockwise) {
-    if (endRad0 <= startRad0) endRad0 += Math.PI * 2;
-    anticlockwise = false;
-  } else {
-    if (endRad0 >= startRad0) endRad0 -= Math.PI * 2;
-    anticlockwise = true;
-  }
-
-  // background arc
-const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
-ctx.save();
-ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
-
-// glow
-ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
-ctx.shadowBlur = bgGlow;
-
-// stroke style
-ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
-ctx.lineWidth = bgThickness;
-ctx.lineCap = capToCanvas(o.style.backgroundCapStyle ?? "Flat");
-
-ctx.beginPath();
-ctx.arc(ccx, ccy, r, startRad0, endRad0, anticlockwise);
-ctx.stroke();
-ctx.restore();
-
-  // value arc
-  const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
-  const valueEnd = startRad0 + (endRad0 - startRad0) * value;
-
-  const mainGlow = (o.style.glow ?? 0) * vp.zoom;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  // glow
-  ctx.shadowColor = o.style.color || "#3EA3FF";
-  ctx.shadowBlur = mainGlow;
-
-  // stroke style
-  ctx.strokeStyle = o.style.color || "#3EA3FF";
-  ctx.lineWidth = thickness;
-  ctx.lineCap = capToCanvas(o.style.capStyle ?? "Flat");
-
-  ctx.beginPath();
-  ctx.arc(ccx, ccy, r, startRad0, valueEnd, anticlockwise);
-  ctx.stroke();
-  ctx.restore();
-} else if (o.type === "Bar") {
+        ctx.beginPath();
+        ctx.arc(ccx, ccy, r, startRad0, valueEnd, anticlockwise);
+        ctx.stroke();
+        ctx.restore();
+      } else if (o.type === "Bar") {
         const alpha = (o.style.alpha ?? 100) / 100;
         const value = clamp((o.settings.previewValue ?? 50) / 100, 0, 1);
 
@@ -994,9 +1032,8 @@ ctx.restore();
         ctx.restore();
       }
 
-      // Resize handles (Label only, only when selected)
-      // Resize handles (Label/Image/Bar, only when selected)
-if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
+      // Resize handles (Label/Image/Bar/Arc, only when selected)
+      if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
         const hs = 8;
         const half = hs / 2;
 
@@ -1039,6 +1076,8 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     fontAssets,
     assetBytes,
     bgVersion,
+    // ✅ NEW: redraw when fonts become ready
+    fontVersion,
   ]);
 
   function onMouseDown(e: React.MouseEvent) {
@@ -1216,7 +1255,6 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
       onMouseMove={onMouseMove}
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
-      
     >
       <canvas
         ref={canvasRef}
@@ -1231,4 +1269,3 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     </div>
   );
 }
-
