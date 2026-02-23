@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+import { Actions } from "../store";
+
 type Props = {
   value: string; // hex "#RRGGBB"
   alpha: number; // 0..100
@@ -105,6 +107,19 @@ function hsvToRgb(h: number, s: number, v: number) {
 export function ColorPicker({ value, alpha, onChange }: Props) {
   const svRef = useRef<HTMLCanvasElement | null>(null);
 
+  // ✅ Batch undo history while dragging SV / Hue / Alpha
+  const gestureRef = useRef(false);
+  const beginGesture = () => {
+    if (gestureRef.current) return;
+    gestureRef.current = true;
+    Actions.beginGesture?.();
+  };
+  const endGesture = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = false;
+    Actions.endGesture?.();
+  };
+
   const rgb = useMemo(() => hexToRgb(value), [value]);
   const hsv = useMemo(() => rgbToHsv(rgb.r, rgb.g, rgb.b), [rgb.r, rgb.g, rgb.b]);
 
@@ -156,6 +171,19 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
     ctx.fillRect(0, 0, w, hgt);
   }, [h]);
 
+  // ✅ Ensure gesture closes even if mouse/pointer is released outside picker
+  useEffect(() => {
+    const up = () => endGesture();
+    window.addEventListener("pointerup", up);
+    window.addEventListener("mouseup", up);
+    window.addEventListener("mouseleave", up);
+    return () => {
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("mouseup", up);
+      window.removeEventListener("mouseleave", up);
+    };
+  }, []);
+
   function pickSVFromEvent(e: React.PointerEvent) {
     const c = svRef.current;
     if (!c) return;
@@ -194,6 +222,7 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
           height={160}
           className="cpSV"
           onPointerDown={(e) => {
+            beginGesture();
             (e.currentTarget as any).setPointerCapture?.(e.pointerId);
             pickSVFromEvent(e);
           }}
@@ -201,6 +230,8 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
             if ((e.buttons & 1) !== 1) return;
             pickSVFromEvent(e);
           }}
+          onPointerUp={() => endGesture()}
+          onPointerCancel={() => endGesture()}
         />
         <div className="cpSVCursor" style={svCursor as any} />
       </div>
@@ -216,11 +247,15 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
             min={0}
             max={360}
             value={Math.round(h)}
+            onPointerDown={() => beginGesture()}
+            onMouseDown={() => beginGesture()}
             onChange={(e) => {
               const nextH = clamp(parseInt(e.target.value, 10), 0, 360);
               setH(nextH);
               commit(nextH, s, v, a);
             }}
+            onPointerUp={() => endGesture()}
+            onMouseUp={() => endGesture()}
           />
         </div>
       </div>
@@ -236,11 +271,15 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
             min={0}
             max={100}
             value={Math.round(a)}
+            onPointerDown={() => beginGesture()}
+            onMouseDown={() => beginGesture()}
             onChange={(e) => {
               const nextA = clamp(parseInt(e.target.value, 10), 0, 100);
               setA(nextA);
               commit(h, s, v, nextA);
             }}
+            onPointerUp={() => endGesture()}
+            onMouseUp={() => endGesture()}
           />
         </div>
 
@@ -316,5 +355,3 @@ export function ColorPicker({ value, alpha, onChange }: Props) {
     </div>
   );
 }
-
-
