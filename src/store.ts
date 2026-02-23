@@ -42,6 +42,25 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let state: State = initial;
 
+// --- Undo / Redo history ---
+type History = {
+  past: State[];
+  future: State[];
+  limit: number;
+};
+
+const history: History = {
+  past: [],
+  future: [],
+  limit: 200,
+};
+
+function cloneSnapshot(s: State): State {
+  // State is plain data (no functions), so structuredClone is safe.
+  // If your environment ever lacks structuredClone, swap to a custom deep clone.
+  return structuredClone(s);
+}
+
 export function getState() {
   return state;
 }
@@ -51,16 +70,65 @@ export function subscribe(fn: Listener) {
   return () => listeners.delete(fn);
 }
 
-function setState(next: State) {
-  state = next;
+type SetStateOpts = {
+  // If false, do not write this update into history (useful for selection/UI-only changes).
+  history?: boolean;
+};
+
+function notify() {
   listeners.forEach((l) => l());
+}
+
+function commit(next: State) {
+  const prevSnap = cloneSnapshot(state);
+  history.past.push(prevSnap);
+  if (history.past.length > history.limit) history.past.shift();
+
+  // New change after undo wipes "future" redo states.
+  history.future = [];
+
+  state = next;
+  notify();
+}
+
+function setState(next: State, opts?: SetStateOpts) {
+  const useHistory = opts?.history !== false;
+  if (useHistory) commit(next);
+  else {
+    state = next;
+    notify();
+  }
+}
+
+export function undo() {
+  const prev = history.past.pop();
+  if (!prev) return;
+  history.future.push(cloneSnapshot(state));
+  state = prev;
+  notify();
+}
+
+export function redo() {
+  const next = history.future.pop();
+  if (!next) return;
+  history.past.push(cloneSnapshot(state));
+  if (history.past.length > history.limit) history.past.shift();
+  state = next;
+  notify();
+}
+
+export function canUndo() {
+  return history.past.length > 0;
+}
+
+export function canRedo() {
+  return history.future.length > 0;
 }
 
 function nextZ(screen: Screen) {
   const max = screen.objects.reduce((m, o) => Math.max(m, o.z), -1);
   return max < 0 ? 0 : max + 1;
 }
-
 
 function makeDefaultScreen(id = "screen_1", name = "Screen 1"): Screen {
   return {
@@ -100,27 +168,33 @@ export const Actions = {
       screens: project.screens && project.screens.length ? project.screens : [makeDefaultScreen("screen_1", "Screen 1")],
     };
     const first = safeProject.screens[0].id;
-    setState({
-      ...state,
-      project: safeProject,
-      assetBytes,
-      selectedScreenId: first,
-      selectedObjectId: undefined,
-      assetsPanel: { isOpen: false, tab: "Images" },
-    });
+    setState(
+      {
+        ...state,
+        project: safeProject,
+        assetBytes,
+        selectedScreenId: first,
+        selectedObjectId: undefined,
+        assetsPanel: { isOpen: false, tab: "Images" },
+      },
+      { history: false },
+    );
   },
 
   selectScreen(id: string) {
     const ok = state.project.screens.some((s) => s.id === id);
-    setState({
-      ...state,
-      selectedScreenId: ok ? id : (state.project.screens[0]?.id ?? "screen_1"),
-      selectedObjectId: undefined,
-    });
+    setState(
+      {
+        ...state,
+        selectedScreenId: ok ? id : (state.project.screens[0]?.id ?? "screen_1"),
+        selectedObjectId: undefined,
+      },
+      { history: false },
+    );
   },
 
   selectObject(id?: string) {
-    setState({ ...state, selectedObjectId: id });
+    setState({ ...state, selectedObjectId: id }, { history: false });
   },
 
   addScreen() {
@@ -328,11 +402,11 @@ export const Actions = {
   },
 
   openAssets(tab: "Images" | "Fonts", pickFor?: AssetsPanelState["pickFor"]) {
-    setState({ ...state, assetsPanel: { isOpen: true, tab, pickFor } });
+    setState({ ...state, assetsPanel: { isOpen: true, tab, pickFor } }, { history: false });
   },
 
   closeAssets() {
-    setState({ ...state, assetsPanel: { isOpen: false, tab: "Images" } });
+    setState({ ...state, assetsPanel: { isOpen: false, tab: "Images" } }, { history: false });
   },
 
   async addAsset(kind: AssetKind, file: File) {
@@ -402,5 +476,3 @@ export const Actions = {
     );
   },
 };
-
-

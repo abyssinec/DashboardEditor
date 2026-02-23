@@ -1,11 +1,11 @@
-import React, { useRef } from "react";
+﻿import React, { useEffect, useRef } from "react";
 
 import { AssetsPanel } from "./components/AssetsPanel";
 import { Inspector } from "./components/Inspector";
 import { LeftPanel } from "./components/LeftPanel";
 import { ViewPanel } from "./components/ViewPanel";
 import { useStore } from "./hooks/useStore";
-import { Actions } from "./store";
+import { Actions, redo, undo } from "./store";
 import { exportDashboard, importDashboard } from "./utils/dashboardFormat";
 
 export default function App() {
@@ -13,6 +13,39 @@ export default function App() {
   const assetBytes = useStore((s) => s.assetBytes);
   const assetsOpen = useStore((s) => s.assetsPanel.isOpen);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    function isTypingTarget(el: EventTarget | null) {
+      const t = el as HTMLElement | null;
+      if (!t) return false;
+      const tag = t.tagName?.toLowerCase();
+      return tag === "input" || tag === "textarea" || (t as any).isContentEditable;
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      // Don't hijack undo/redo while user is typing in inputs.
+      if (isTypingTarget(e.target)) return;
+
+      const key = e.key.toLowerCase();
+
+      // Undo / Redo
+      if (e.ctrlKey && !e.altKey && key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+
+      // Common redo shortcut
+      if (e.ctrlKey && !e.altKey && key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown, { passive: false });
+    return () => window.removeEventListener("keydown", onKeyDown as any);
+  }, []);
 
   async function onExport() {
     const blob = await exportDashboard(project, "0.0.1", assetBytes);
@@ -97,5 +130,3 @@ export default function App() {
     </div>
   );
 }
-
-
