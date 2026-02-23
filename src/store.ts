@@ -55,6 +55,9 @@ const history: History = {
   limit: 200,
 };
 
+// --- Copy / Paste (internal clipboard) ---
+let clipboardObject: AnyObj | null = null;
+
 function cloneSnapshot(s: State): State {
   // State is plain data (no functions), so structuredClone is safe.
   // If your environment ever lacks structuredClone, swap to a custom deep clone.
@@ -130,6 +133,30 @@ function nextZ(screen: Screen) {
   return max < 0 ? 0 : max + 1;
 }
 
+function getSelectedScreen(s: State): Screen {
+  return s.project.screens.find((x) => x.id === s.selectedScreenId) ?? s.project.screens[0];
+}
+
+function getSelectedObject(s: State): AnyObj | undefined {
+  const screen = getSelectedScreen(s);
+  if (!s.selectedObjectId) return undefined;
+  return screen.objects.find((o) => o.id === s.selectedObjectId);
+}
+
+function cloneObjectForPaste(src: AnyObj, screen: Screen): AnyObj {
+  const o = structuredClone(src) as AnyObj;
+  o.id = "obj_" + nanoid(6);
+  o.z = nextZ(screen);
+  o.name = `${src.name} Copy`;
+
+  // Nudge so the user can see it was pasted/duplicated.
+  const t: any = (o as any).transform;
+  if (t && typeof t.x === "number") t.x += 20;
+  if (t && typeof t.y === "number") t.y += 20;
+
+  return o;
+}
+
 function makeDefaultScreen(id = "screen_1", name = "Screen 1"): Screen {
   return {
     id,
@@ -195,6 +222,36 @@ export const Actions = {
 
   selectObject(id?: string) {
     setState({ ...state, selectedObjectId: id }, { history: false });
+  },
+
+  copySelected() {
+    const obj = getSelectedObject(state);
+    clipboardObject = obj ? (structuredClone(obj) as AnyObj) : null;
+  },
+
+  paste() {
+    if (!clipboardObject) return;
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        const pasted = cloneObjectForPaste(clipboardObject!, s);
+        s.objects.push(pasted);
+        d.selectedObjectId = pasted.id;
+      }),
+    );
+  },
+
+  duplicateSelected() {
+    const src = getSelectedObject(state);
+    if (!src) return;
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        const dup = cloneObjectForPaste(src, s);
+        s.objects.push(dup);
+        d.selectedObjectId = dup.id;
+      }),
+    );
   },
 
   addScreen() {

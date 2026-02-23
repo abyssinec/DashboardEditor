@@ -23,7 +23,7 @@ export default function App() {
     }
 
     function onKeyDown(e: KeyboardEvent) {
-      // Don't hijack undo/redo while user is typing in inputs.
+      // Don't hijack shortcuts while user is typing in inputs.
       if (isTypingTarget(e.target)) return;
 
       const key = e.key.toLowerCase();
@@ -40,6 +40,26 @@ export default function App() {
       if (e.ctrlKey && !e.altKey && key === "y") {
         e.preventDefault();
         redo();
+        return;
+      }
+
+      // Copy / Paste / Duplicate
+      if (e.ctrlKey && !e.altKey && key === "c") {
+        e.preventDefault();
+        Actions.copySelected();
+        return;
+      }
+
+      if (e.ctrlKey && !e.altKey && key === "v") {
+        e.preventDefault();
+        Actions.paste();
+        return;
+      }
+
+      if (e.ctrlKey && !e.altKey && key === "d") {
+        e.preventDefault();
+        Actions.duplicateSelected();
+        return;
       }
     }
 
