@@ -59,8 +59,6 @@ const history: History = {
 let clipboardObject: AnyObj | null = null;
 
 function cloneSnapshot(s: State): State {
-  // State is plain data (no functions), so structuredClone is safe.
-  // If your environment ever lacks structuredClone, swap to a custom deep clone.
   return structuredClone(s);
 }
 
@@ -82,20 +80,38 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
-function commit(next: State) {
+function pushPastSnapshotOnce() {
   const prevSnap = cloneSnapshot(state);
   history.past.push(prevSnap);
   if (history.past.length > history.limit) history.past.shift();
-
-  // New change after undo wipes "future" redo states.
+  // new change clears redo
   history.future = [];
+}
 
+// ✅ Gesture/batch history: during drag/resize we commit only once
+let historyBatchDepth = 0;
+
+export function beginHistoryBatch() {
+  if (historyBatchDepth === 0) {
+    pushPastSnapshotOnce();
+  }
+  historyBatchDepth++;
+}
+
+export function endHistoryBatch() {
+  historyBatchDepth = Math.max(0, historyBatchDepth - 1);
+}
+
+function commit(next: State) {
+  pushPastSnapshotOnce();
   state = next;
   notify();
 }
 
 function setState(next: State, opts?: SetStateOpts) {
-  const useHistory = opts?.history !== false;
+  const wantHistory = opts?.history !== false;
+  const useHistory = wantHistory && historyBatchDepth === 0;
+
   if (useHistory) commit(next);
   else {
     state = next;
@@ -200,6 +216,14 @@ export const Actions = {
       },
       { history: false },
     );
+  },
+
+  // ✅ for drag/resize batching
+  beginGesture() {
+    beginHistoryBatch();
+  },
+  endGesture() {
+    endHistoryBatch();
   },
 
   selectScreen(id: string) {

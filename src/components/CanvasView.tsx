@@ -256,11 +256,10 @@ export function CanvasView() {
   const [bgVersion, setBgVersion] = useState<number>(0);
   const [imgVersion, setImgVersion] = useState<number>(0);
 
-  // ✅ NEW: forces redraw when fonts finish loading
+  // ✅ forces redraw when fonts finish loading
   const [fontVersion, setFontVersion] = useState<number>(0);
 
   const sorted = useMemo(() => {
-    // important: rely on screenSig so it updates even if objects mutated in place
     void screenSig;
     void imgVersion;
     void fontVersion;
@@ -323,13 +322,11 @@ export function CanvasView() {
   }, [screen.id, (screen as any).style?.backgroundImageAssetId, (screen as any).style?.fill, imageAssets, assetBytes]);
 
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
-  // Keep latest viewport in a ref so native wheel handler always uses fresh values
   const vpRef = useRef(vp);
   useEffect(() => {
     vpRef.current = vp;
   }, [vp]);
 
-  // Wheel zoom: native listener with { passive:false } so preventDefault works (no console warnings)
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -346,7 +343,6 @@ export function CanvasView() {
 
       const v0 = vpRef.current;
 
-      // screen -> world using latest vp
       const beforeX = (sx - c.width / 2) / v0.zoom - v0.panX;
       const beforeY = (sy - c.height / 2) / v0.zoom - v0.panY;
 
@@ -356,7 +352,6 @@ export function CanvasView() {
       setVp((v) => {
         const nz = clamp(v.zoom * factor, 0.15, 3);
 
-        // keep cursor point stable
         const x2 = (sx - c.width / 2) / nz - v.panX;
         const y2 = (sy - c.height / 2) / nz - v.panY;
 
@@ -387,8 +382,6 @@ export function CanvasView() {
     const urlReg: Map<string, string> = anyWin.__dash_fontUrlReg;
 
     (async () => {
-      let loadedAny = false;
-
       for (const a of fontAssets) {
         const id = a?.id;
         if (!id) continue;
@@ -413,26 +406,18 @@ export function CanvasView() {
 
           reg.add(id);
           urlReg.set(id, url);
-          loadedAny = true;
         } catch {
-          // even if broken, mark as registered so we don't loop forever
           reg.add(id);
         }
       }
 
-      // IMPORTANT: even if fonts existed, importing old file may need a redraw after fonts are ready
       try {
         await (document as any).fonts.ready;
       } catch {}
 
       if (!cancelled) {
-        // force a redraw once fonts are ready / after loading any fonts
         requestAnimationFrame(() => setFontVersion((v) => v + 1));
       }
-
-      // (Optional) you could revoke URLs later if you implement unload.
-      // We keep them to avoid invalidating FontFace sources.
-      void loadedAny;
     })();
 
     return () => {
@@ -440,7 +425,6 @@ export function CanvasView() {
     };
   }, [fontAssets, assetBytes]);
 
-  // Space for pan
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") setSpaceDown(true);
@@ -518,7 +502,7 @@ export function CanvasView() {
     return null;
   }
 
-  // IMPORTANT: Label hit-test ONLY by actual text bounds (not whole rect)
+  // Label hit-test ONLY by actual text bounds (not whole rect)
   function hitTestScreen(sx: number, sy: number, ctx: CanvasRenderingContext2D): AnyObj | undefined {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
@@ -577,7 +561,6 @@ export function CanvasView() {
         continue;
       }
 
-      // other types: rectangle hit-test
       if (sx >= p.sx && sx <= p.sx + w && sy >= p.sy && sy <= p.sy + h) return o;
     }
 
@@ -594,7 +577,7 @@ export function CanvasView() {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    // softer grid
+    // grid
     ctx.save();
     ctx.globalAlpha = 0.07;
     ctx.strokeStyle = "#9E9E9E";
@@ -618,14 +601,13 @@ export function CanvasView() {
     }
     ctx.restore();
 
-    // screen rect (centered at world origin)
+    // screen rect centered at world origin
     const tl = worldToScreen(-sw / 2, -sh / 2);
     const srW = sw * vp.zoom;
     const srH = sh * vp.zoom;
 
     const bgAlpha = (screen.style.alpha ?? 100) / 100;
 
-    // fill
     ctx.save();
     ctx.fillStyle = hexToRgba(screen.style.color || "#000000", bgAlpha);
     ctx.fillRect(tl.sx, tl.sy, srW, srH);
@@ -694,7 +676,6 @@ export function CanvasView() {
       const w = b.w * vp.zoom;
       const h = b.h * vp.zoom;
 
-      // rotation
       const rotDeg = (o.transform as any).rotation ?? 0;
       const rot = degToRad(rotDeg);
       const cx = p.sx + w / 2;
@@ -745,7 +726,6 @@ export function CanvasView() {
         const x = align === "Center" ? p.sx + w / 2 : align === "Right" ? p.sx + w - padX : p.sx + padX;
         const y0 = p.sy + padY;
 
-        // STYLE FX
         const textColor = normalizeHex(o.style.color || "#3EA3FF");
         const glow = Math.max(0, (o.style as any).glow ?? 0);
         const shadowColor = normalizeHex((o.style as any).shadowColor || "#000000");
@@ -807,7 +787,6 @@ export function CanvasView() {
       } else if (o.type === "Image") {
         const imgId = (o.settings as any)?.imageAssetId as string | undefined;
 
-        // если нет ассета или bytes — плейсхолдер
         if (!imgId || !(assetBytes as any)[imgId]) {
           ctx.save();
           ctx.globalAlpha = 0.35;
@@ -822,7 +801,6 @@ export function CanvasView() {
           ctx.stroke();
           ctx.restore();
         } else {
-          // Кэш картинок по assetId
           const cache = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
           const urlCache = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
 
@@ -838,7 +816,6 @@ export function CanvasView() {
             const im = new Image();
             im.onload = () => {
               cache.set(imgId, im);
-              // форсим перерисовку сразу после загрузки
               requestAnimationFrame(() => setImgVersion((v) => v + 1));
             };
             im.src = url;
@@ -847,7 +824,6 @@ export function CanvasView() {
             img = im;
           }
 
-          // если ещё не загрузилась — рисуем рамку
           if (!img || !(img as any).complete || (img as any).naturalWidth === 0) {
             ctx.save();
             ctx.globalAlpha = 0.2;
@@ -857,13 +833,12 @@ export function CanvasView() {
             ctx.restore();
           } else {
             const keepAspect = ((o.settings as any)?.keepAspect ?? "Yes") === "Yes";
-            const fillMode = (o.settings as any)?.fillMode ?? "Fill"; // у тебя типом "Fill" пока
+            const fillMode = (o.settings as any)?.fillMode ?? "Fill";
 
             ctx.save();
             ctx.globalAlpha = ((o.style as any)?.alpha ?? 100) / 100;
 
             if (!keepAspect) {
-              // stretch
               ctx.drawImage(img, p.sx, p.sy, w, h);
             } else {
               const iw = (img as any).naturalWidth || 1;
@@ -874,7 +849,6 @@ export function CanvasView() {
               let dw = w;
               let dh = h;
 
-              // Fill: заполняем, обрезая лишнее
               if (fillMode === "Fill") {
                 if (r > ir) {
                   dw = w;
@@ -884,7 +858,6 @@ export function CanvasView() {
                   dw = h * ir;
                 }
               } else {
-                // если потом добавишь Fit — тут будет Fit
                 if (r > ir) {
                   dh = h;
                   dw = h * ir;
@@ -897,7 +870,6 @@ export function CanvasView() {
               const dx = p.sx + (w - dw) / 2;
               const dy = p.sy + (h - dh) / 2;
 
-              // clip чтобы Fill не выходил за рамку
               ctx.beginPath();
               ctx.rect(p.sx, p.sy, w, h);
               ctx.clip();
@@ -924,7 +896,6 @@ export function CanvasView() {
         const endDeg = (o.transform as any).endAngle ?? 180;
         const clockwise = ((o.settings as any)?.clockwise ?? "Yes") === "Yes";
 
-        // 0° сверху
         const startRad0 = degToRad(startDeg) - Math.PI / 2;
         let endRad0 = degToRad(endDeg) - Math.PI / 2;
 
@@ -937,16 +908,13 @@ export function CanvasView() {
           anticlockwise = true;
         }
 
-        // background arc
         const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
 
-        // glow
         ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
         ctx.shadowBlur = bgGlow;
 
-        // stroke style
         ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
         ctx.lineWidth = bgThickness;
         ctx.lineCap = capToCanvas(o.style.backgroundCapStyle ?? "Flat");
@@ -956,7 +924,6 @@ export function CanvasView() {
         ctx.stroke();
         ctx.restore();
 
-        // value arc
         const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
         const valueEnd = startRad0 + (endRad0 - startRad0) * value;
 
@@ -965,11 +932,9 @@ export function CanvasView() {
         ctx.save();
         ctx.globalAlpha = alpha;
 
-        // glow
         ctx.shadowColor = o.style.color || "#3EA3FF";
         ctx.shadowBlur = mainGlow;
 
-        // stroke style
         ctx.strokeStyle = o.style.color || "#3EA3FF";
         ctx.lineWidth = thickness;
         ctx.lineCap = capToCanvas(o.style.capStyle ?? "Flat");
@@ -986,12 +951,9 @@ export function CanvasView() {
         const cap = (o.style.capStyle ?? "Flat") as any;
         const bgCap = (o.style.backgroundCapStyle ?? "Flat") as any;
 
-        // NOTE: In this editor, CapStyle controls the bar end shape.
-        // Flat = square ends (ignore radius); Round = capsule ends (>= h/2).
         const capRadius = (capStyle: any, baseRadius: number, hPx: number) =>
           capStyle === "Round" ? Math.max(baseRadius, hPx / 2) : 0;
 
-        // Background (with glow)
         const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
@@ -1005,7 +967,6 @@ export function CanvasView() {
         ctx.fill();
         ctx.restore();
 
-        // Value fill (with glow)
         const mainGlow = (o.style.glow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -1021,7 +982,6 @@ export function CanvasView() {
         ctx.restore();
       }
 
-      // Selection highlight (only selected)
       if (o.id === selectedObjectId) {
         ctx.save();
         ctx.setLineDash([6, 4]);
@@ -1032,7 +992,6 @@ export function CanvasView() {
         ctx.restore();
       }
 
-      // Resize handles (Label/Image/Bar/Arc, only when selected)
       if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
         const hs = 8;
         const half = hs / 2;
@@ -1061,10 +1020,9 @@ export function CanvasView() {
         ctx.restore();
       }
 
-      ctx.restore(); // rotation scope
+      ctx.restore();
     }
   }, [
-    // force redraw on deep changes
     screenSig,
     sorted,
     selectedObjectId,
@@ -1076,7 +1034,6 @@ export function CanvasView() {
     fontAssets,
     assetBytes,
     bgVersion,
-    // ✅ NEW: redraw when fonts become ready
     fontVersion,
   ]);
 
@@ -1086,7 +1043,7 @@ export function CanvasView() {
     const sx = e.clientX - r.left;
     const sy = e.clientY - r.top;
 
-    // pan: middle button OR space+LMB
+    // pan: middle button OR space+LMB (НЕ трогаем историю)
     if (e.button === 1 || (e.button === 0 && spaceDown)) {
       setPanning({ x: e.clientX, y: e.clientY, panX: vp.panX, panY: vp.panY });
       return;
@@ -1096,12 +1053,14 @@ export function CanvasView() {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    // RESIZE: only if selected object and cursor is on handle
+    // RESIZE: start (✅ начинаем батч истории ОДИН раз)
     if (selectedObjectId) {
       const sel = sorted.find((x) => x.id === selectedObjectId);
       if (sel) {
         const h = hitResizeHandle(sel, sx, sy, sw, sh);
         if (h) {
+          Actions.beginGesture();
+
           const w0 = screenToWorld(sx, sy);
           const b0 = objectBounds(sel);
 
@@ -1127,7 +1086,9 @@ export function CanvasView() {
     if (hit) {
       Actions.selectObject(hit.id);
 
-      // start drag (still uses world coords so moving works like before)
+      // DRAG start (✅ начинаем батч истории ОДИН раз)
+      Actions.beginGesture();
+
       const w = screenToWorld(sx, sy);
       const b = objectBounds(hit);
       const objWorldX = b.x - sw / 2;
@@ -1216,35 +1177,14 @@ export function CanvasView() {
   }
 
   function endDrag() {
+    // ✅ заканчиваем батч истории только если реально был drag/resize
+    if (dragObj || resizing) {
+      Actions.endGesture();
+    }
+
     setDragObj(null);
     setPanning(null);
     setResizing(null);
-  }
-
-  function onWheel(e: React.WheelEvent) {
-    e.preventDefault();
-
-    const c = canvasRef.current!;
-    const r = c.getBoundingClientRect();
-    const sx = e.clientX - r.left;
-    const sy = e.clientY - r.top;
-
-    const before = screenToWorld(sx, sy);
-
-    const delta = -e.deltaY;
-    const factor = delta > 0 ? 1.08 : 0.92;
-
-    setVp((v) => {
-      const nz = clamp(v.zoom * factor, 0.15, 3);
-
-      const c2 = canvasRef.current!;
-      const x2 = (sx - c2.width / 2) / nz - v.panX;
-      const y2 = (sy - c2.height / 2) / nz - v.panY;
-      const dx = before.x - x2;
-      const dy = before.y - y2;
-
-      return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
-    });
   }
 
   return (
