@@ -226,12 +226,12 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Rotation</Label>
           <SpinNumber value={arc.transform?.rotation ?? 0} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "rotation"], v)} />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Width</Label>
@@ -254,7 +254,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Start Angle</Label>
@@ -292,7 +292,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Preview Value</Label>
           <SpinNumber
             value={arc.settings?.previewValue ?? 50}
@@ -343,7 +343,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Glow</Label>
@@ -366,7 +366,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Cap Style</Label>
           <Dropdown
             value={(arc.style?.capStyle ?? "Flat") as any}
@@ -377,7 +377,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
         </div>
 
         {/* Background (same feel as Label: plain fields, not a weird header) */}
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Background Color</Label>
           <div className="insColorRow">
             <button
@@ -408,7 +408,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </PortalPopover>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Background Alpha</Label>
@@ -431,7 +431,7 @@ export function ArcInspector({ obj }: { obj: AnyObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Background Thickness</Label>

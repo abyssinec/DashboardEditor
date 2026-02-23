@@ -154,12 +154,12 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Rotation</Label>
           <SpinNumber value={rotation} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "rotation"], v)} />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Width</Label>
@@ -223,7 +223,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Keep Aspect</Label>
           <Dropdown
             value={keepAspectValue}
@@ -235,7 +235,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
           />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Fill Mode</Label>
           <Dropdown
             value={fillModeValue}

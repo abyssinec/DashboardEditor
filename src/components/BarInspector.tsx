@@ -226,12 +226,12 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Rotation</Label>
           <SpinNumber value={bar.transform?.rotation ?? 0} onChange={(v) => Actions.updateObjectDeep(obj.id, ["transform", "rotation"], v)} />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Width</Label>
@@ -304,7 +304,7 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Glow</Label>
@@ -327,7 +327,7 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Cap Style</Label>
           <Dropdown
             value={(bar.style?.capStyle ?? "Flat") as any}
@@ -337,7 +337,7 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
           />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Background Color</Label>
           <div className="insColorRow">
             <button
@@ -368,7 +368,7 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
           </PortalPopover>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Background Alpha</Label>
@@ -390,7 +390,7 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
             </div>
           </Row2>
         </div>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
   <Label>Background Cap Style</Label>
   <Dropdown
     value={(bar.style?.backgroundCapStyle ?? "Flat") as any}

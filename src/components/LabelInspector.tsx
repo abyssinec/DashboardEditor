@@ -257,7 +257,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Rotation</Label>
           <SpinNumber
             value={obj.transform.rotation}
@@ -274,7 +274,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           onChange={(e) => Actions.updateObjectDeep(obj.id, ["settings", "text"], e.target.value)}
         />
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Upload font</Label>
           <div className="insBgRow">
             <button
@@ -288,7 +288,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Font Size</Label>
@@ -312,7 +312,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Bold</Label>
@@ -339,7 +339,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Align</Label>
@@ -413,7 +413,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Glow</Label>
@@ -428,7 +428,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Shadow Color</Label>
           <div className="insColorRow">
             <button
@@ -458,7 +458,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </PortalPopover>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Shadow Offset X</Label>
@@ -477,7 +477,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </Row2>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Shadow Blur</Label>
           <SpinNumber
             value={obj.style.shadowBlur}
@@ -487,7 +487,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Outline Color</Label>
           <div className="insColorRow">
             <button
@@ -517,7 +517,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           </PortalPopover>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Outline Thickness</Label>
           <SpinNumber
             value={obj.style.outlineThickness}
@@ -537,7 +537,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
           />
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Row2>
             <div>
               <Label>Update rate (ms)</Label>

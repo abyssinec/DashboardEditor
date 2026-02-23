@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../hooks/useStore";
 import { Dropdown } from "./Dropdown";
 import { Actions } from "../store";
@@ -246,7 +246,7 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
           </div>
         </Row2>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Background Image</Label>
           <div className="insBgRow">
   <button
@@ -309,7 +309,7 @@ export function ScreenInspector({ screen }: { screen: Screen }) {
 </div>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 25 }}>
           <Label>Fill</Label>
           <Dropdown
             value={screen.style.fill}
