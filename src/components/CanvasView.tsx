@@ -671,6 +671,7 @@ export function CanvasView() {
 
     // objects
     for (const o of sorted) {
+      if ((o as any).visible === false) continue;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;

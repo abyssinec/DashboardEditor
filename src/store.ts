@@ -634,4 +634,17 @@ reorderObject(objectId: string, toIndex: number) {
     }),
   );
 },
+
+toggleObjectVisible(objectId: string) {
+  setState(
+    produce(state, (d) => {
+      const s = getSelectedScreenDraft(d);
+      const obj: any = s.objects.find((o: any) => o.id === objectId);
+      if (!obj) return;
+
+      const cur = obj.visible !== false;
+      obj.visible = !cur;
+    }),
+  );
+},
 };

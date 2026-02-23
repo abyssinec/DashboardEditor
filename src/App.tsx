@@ -5,8 +5,15 @@ import { Inspector } from "./components/Inspector";
 import { LeftPanel } from "./components/LeftPanel";
 import { ViewPanel } from "./components/ViewPanel";
 import { useStore } from "./hooks/useStore";
-import { Actions } from "./store";
+import { Actions, redo, undo, getState} from "./store";
 import { exportDashboard, importDashboard } from "./utils/dashboardFormat";
+
+function isTypingTarget(el: EventTarget | null) {
+  const t = el as HTMLElement | null;
+  if (!t) return false;
+  const tag = (t.tagName || "").toLowerCase();
+  return tag === "input" || tag === "textarea" || (t as any).isContentEditable;
+}
 
 export default function App() {
   const project = useStore((s) => s.project);
@@ -32,6 +39,71 @@ export default function App() {
       });
     }
   }, [editingName]);
+
+  // ✅ HOTKEYS (Ctrl/Cmd + Z/Shift+Z/C/V/D)
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // если фокус в input/textarea/contentEditable — не перехватываем
+      if (isTypingTarget(e.target)) return;
+
+      const key = (e.key || "").toLowerCase();
+
+      // Delete / Backspace
+if (key === "delete" || key === "backspace") {
+  e.preventDefault();
+
+  const s = getState();
+  if (s.selectedObjectId) {
+    Actions.deleteObject(s.selectedObjectId);
+  } else {
+    // удаляем screen только если их > 1
+    if (s.project.screens.length > 1) Actions.deleteScreen(s.selectedScreenId);
+  }
+  return;
+}
+      const mod = e.ctrlKey || e.metaKey; // Windows/Linux: Ctrl, macOS: Cmd
+
+      if (!mod || e.altKey) return;
+
+      // Undo / Redo
+      if (key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+
+      // Ctrl+Y / Cmd+Y -> redo (на всякий)
+      if (key === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      // Copy / Paste / Duplicate
+      if (key === "c") {
+        e.preventDefault();
+        Actions.copySelected();
+        return;
+      }
+
+      if (key === "v") {
+        e.preventDefault();
+        Actions.paste();
+        return;
+      }
+
+      if (key === "d") {
+        e.preventDefault();
+        Actions.duplicateSelected();
+        return;
+      }
+    }
+
+    // capture=true — надёжнее (перехватывает раньше, чем какие-то внутренние обработчики)
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
 
   const safeFileName = useMemo(() => {
     const base = (projectName || "project").trim();
@@ -68,7 +140,8 @@ export default function App() {
       setEditingName(false);
       return;
     }
-    Actions.setProjectName(next);
+    // если у тебя пока нет Actions.setProjectName — скажи, я добавлю в store.ts
+    Actions.setProjectName?.(next);
     setEditingName(false);
   }
 
@@ -187,9 +260,7 @@ export default function App() {
         </div>
 
         <div className="panel">
-          <div className="panelInner">
-            {assetsOpen ? <AssetsPanel /> : <Inspector />}
-          </div>
+          <div className="panelInner">{assetsOpen ? <AssetsPanel /> : <Inspector />}</div>
         </div>
       </div>
 

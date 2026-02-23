@@ -21,6 +21,66 @@ function TrashIcon({ onClick }: { onClick: () => void }) {
   );
 }
 
+function EyeIcon({ visible, onClick }: { visible: boolean; onClick: () => void }) {
+  return (
+    <div
+      className="iconBtn"
+      title={visible ? "Hide" : "Show"}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        opacity: visible ? 1 : 0.55,
+      }}
+    >
+      {/* eye / eye-off */}
+      {visible ? (
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M3 3l18 18"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M10.6 10.6A3.5 3.5 0 0 0 13.4 13.4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M7.2 7.2C4.5 9 2.5 12 2.5 12s3.5 7 9.5 7c2 0 3.7-.5 5.1-1.3"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M14.8 14.8C17.5 13 19.5 12 21.5 12s-3.5-7-9.5-7c-.8 0-1.6.1-2.3.3"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </div>
+  );
+}
+
 export function LeftPanel() {
   const screens = useStore((s) => s.project.screens);
   const selectedScreenId = useStore((s) => s.selectedScreenId);
@@ -53,70 +113,72 @@ export function LeftPanel() {
     setDropHint(null);
   }, []);
 
-  const onObjDragOver = React.useCallback((e: React.DragEvent, overId: string) => {
-    if (!dragId) return;
-    if (overId === dragId) return;
+  const onObjDragOver = React.useCallback(
+    (e: React.DragEvent, overId: string) => {
+      if (!dragId) return;
+      if (overId === dragId) return;
 
-    e.preventDefault(); // обязательно, иначе drop не сработает
-    e.dataTransfer.dropEffect = "move";
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
 
-    const el = e.currentTarget as HTMLDivElement;
-    const r = el.getBoundingClientRect();
-    const midY = r.top + r.height / 2;
-    const where: "before" | "after" = e.clientY < midY ? "before" : "after";
+      const el = e.currentTarget as HTMLDivElement;
+      const r = el.getBoundingClientRect();
+      const midY = r.top + r.height / 2;
+      const where: "before" | "after" = e.clientY < midY ? "before" : "after";
 
-    setDropHint({ overId, where });
-  }, [dragId]);
+      setDropHint({ overId, where });
+    },
+    [dragId],
+  );
 
-  const onObjDrop = React.useCallback((e: React.DragEvent, overId: string) => {
-    e.preventDefault();
+  const onObjDrop = React.useCallback(
+    (e: React.DragEvent, overId: string) => {
+      e.preventDefault();
 
-    const idFromData = (() => {
-      try {
-        return e.dataTransfer.getData("text/plain");
-      } catch {
-        return "";
+      const idFromData = (() => {
+        try {
+          return e.dataTransfer.getData("text/plain");
+        } catch {
+          return "";
+        }
+      })();
+
+      const id = idFromData || dragId;
+      if (!id) {
+        setDragId(null);
+        setDropHint(null);
+        return;
       }
-    })();
+      if (id === overId) {
+        setDragId(null);
+        setDropHint(null);
+        return;
+      }
 
-    const id = idFromData || dragId;
-    if (!id) {
+      const fromIndex = objects.findIndex((o) => o.id === id);
+      const overIndex = objects.findIndex((o) => o.id === overId);
+      if (fromIndex < 0 || overIndex < 0) {
+        setDragId(null);
+        setDropHint(null);
+        return;
+      }
+
+      const where = dropHint?.overId === overId ? dropHint.where : "before";
+      let rawToIndex = overIndex + (where === "after" ? 1 : 0);
+
+      if (fromIndex < rawToIndex) rawToIndex -= 1;
+
+      const toIndex = Math.max(0, Math.min(rawToIndex, objects.length - 1));
+
+      Actions.reorderObject(id, toIndex);
+
       setDragId(null);
       setDropHint(null);
-      return;
-    }
-    if (id === overId) {
-      setDragId(null);
-      setDropHint(null);
-      return;
-    }
-
-    const fromIndex = objects.findIndex((o) => o.id === id);
-    const overIndex = objects.findIndex((o) => o.id === overId);
-    if (fromIndex < 0 || overIndex < 0) {
-      setDragId(null);
-      setDropHint(null);
-      return;
-    }
-
-    // куда вставляем: до или после элемента, на который навели
-    const where = dropHint?.overId === overId ? dropHint.where : "before";
-    let rawToIndex = overIndex + (where === "after" ? 1 : 0);
-
-    // корректировка индекса из-за удаления элемента из списка при move
-    // если мы тащим сверху вниз и вставляем "после", то после удаления индекс уменьшается на 1
-    if (fromIndex < rawToIndex) rawToIndex -= 1;
-
-    const toIndex = Math.max(0, Math.min(rawToIndex, objects.length - 1));
-
-    Actions.reorderObject(id, toIndex);
-
-    setDragId(null);
-    setDropHint(null);
-  }, [dragId, dropHint, objects]);
+    },
+    [dragId, dropHint, objects],
+  );
 
   const onObjDragLeave = React.useCallback(() => {
-    // если хотим — можно не сбрасывать, но лучше убрать подсказку
     setDropHint(null);
   }, []);
 
@@ -149,12 +211,13 @@ export function LeftPanel() {
 
         <div className="list">
           {objects.map((o) => {
+            const visible = (o as any).visible !== false; // default true
+
             const showBefore = isDragging && dropHint?.overId === o.id && dropHint.where === "before" && dragId !== o.id;
             const showAfter = isDragging && dropHint?.overId === o.id && dropHint.where === "after" && dragId !== o.id;
 
             return (
               <React.Fragment key={o.id}>
-                {/* drop line BEFORE */}
                 {showBefore ? (
                   <div
                     style={{
@@ -178,19 +241,20 @@ export function LeftPanel() {
                   style={{
                     cursor: "grab",
                     opacity: dragId === o.id ? 0.55 : 1,
-                    // маленький visual, чтобы понятно было что можно перетаскивать
                     outline: dragId === o.id ? "1px dashed rgba(62,163,255,0.6)" : undefined,
                   }}
                   title="Drag to reorder"
                 >
-                  <div className="name">{o.name}</div>
+                  <div className="name" style={{ opacity: visible ? 1 : 0.6 }}>
+                    {o.name}
+                  </div>
 
                   <div className="itemRight">
+                    <EyeIcon visible={visible} onClick={() => Actions.toggleObjectVisible(o.id)} />
                     <TrashIcon onClick={() => Actions.deleteObject(o.id)} />
                   </div>
                 </div>
 
-                {/* drop line AFTER */}
                 {showAfter ? (
                   <div
                     style={{
