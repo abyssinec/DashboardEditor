@@ -5,7 +5,7 @@ import { Inspector } from "./components/Inspector";
 import { LeftPanel } from "./components/LeftPanel";
 import { ViewPanel } from "./components/ViewPanel";
 import { useStore } from "./hooks/useStore";
-import { Actions, redo, undo, getState} from "./store";
+import { Actions, getState, redo, undo } from "./store";
 import { exportDashboard, importDashboard } from "./utils/dashboardFormat";
 
 function isTypingTarget(el: EventTarget | null) {
@@ -40,30 +40,40 @@ export default function App() {
     }
   }, [editingName]);
 
-  // ✅ HOTKEYS (Ctrl/Cmd + Z/Shift+Z/C/V/D)
+  // ✅ HOTKEYS
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      // если фокус в input/textarea/contentEditable — не перехватываем
+      // не перехватываем когда печатаем
       if (isTypingTarget(e.target)) return;
 
       const key = (e.key || "").toLowerCase();
+      const mod = e.ctrlKey || e.metaKey; // Ctrl / Cmd
 
-      // Delete / Backspace
-if (key === "delete" || key === "backspace") {
-  e.preventDefault();
+      // Esc -> clear selection
+      if (key === "escape") {
+        e.preventDefault();
+        Actions.clearSelection();
+        return;
+      }
 
-  const s = getState();
-  if (s.selectedObjectId) {
-    Actions.deleteObject(s.selectedObjectId);
-  } else {
-    // удаляем screen только если их > 1
-    if (s.project.screens.length > 1) Actions.deleteScreen(s.selectedScreenId);
-  }
-  return;
-}
-      const mod = e.ctrlKey || e.metaKey; // Windows/Linux: Ctrl, macOS: Cmd
+      // Delete / Backspace -> delete selected objects, else delete screen (if > 1)
+      if (key === "delete" || key === "backspace") {
+        e.preventDefault();
+        const s = getState();
+        const hasObj = (s.selectedObjectIds?.length ?? 0) > 0 || !!s.selectedObjectId;
+        if (hasObj) Actions.deleteSelectedObjects();
+        else if (s.project.screens.length > 1) Actions.deleteScreen(s.selectedScreenId);
+        return;
+      }
 
       if (!mod || e.altKey) return;
+
+      // Ctrl/Cmd + A -> select all objects
+      if (key === "a") {
+        e.preventDefault();
+        Actions.selectAllObjects();
+        return;
+      }
 
       // Undo / Redo
       if (key === "z") {
@@ -73,7 +83,7 @@ if (key === "delete" || key === "backspace") {
         return;
       }
 
-      // Ctrl+Y / Cmd+Y -> redo (на всякий)
+      // Ctrl/Cmd + Y -> redo
       if (key === "y") {
         e.preventDefault();
         redo();
@@ -100,7 +110,6 @@ if (key === "delete" || key === "backspace") {
       }
     }
 
-    // capture=true — надёжнее (перехватывает раньше, чем какие-то внутренние обработчики)
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
@@ -140,8 +149,7 @@ if (key === "delete" || key === "backspace") {
       setEditingName(false);
       return;
     }
-    // если у тебя пока нет Actions.setProjectName — скажи, я добавлю в store.ts
-    Actions.setProjectName?.(next);
+    Actions.setProjectName(next);
     setEditingName(false);
   }
 
@@ -167,10 +175,10 @@ if (key === "delete" || key === "backspace") {
         {/* LEFT */}
         <div className="brand" style={{ display: "flex", flexDirection: "column" }}>
           <div className="title">DashboardEditor</div>
-          <div className="version">v0.0.1</div>
+          <div className="version">v1.0.5</div>
         </div>
 
-        {/* CENTER (absolute centered) */}
+        {/* CENTER */}
         <div
           style={{
             position: "absolute",
@@ -180,6 +188,7 @@ if (key === "delete" || key === "backspace") {
             alignItems: "center",
             justifyContent: "center",
             pointerEvents: "auto",
+            minWidth: 0,
           }}
         >
           {!editingName ? (
@@ -196,6 +205,7 @@ if (key === "delete" || key === "backspace") {
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
+              title="Click to rename"
             >
               {projectName}
             </div>

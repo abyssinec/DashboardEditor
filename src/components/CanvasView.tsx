@@ -80,28 +80,27 @@ function objectBounds(o: AnyObj) {
     const h = (o.transform as any).height ?? 60;
     return { x: o.transform.x, y: o.transform.y, w, h };
   }
-  if (o.type === "Image") {
-    const t: any = o.transform as any;
+ if (o.type === "Image") {
+  const t: any = o.transform as any;
 
-    // новый путь
-    const wNew = t.width;
-    const hNew = t.height;
+  // новый путь
+  const wNew = t.width;
+  const hNew = t.height;
 
-    // legacy путь (старые проекты)
-    const wLegacy = 220 * (t.scaleX || 1);
-    const hLegacy = 140 * (t.scaleY || 1);
+  // legacy путь (старые проекты)
+  const wLegacy = 220 * (t.scaleX || 1);
+  const hLegacy = 140 * (t.scaleY || 1);
 
-    const w = Number.isFinite(wNew) && wNew > 0 ? wNew : wLegacy;
-    const h = Number.isFinite(hNew) && hNew > 0 ? hNew : hLegacy;
+  const w = Number.isFinite(wNew) && wNew > 0 ? wNew : wLegacy;
+  const h = Number.isFinite(hNew) && hNew > 0 ? hNew : hLegacy;
 
-    return { x: o.transform.x, y: o.transform.y, w, h };
-  }
-  if (o.type === "Arc") {
-    const w = (o.transform as any).width ?? 240;
-    const h = (o.transform as any).height ?? 240;
-    return { x: o.transform.x, y: o.transform.y, w, h };
-  }
-  // Bar
+  return { x: o.transform.x, y: o.transform.y, w, h };
+}
+ if (o.type === "Arc") {
+  const w = (o.transform as any).width ?? 240;
+  const h = (o.transform as any).height ?? 240;
+  return { x: o.transform.x, y: o.transform.y, w, h };
+}// Bar
   return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
 }
 
@@ -256,15 +255,13 @@ export function CanvasView() {
   const [bgVersion, setBgVersion] = useState<number>(0);
   const [imgVersion, setImgVersion] = useState<number>(0);
 
-  // ✅ forces redraw when fonts finish loading
-  const [fontVersion, setFontVersion] = useState<number>(0);
 
   const sorted = useMemo(() => {
+    // important: rely on screenSig so it updates even if objects mutated in place
     void screenSig;
     void imgVersion;
-    void fontVersion;
     return [...screen.objects].sort((a, b) => a.z - b.z);
-  }, [screenSig, imgVersion, fontVersion, screen.objects]);
+  }, [screenSig, imgVersion, screen.objects]);
 
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
   const imageAssets = useStore((s) => (s.project as any).assets?.images ?? []);
@@ -322,11 +319,11 @@ export function CanvasView() {
   }, [screen.id, (screen as any).style?.backgroundImageAssetId, (screen as any).style?.fill, imageAssets, assetBytes]);
 
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
+  // Keep latest viewport in a ref so native wheel handler always uses fresh values
   const vpRef = useRef(vp);
-  useEffect(() => {
-    vpRef.current = vp;
-  }, [vp]);
+  useEffect(() => { vpRef.current = vp; }, [vp]);
 
+  // Wheel zoom: native listener with { passive:false } so preventDefault works (no console warnings)
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -343,6 +340,7 @@ export function CanvasView() {
 
       const v0 = vpRef.current;
 
+      // screen -> world using latest vp
       const beforeX = (sx - c.width / 2) / v0.zoom - v0.panX;
       const beforeY = (sy - c.height / 2) / v0.zoom - v0.panY;
 
@@ -352,6 +350,7 @@ export function CanvasView() {
       setVp((v) => {
         const nz = clamp(v.zoom * factor, 0.15, 3);
 
+        // keep cursor point stable
         const x2 = (sx - c.width / 2) / nz - v.panX;
         const y2 = (sy - c.height / 2) / nz - v.panY;
 
@@ -365,21 +364,31 @@ export function CanvasView() {
     el.addEventListener("wheel", onWheelNative, { passive: false });
     return () => el.removeEventListener("wheel", onWheelNative);
   }, []);
-
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
 
-  // ✅ Register fonts (FontFace) + force redraw when they become ready
-  useEffect(() => {
-    let cancelled = false;
 
+  // History batching for drag/resize (one undo step per gesture)
+  const gestureActiveRef = useRef(false);
+  const endDragRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const onUp = () => endDragRef.current();
+    window.addEventListener("mouseup", onUp, true);
+    window.addEventListener("mouseleave", onUp, true);
+    return () => {
+      window.removeEventListener("mouseup", onUp, true);
+      window.removeEventListener("mouseleave", onUp, true);
+    };
+  }, []);
+
+  // Register fonts (FontFace)
+  useEffect(() => {
     const anyWin = window as any;
     if (!anyWin.__dash_fontReg) anyWin.__dash_fontReg = new Set<string>();
-    if (!anyWin.__dash_fontUrlReg) anyWin.__dash_fontUrlReg = new Map<string, string>();
     const reg: Set<string> = anyWin.__dash_fontReg;
-    const urlReg: Map<string, string> = anyWin.__dash_fontUrlReg;
 
     (async () => {
       for (const a of fontAssets) {
@@ -395,36 +404,21 @@ export function CanvasView() {
             bytes.buffer instanceof ArrayBuffer
               ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
               : new Uint8Array(bytes).buffer.slice(0);
-
           const blob = new Blob([ab], { type: a.mime || "font/ttf" });
           const url = URL.createObjectURL(blob);
-
           const family = `dash_font_${id}`;
           const ff = new FontFace(family, `url(${url})`);
           await ff.load();
           (document as any).fonts.add(ff);
-
           reg.add(id);
-          urlReg.set(id, url);
         } catch {
           reg.add(id);
         }
       }
-
-      try {
-        await (document as any).fonts.ready;
-      } catch {}
-
-      if (!cancelled) {
-        requestAnimationFrame(() => setFontVersion((v) => v + 1));
-      }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [fontAssets, assetBytes]);
 
+  // Space for pan
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") setSpaceDown(true);
@@ -478,8 +472,7 @@ export function CanvasView() {
   }
 
   function hitResizeHandle(sel: AnyObj, sx: number, sy: number, sw: number, sh: number): ResizeHandle | null {
-    if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc"))
-      return null;
+   if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc")) return null;
 
     const b = objectBounds(sel);
     const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
@@ -502,7 +495,7 @@ export function CanvasView() {
     return null;
   }
 
-  // Label hit-test ONLY by actual text bounds (not whole rect)
+  // IMPORTANT: Label hit-test ONLY by actual text bounds (not whole rect)
   function hitTestScreen(sx: number, sy: number, ctx: CanvasRenderingContext2D): AnyObj | undefined {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
@@ -561,6 +554,7 @@ export function CanvasView() {
         continue;
       }
 
+      // other types: rectangle hit-test
       if (sx >= p.sx && sx <= p.sx + w && sy >= p.sy && sy <= p.sy + h) return o;
     }
 
@@ -577,7 +571,7 @@ export function CanvasView() {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    // grid
+    // softer grid
     ctx.save();
     ctx.globalAlpha = 0.07;
     ctx.strokeStyle = "#9E9E9E";
@@ -601,13 +595,14 @@ export function CanvasView() {
     }
     ctx.restore();
 
-    // screen rect centered at world origin
+    // screen rect (centered at world origin)
     const tl = worldToScreen(-sw / 2, -sh / 2);
     const srW = sw * vp.zoom;
     const srH = sh * vp.zoom;
 
     const bgAlpha = (screen.style.alpha ?? 100) / 100;
 
+    // fill
     ctx.save();
     ctx.fillStyle = hexToRgba(screen.style.color || "#000000", bgAlpha);
     ctx.fillRect(tl.sx, tl.sy, srW, srH);
@@ -671,12 +666,12 @@ export function CanvasView() {
 
     // objects
     for (const o of sorted) {
-      if ((o as any).visible === false) continue;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;
       const h = b.h * vp.zoom;
 
+      // rotation
       const rotDeg = (o.transform as any).rotation ?? 0;
       const rot = degToRad(rotDeg);
       const cx = p.sx + w / 2;
@@ -727,6 +722,7 @@ export function CanvasView() {
         const x = align === "Center" ? p.sx + w / 2 : align === "Right" ? p.sx + w - padX : p.sx + padX;
         const y0 = p.sy + padY;
 
+        // STYLE FX
         const textColor = normalizeHex(o.style.color || "#3EA3FF");
         const glow = Math.max(0, (o.style as any).glow ?? 0);
         const shadowColor = normalizeHex((o.style as any).shadowColor || "#000000");
@@ -786,165 +782,180 @@ export function CanvasView() {
 
         ctx.restore();
       } else if (o.type === "Image") {
-        const imgId = (o.settings as any)?.imageAssetId as string | undefined;
+  const imgId = (o.settings as any)?.imageAssetId as string | undefined;
 
-        if (!imgId || !(assetBytes as any)[imgId]) {
-          ctx.save();
-          ctx.globalAlpha = 0.35;
-          ctx.strokeStyle = "#D9D9D9";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(p.sx, p.sy, w, h);
-          ctx.beginPath();
-          ctx.moveTo(p.sx, p.sy);
-          ctx.lineTo(p.sx + w, p.sy + h);
-          ctx.moveTo(p.sx + w, p.sy);
-          ctx.lineTo(p.sx, p.sy + h);
-          ctx.stroke();
-          ctx.restore();
-        } else {
-          const cache = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
-          const urlCache = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
+  // если нет ассета или bytes — плейсхолдер
+  if (!imgId || !(assetBytes as any)[imgId]) {
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = "#D9D9D9";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p.sx, p.sy, w, h);
+    ctx.beginPath();
+    ctx.moveTo(p.sx, p.sy);
+    ctx.lineTo(p.sx + w, p.sy + h);
+    ctx.moveTo(p.sx + w, p.sy);
+    ctx.lineTo(p.sx, p.sy + h);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    // Кэш картинок по assetId
+    const cache = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
+    const urlCache = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
 
-          let img = cache.get(imgId) || null;
+    let img = cache.get(imgId) || null;
 
-          if (!img) {
-            const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
-            const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
+    if (!img) {
+      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
+      const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
 
-            const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
-            const url = URL.createObjectURL(blob);
+      const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
 
-            const im = new Image();
-            im.onload = () => {
-              cache.set(imgId, im);
-              requestAnimationFrame(() => setImgVersion((v) => v + 1));
-            };
-            im.src = url;
+      const im = new Image();
+      im.onload = () => {
+        cache.set(imgId, im);
+        // форсим перерисовку сразу после загрузки
+        requestAnimationFrame(() => setImgVersion((v) => v + 1));
+      };
+      im.src = url;
 
-            urlCache.set(imgId, url);
-            img = im;
-          }
+      urlCache.set(imgId, url);
+      img = im;
+    }
 
-          if (!img || !(img as any).complete || (img as any).naturalWidth === 0) {
-            ctx.save();
-            ctx.globalAlpha = 0.2;
-            ctx.strokeStyle = "#D9D9D9";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(p.sx, p.sy, w, h);
-            ctx.restore();
+    // если ещё не загрузилась — рисуем рамку
+    if (!img || !(img as any).complete || (img as any).naturalWidth === 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = "#D9D9D9";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.sx, p.sy, w, h);
+      ctx.restore();
+    } else {
+      const keepAspect = ((o.settings as any)?.keepAspect ?? "Yes") === "Yes";
+      const fillMode = (o.settings as any)?.fillMode ?? "Fill"; // у тебя типом "Fill" пока
+
+      ctx.save();
+      ctx.globalAlpha = ((o.style as any)?.alpha ?? 100) / 100;
+
+      if (!keepAspect) {
+        // stretch
+        ctx.drawImage(img, p.sx, p.sy, w, h);
+      } else {
+        const iw = (img as any).naturalWidth || 1;
+        const ih = (img as any).naturalHeight || 1;
+        const ir = iw / ih;
+        const r = w / h;
+
+        let dw = w;
+        let dh = h;
+
+        // Fill: заполняем, обрезая лишнее
+        if (fillMode === "Fill") {
+          if (r > ir) {
+            dw = w;
+            dh = w / ir;
           } else {
-            const keepAspect = ((o.settings as any)?.keepAspect ?? "Yes") === "Yes";
-            const fillMode = (o.settings as any)?.fillMode ?? "Fill";
-
-            ctx.save();
-            ctx.globalAlpha = ((o.style as any)?.alpha ?? 100) / 100;
-
-            if (!keepAspect) {
-              ctx.drawImage(img, p.sx, p.sy, w, h);
-            } else {
-              const iw = (img as any).naturalWidth || 1;
-              const ih = (img as any).naturalHeight || 1;
-              const ir = iw / ih;
-              const r = w / h;
-
-              let dw = w;
-              let dh = h;
-
-              if (fillMode === "Fill") {
-                if (r > ir) {
-                  dw = w;
-                  dh = w / ir;
-                } else {
-                  dh = h;
-                  dw = h * ir;
-                }
-              } else {
-                if (r > ir) {
-                  dh = h;
-                  dw = h * ir;
-                } else {
-                  dw = w;
-                  dh = w / ir;
-                }
-              }
-
-              const dx = p.sx + (w - dw) / 2;
-              const dy = p.sy + (h - dh) / 2;
-
-              ctx.beginPath();
-              ctx.rect(p.sx, p.sy, w, h);
-              ctx.clip();
-
-              ctx.drawImage(img, dx, dy, dw, dh);
-            }
-
-            ctx.restore();
+            dh = h;
+            dw = h * ir;
+          }
+        } else {
+          // если потом добавишь Fit — тут будет Fit
+          if (r > ir) {
+            dh = h;
+            dw = h * ir;
+          } else {
+            dw = w;
+            dh = w / ir;
           }
         }
-      } else if (o.type === "Arc") {
-        const capToCanvas = (cap: any) => (cap === "Round" ? "round" : "butt");
-        const alpha = (o.style.alpha ?? 100) / 100;
 
-        const ccx = p.sx + w / 2;
-        const ccy = p.sy + h / 2;
+        const dx = p.sx + (w - dw) / 2;
+        const dy = p.sy + (h - dh) / 2;
 
-        const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
-        const bgThickness = Math.max(2, (o.style.backgroundThickness || (o.style.thickness || 20)) * vp.zoom);
-
-        const r = Math.max(1, Math.min(w, h) / 2 - Math.max(thickness, bgThickness) / 2);
-
-        const startDeg = (o.transform as any).startAngle ?? 0;
-        const endDeg = (o.transform as any).endAngle ?? 180;
-        const clockwise = ((o.settings as any)?.clockwise ?? "Yes") === "Yes";
-
-        const startRad0 = degToRad(startDeg) - Math.PI / 2;
-        let endRad0 = degToRad(endDeg) - Math.PI / 2;
-
-        let anticlockwise = false;
-        if (clockwise) {
-          if (endRad0 <= startRad0) endRad0 += Math.PI * 2;
-          anticlockwise = false;
-        } else {
-          if (endRad0 >= startRad0) endRad0 -= Math.PI * 2;
-          anticlockwise = true;
-        }
-
-        const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
-        ctx.save();
-        ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
-
-        ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
-        ctx.shadowBlur = bgGlow;
-
-        ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
-        ctx.lineWidth = bgThickness;
-        ctx.lineCap = capToCanvas(o.style.backgroundCapStyle ?? "Flat");
-
+        // clip чтобы Fill не выходил за рамку
         ctx.beginPath();
-        ctx.arc(ccx, ccy, r, startRad0, endRad0, anticlockwise);
-        ctx.stroke();
-        ctx.restore();
+        ctx.rect(p.sx, p.sy, w, h);
+        ctx.clip();
 
-        const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
-        const valueEnd = startRad0 + (endRad0 - startRad0) * value;
+        ctx.drawImage(img, dx, dy, dw, dh);
+      }
 
-        const mainGlow = (o.style.glow ?? 0) * vp.zoom;
+      ctx.restore();
+    }
+  }
+} else if (o.type === "Arc") {
+  const capToCanvas = (cap: any) => (cap === "Round" ? "round" : "butt");
+  const alpha = (o.style.alpha ?? 100) / 100;
 
-        ctx.save();
-        ctx.globalAlpha = alpha;
+  const ccx = p.sx + w / 2;
+  const ccy = p.sy + h / 2;
 
-        ctx.shadowColor = o.style.color || "#3EA3FF";
-        ctx.shadowBlur = mainGlow;
+  const thickness = Math.max(2, (o.style.thickness || 20) * vp.zoom);
+  const bgThickness = Math.max(2, (o.style.backgroundThickness || (o.style.thickness || 20)) * vp.zoom);
 
-        ctx.strokeStyle = o.style.color || "#3EA3FF";
-        ctx.lineWidth = thickness;
-        ctx.lineCap = capToCanvas(o.style.capStyle ?? "Flat");
+  const r = Math.max(1, Math.min(w, h) / 2 - Math.max(thickness, bgThickness) / 2);
 
-        ctx.beginPath();
-        ctx.arc(ccx, ccy, r, startRad0, valueEnd, anticlockwise);
-        ctx.stroke();
-        ctx.restore();
-      } else if (o.type === "Bar") {
+  const startDeg = (o.transform as any).startAngle ?? 0;
+  const endDeg = (o.transform as any).endAngle ?? 180;
+  const clockwise = ((o.settings as any)?.clockwise ?? "Yes") === "Yes";
+
+  // 0° сверху (как раньше с -PI/2)
+  const startRad0 = degToRad(startDeg) - Math.PI / 2;
+  let endRad0 = degToRad(endDeg) - Math.PI / 2;
+
+  let anticlockwise = false;
+  if (clockwise) {
+    if (endRad0 <= startRad0) endRad0 += Math.PI * 2;
+    anticlockwise = false;
+  } else {
+    if (endRad0 >= startRad0) endRad0 -= Math.PI * 2;
+    anticlockwise = true;
+  }
+
+  // background arc
+const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
+ctx.save();
+ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
+
+// glow
+ctx.shadowColor = o.style.backgroundColor || "#3EA3FF";
+ctx.shadowBlur = bgGlow;
+
+// stroke style
+ctx.strokeStyle = o.style.backgroundColor || "#3EA3FF";
+ctx.lineWidth = bgThickness;
+ctx.lineCap = capToCanvas(o.style.backgroundCapStyle ?? "Flat");
+
+ctx.beginPath();
+ctx.arc(ccx, ccy, r, startRad0, endRad0, anticlockwise);
+ctx.stroke();
+ctx.restore();
+
+  // value arc
+  const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
+  const valueEnd = startRad0 + (endRad0 - startRad0) * value;
+
+  const mainGlow = (o.style.glow ?? 0) * vp.zoom;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // glow
+  ctx.shadowColor = o.style.color || "#3EA3FF";
+  ctx.shadowBlur = mainGlow;
+
+  // stroke style
+  ctx.strokeStyle = o.style.color || "#3EA3FF";
+  ctx.lineWidth = thickness;
+  ctx.lineCap = capToCanvas(o.style.capStyle ?? "Flat");
+
+  ctx.beginPath();
+  ctx.arc(ccx, ccy, r, startRad0, valueEnd, anticlockwise);
+  ctx.stroke();
+  ctx.restore();
+} else if (o.type === "Bar") {
         const alpha = (o.style.alpha ?? 100) / 100;
         const value = clamp((o.settings.previewValue ?? 50) / 100, 0, 1);
 
@@ -952,9 +963,12 @@ export function CanvasView() {
         const cap = (o.style.capStyle ?? "Flat") as any;
         const bgCap = (o.style.backgroundCapStyle ?? "Flat") as any;
 
+        // NOTE: In this editor, CapStyle controls the bar end shape.
+        // Flat = square ends (ignore radius); Round = capsule ends (>= h/2).
         const capRadius = (capStyle: any, baseRadius: number, hPx: number) =>
           capStyle === "Round" ? Math.max(baseRadius, hPx / 2) : 0;
 
+        // Background (with glow)
         const bgGlow = (o.style.backgroundGlow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = (o.style.backgroundAlpha ?? 40) / 100;
@@ -968,6 +982,7 @@ export function CanvasView() {
         ctx.fill();
         ctx.restore();
 
+        // Value fill (with glow)
         const mainGlow = (o.style.glow ?? 0) * vp.zoom;
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -983,6 +998,7 @@ export function CanvasView() {
         ctx.restore();
       }
 
+      // Selection highlight (only selected)
       if (o.id === selectedObjectId) {
         ctx.save();
         ctx.setLineDash([6, 4]);
@@ -993,7 +1009,9 @@ export function CanvasView() {
         ctx.restore();
       }
 
-      if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
+      // Resize handles (Label only, only when selected)
+      // Resize handles (Label/Image/Bar, only when selected)
+if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
         const hs = 8;
         const half = hs / 2;
 
@@ -1021,9 +1039,10 @@ export function CanvasView() {
         ctx.restore();
       }
 
-      ctx.restore();
+      ctx.restore(); // rotation scope
     }
   }, [
+    // force redraw on deep changes
     screenSig,
     sorted,
     selectedObjectId,
@@ -1035,7 +1054,6 @@ export function CanvasView() {
     fontAssets,
     assetBytes,
     bgVersion,
-    fontVersion,
   ]);
 
   function onMouseDown(e: React.MouseEvent) {
@@ -1044,7 +1062,7 @@ export function CanvasView() {
     const sx = e.clientX - r.left;
     const sy = e.clientY - r.top;
 
-    // pan: middle button OR space+LMB (НЕ трогаем историю)
+    // pan: middle button OR space+LMB
     if (e.button === 1 || (e.button === 0 && spaceDown)) {
       setPanning({ x: e.clientX, y: e.clientY, panX: vp.panX, panY: vp.panY });
       return;
@@ -1054,16 +1072,16 @@ export function CanvasView() {
     const sw = screen.settings.width;
     const sh = screen.settings.height;
 
-    // RESIZE: start (✅ начинаем батч истории ОДИН раз)
+    // RESIZE: only if selected object and cursor is on handle
     if (selectedObjectId) {
       const sel = sorted.find((x) => x.id === selectedObjectId);
       if (sel) {
         const h = hitResizeHandle(sel, sx, sy, sw, sh);
         if (h) {
-          Actions.beginGesture();
-
           const w0 = screenToWorld(sx, sy);
           const b0 = objectBounds(sel);
+
+          if (!gestureActiveRef.current) { Actions.beginGesture(); gestureActiveRef.current = true; }
 
           setResizing({
             id: sel.id,
@@ -1087,8 +1105,8 @@ export function CanvasView() {
     if (hit) {
       Actions.selectObject(hit.id);
 
-      // DRAG start (✅ начинаем батч истории ОДИН раз)
-      Actions.beginGesture();
+      // start drag
+      if (!gestureActiveRef.current) { Actions.beginGesture(); gestureActiveRef.current = true; }
 
       const w = screenToWorld(sx, sy);
       const b = objectBounds(hit);
@@ -1178,15 +1196,43 @@ export function CanvasView() {
   }
 
   function endDrag() {
-    // ✅ заканчиваем батч истории только если реально был drag/resize
-    if (dragObj || resizing) {
+    // end history batch if a drag/resize gesture was active
+    if (gestureActiveRef.current) {
       Actions.endGesture();
+      gestureActiveRef.current = false;
     }
-
     setDragObj(null);
     setPanning(null);
     setResizing(null);
   }
+
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault();
+
+    const c = canvasRef.current!;
+    const r = c.getBoundingClientRect();
+    const sx = e.clientX - r.left;
+    const sy = e.clientY - r.top;
+
+    const before = screenToWorld(sx, sy);
+
+    const delta = -e.deltaY;
+    const factor = delta > 0 ? 1.08 : 0.92;
+
+    setVp((v) => {
+      const nz = clamp(v.zoom * factor, 0.15, 3);
+
+      const c2 = canvasRef.current!;
+      const x2 = (sx - c2.width / 2) / nz - v.panX;
+      const y2 = (sy - c2.height / 2) / nz - v.panY;
+      const dx = before.x - x2;
+      const dy = before.y - y2;
+
+      return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
+    });
+  }
+
+  endDragRef.current = endDrag;
 
   return (
     <div
@@ -1196,6 +1242,7 @@ export function CanvasView() {
       onMouseMove={onMouseMove}
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
+      
     >
       <canvas
         ref={canvasRef}
@@ -1210,3 +1257,4 @@ export function CanvasView() {
     </div>
   );
 }
+

@@ -12,10 +12,17 @@ export type AssetsPanelState = {
   };
 };
 
-type State = {
+export type State = {
   project: Project;
   selectedScreenId: string;
+
+  // Primary selection (kept for backwards compatibility)
   selectedObjectId?: string;
+
+  // Multi-selection
+  selectedObjectIds: string[];
+  selectionAnchorId?: string;
+
   assetBytes: Record<string, Uint8Array>;
   assetsPanel: AssetsPanelState;
 };
@@ -34,6 +41,8 @@ const initial: State = {
   project: defaultProject(),
   selectedScreenId: "screen_1",
   selectedObjectId: undefined,
+  selectedObjectIds: [],
+  selectionAnchorId: undefined,
   assetBytes: {},
   assetsPanel: { isOpen: false, tab: "Images" },
 };
@@ -55,9 +64,10 @@ const history: History = {
   limit: 200,
 };
 
-// --- Clipboard (object OR screen) ---
+// --- Clipboard (object(s) OR screen) ---
 type Clipboard =
   | { kind: "object"; obj: AnyObj }
+  | { kind: "objects"; objs: AnyObj[] }
   | { kind: "screen"; screen: Screen }
   | null;
 
@@ -148,18 +158,8 @@ export function canRedo() {
 }
 
 function nextZ(screen: Screen) {
-  const max = screen.objects.reduce((m, o) => Math.max(m, o.z), -1);
+  const max = (screen.objects ?? []).reduce((m, o) => Math.max(m, o.z), -1);
   return max < 0 ? 0 : max + 1;
-}
-
-function getSelectedScreen(s: State): Screen {
-  return s.project.screens.find((x) => x.id === s.selectedScreenId) ?? s.project.screens[0];
-}
-
-function getSelectedObject(s: State): AnyObj | undefined {
-  const screen = getSelectedScreen(s);
-  if (!s.selectedObjectId) return undefined;
-  return screen.objects.find((o) => o.id === s.selectedObjectId);
 }
 
 function makeDefaultScreen(id = "screen_1", name = "Screen 1"): Screen {
@@ -188,9 +188,31 @@ function ensureProjectHasAtLeastOneScreen(d: { project: Project; selectedScreenI
   if (!exists) d.selectedScreenId = d.project.screens[0].id;
 }
 
+function getSelectedScreen(s: State): Screen {
+  return s.project.screens.find((x) => x.id === s.selectedScreenId) ?? s.project.screens[0];
+}
+
 function getSelectedScreenDraft(d: { project: Project; selectedScreenId: string }): Screen {
   ensureProjectHasAtLeastOneScreen(d);
   return d.project.screens.find((s) => s.id === d.selectedScreenId) ?? d.project.screens[0];
+}
+
+function orderedObjectIds(screen: Screen) {
+  return [...(screen.objects ?? [])].sort((a, b) => a.z - b.z).map((o) => o.id);
+}
+
+function getSelectedObject(s: State): AnyObj | undefined {
+  const screen = getSelectedScreen(s);
+  if (!s.selectedObjectId) return undefined;
+  return (screen.objects ?? []).find((o) => o.id === s.selectedObjectId);
+}
+
+function getSelectedObjects(s: State): AnyObj[] {
+  const screen = getSelectedScreen(s);
+  const ids = s.selectedObjectIds?.length ? s.selectedObjectIds : s.selectedObjectId ? [s.selectedObjectId] : [];
+  if (!ids.length) return [];
+  const map = new Map((screen.objects ?? []).map((o) => [o.id, o] as const));
+  return ids.map((id) => map.get(id)).filter(Boolean) as AnyObj[];
 }
 
 function cloneObjectForPaste(src: AnyObj, screen: Screen): AnyObj {
@@ -206,7 +228,7 @@ function cloneScreenForPaste(src: Screen): Screen {
   s.id = "screen_" + nanoid(5);
   s.name = `${src.name} Copy`;
 
-  // IMPORTANT: give NEW ids to all objects to avoid collisions
+  // give NEW ids to all objects to avoid collisions
   s.objects = (s.objects || []).map((o: AnyObj) => {
     const c = structuredClone(o) as AnyObj;
     c.id = "obj_" + nanoid(6);
@@ -230,6 +252,8 @@ export const Actions = {
         assetBytes,
         selectedScreenId: first,
         selectedObjectId: undefined,
+        selectedObjectIds: [],
+        selectionAnchorId: undefined,
         assetsPanel: { isOpen: false, tab: "Images" },
       },
       { history: false },
@@ -244,6 +268,14 @@ export const Actions = {
     endHistoryBatch();
   },
 
+  setProjectName(name: string) {
+    setState(
+      produce(state, (d) => {
+        d.project.project.name = name;
+      }),
+    );
+  },
+
   selectScreen(id: string) {
     const ok = state.project.screens.some((s) => s.id === id);
     setState(
@@ -251,27 +283,112 @@ export const Actions = {
         ...state,
         selectedScreenId: ok ? id : (state.project.screens[0]?.id ?? "screen_1"),
         selectedObjectId: undefined,
+        selectedObjectIds: [],
+        selectionAnchorId: undefined,
       },
       { history: false },
     );
   },
 
   selectObject(id?: string) {
-    setState({ ...state, selectedObjectId: id }, { history: false });
+    setState(
+      {
+        ...state,
+        selectedObjectId: id,
+        selectedObjectIds: id ? [id] : [],
+        selectionAnchorId: id,
+      },
+      { history: false },
+    );
   },
 
-  // ✅ COPY: object if selected, otherwise screen
-  copySelected() {
-    const obj = getSelectedObject(state);
-    if (obj) {
-      clipboard = { kind: "object", obj: structuredClone(obj) as AnyObj };
+  toggleObjectSelection(id: string) {
+    const cur = state.selectedObjectIds?.length ? [...state.selectedObjectIds] : state.selectedObjectId ? [state.selectedObjectId] : [];
+    const has = cur.includes(id);
+    const next = has ? cur.filter((x) => x !== id) : [...cur, id];
+    const primary = next.length ? next[next.length - 1] : undefined;
+
+    setState(
+      {
+        ...state,
+        selectedObjectIds: next,
+        selectedObjectId: primary,
+        selectionAnchorId: state.selectionAnchorId ?? id,
+      },
+      { history: false },
+    );
+  },
+
+  selectRange(toId: string) {
+    const screen = getSelectedScreen(state);
+    const ordered = orderedObjectIds(screen);
+    const anchor = state.selectionAnchorId ?? state.selectedObjectId ?? toId;
+
+    const ia = ordered.indexOf(anchor);
+    const ib = ordered.indexOf(toId);
+    if (ia < 0 || ib < 0) {
+      Actions.selectObject(toId);
       return;
     }
+
+    const [from, to] = ia <= ib ? [ia, ib] : [ib, ia];
+    const ids = ordered.slice(from, to + 1);
+
+    setState(
+      {
+        ...state,
+        selectedObjectIds: ids,
+        selectedObjectId: toId,
+        selectionAnchorId: anchor,
+      },
+      { history: false },
+    );
+  },
+
+  clearSelection() {
+    setState(
+      {
+        ...state,
+        selectedObjectId: undefined,
+        selectedObjectIds: [],
+        selectionAnchorId: undefined,
+      },
+      { history: false },
+    );
+  },
+
+  selectAllObjects() {
+    const screen = getSelectedScreen(state);
+    const ids = orderedObjectIds(screen);
+    const primary = ids.length ? ids[ids.length - 1] : undefined;
+    setState(
+      {
+        ...state,
+        selectedObjectIds: ids,
+        selectedObjectId: primary,
+        selectionAnchorId: ids[0],
+      },
+      { history: false },
+    );
+  },
+
+  // ✅ COPY: object(s) if selected, otherwise screen
+  copySelected() {
+    const objs = getSelectedObjects(state);
+    if (objs.length === 1) {
+      clipboard = { kind: "object", obj: structuredClone(objs[0]) as AnyObj };
+      return;
+    }
+    if (objs.length > 1) {
+      clipboard = { kind: "objects", objs: structuredClone(objs) as AnyObj[] };
+      return;
+    }
+
     const scr = getSelectedScreen(state);
     if (scr) clipboard = { kind: "screen", screen: structuredClone(scr) as Screen };
   },
 
-  // ✅ PASTE: object OR screen depending on clipboard
+  // ✅ PASTE: object(s) OR screen depending on clipboard
   paste() {
     if (!clipboard) return;
 
@@ -282,6 +399,26 @@ export const Actions = {
           const pasted = cloneObjectForPaste(clipboard!.obj, s);
           s.objects.push(pasted);
           d.selectedObjectId = pasted.id;
+          d.selectedObjectIds = [pasted.id];
+          d.selectionAnchorId = pasted.id;
+        }),
+      );
+      return;
+    }
+
+    if (clipboard.kind === "objects") {
+      setState(
+        produce(state, (d) => {
+          const s = getSelectedScreenDraft(d);
+          const created: string[] = [];
+          for (const src of clipboard!.objs) {
+            const pasted = cloneObjectForPaste(src, s);
+            s.objects.push(pasted);
+            created.push(pasted.id);
+          }
+          d.selectedObjectIds = created;
+          d.selectedObjectId = created.length ? created[created.length - 1] : undefined;
+          d.selectionAnchorId = created.length ? created[0] : undefined;
         }),
       );
       return;
@@ -294,21 +431,29 @@ export const Actions = {
           d.project.screens.push(cloned);
           d.selectedScreenId = cloned.id;
           d.selectedObjectId = undefined;
+          d.selectedObjectIds = [];
+          d.selectionAnchorId = undefined;
         }),
       );
     }
   },
 
-  // ✅ DUPLICATE: object if selected, otherwise screen
+  // ✅ DUPLICATE: object(s) if selected, otherwise screen
   duplicateSelected() {
-    const obj = getSelectedObject(state);
-    if (obj) {
+    const objs = getSelectedObjects(state);
+    if (objs.length) {
       setState(
         produce(state, (d) => {
           const s = getSelectedScreenDraft(d);
-          const dup = cloneObjectForPaste(obj, s);
-          s.objects.push(dup);
-          d.selectedObjectId = dup.id;
+          const created: string[] = [];
+          for (const src of objs) {
+            const dup = cloneObjectForPaste(src, s);
+            s.objects.push(dup);
+            created.push(dup.id);
+          }
+          d.selectedObjectIds = created;
+          d.selectedObjectId = created.length ? created[created.length - 1] : undefined;
+          d.selectionAnchorId = created.length ? created[0] : undefined;
         }),
       );
       return;
@@ -323,6 +468,8 @@ export const Actions = {
         d.project.screens.push(cloned);
         d.selectedScreenId = cloned.id;
         d.selectedObjectId = undefined;
+        d.selectedObjectIds = [];
+        d.selectionAnchorId = undefined;
       }),
     );
   },
@@ -347,6 +494,8 @@ export const Actions = {
         d.project.screens.push(screen);
         d.selectedScreenId = id;
         d.selectedObjectId = undefined;
+        d.selectedObjectIds = [];
+        d.selectionAnchorId = undefined;
       }),
     );
   },
@@ -359,13 +508,15 @@ export const Actions = {
         if (d.selectedScreenId === screenId) {
           d.selectedScreenId = d.project.screens[0].id;
           d.selectedObjectId = undefined;
+          d.selectedObjectIds = [];
+          d.selectionAnchorId = undefined;
         }
       }),
     );
   },
 
   addObject(type: AnyObj["type"]) {
-    const screen = getSelectedScreenDraft(state);
+    const screen = getSelectedScreen(state);
     const id = "obj_" + nanoid(6);
     const z = nextZ(screen);
 
@@ -466,6 +617,23 @@ export const Actions = {
         const s = getSelectedScreenDraft(d);
         s.objects.push(obj);
         d.selectedObjectId = id;
+        d.selectedObjectIds = [id];
+        d.selectionAnchorId = id;
+      }),
+    );
+  },
+
+  deleteSelectedObjects() {
+    const ids = state.selectedObjectIds?.length ? state.selectedObjectIds : state.selectedObjectId ? [state.selectedObjectId] : [];
+    if (!ids.length) return;
+
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        s.objects = s.objects.filter((o) => !ids.includes(o.id));
+        d.selectedObjectId = undefined;
+        d.selectedObjectIds = [];
+        d.selectionAnchorId = undefined;
       }),
     );
   },
@@ -476,6 +644,8 @@ export const Actions = {
         const s = getSelectedScreenDraft(d);
         s.objects = s.objects.filter((o) => o.id !== objectId);
         if (d.selectedObjectId === objectId) d.selectedObjectId = undefined;
+        d.selectedObjectIds = (d.selectedObjectIds ?? []).filter((id) => id !== objectId);
+        if (d.selectionAnchorId === objectId) d.selectionAnchorId = d.selectedObjectIds[0];
       }),
     );
   },
@@ -493,6 +663,35 @@ export const Actions = {
         const tmp = a.z;
         a.z = b.z;
         b.z = tmp;
+      }),
+    );
+  },
+
+  reorderObject(objectId: string, toIndex: number) {
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        const arr = [...(s.objects ?? [])].sort((a, b) => a.z - b.z);
+        const from = arr.findIndex((o) => o.id === objectId);
+        if (from < 0) return;
+        const clamped = Math.max(0, Math.min(toIndex, arr.length - 1));
+        if (from === clamped) return;
+        const [moved] = arr.splice(from, 1);
+        arr.splice(clamped, 0, moved);
+        for (let i = 0; i < arr.length; i++) arr[i].z = i;
+        s.objects = arr;
+      }),
+    );
+  },
+
+  toggleObjectVisible(objectId: string) {
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        const o: any = (s.objects as any[]).find((x: any) => x.id === objectId);
+        if (!o) return;
+        const cur = o.visible !== false;
+        o.visible = !cur;
       }),
     );
   },
@@ -522,7 +721,7 @@ export const Actions = {
     setState(
       produce(state, (d) => {
         const s = getSelectedScreenDraft(d);
-        const obj: any = s.objects.find((o: any) => o.id === objectId);
+        const obj: any = (s.objects as any[]).find((o: any) => o.id === objectId);
         if (!obj) return;
         let cur = obj;
         for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]];
@@ -571,6 +770,7 @@ export const Actions = {
 
         delete d.assetBytes[assetId];
 
+        // unlink
         for (const s of d.project.screens) {
           if (s.style.backgroundImageAssetId === assetId) s.style.backgroundImageAssetId = undefined;
 
@@ -594,7 +794,7 @@ export const Actions = {
           s.style.backgroundImageAssetId = assetId;
         } else {
           const s = getSelectedScreenDraft(d);
-          const o: any = s.objects.find((x: any) => x.id === pick.objectId);
+          const o: any = (s.objects as any[]).find((x: any) => x.id === pick.objectId);
           if (!o) return;
           if (pick.field === "imageAssetId" && o.type === "Image") o.settings.imageAssetId = assetId;
           if (pick.field === "fontAssetId" && o.type === "Label") o.settings.fontAssetId = assetId;
@@ -604,47 +804,4 @@ export const Actions = {
       }),
     );
   },
-  setProjectName(name: string) {
-    const trimmed = (name ?? "").trim();
-    if (!trimmed) return;
-
-    setState(
-      produce(state, (d) => {
-        d.project.project.name = trimmed;
-      }),
-    );
-  },
-reorderObject(objectId: string, toIndex: number) {
-  setState(
-    produce(state, (d) => {
-      const s = getSelectedScreenDraft(d);
-      const arr = s.objects;
-
-      const from = arr.findIndex((o) => o.id === objectId);
-      if (from < 0) return;
-
-      const clamped = Math.max(0, Math.min(toIndex, arr.length - 1));
-      if (from === clamped) return;
-
-      const [moved] = arr.splice(from, 1);
-      arr.splice(clamped, 0, moved);
-      for (let i = 0; i < arr.length; i++) arr[i].z = i;
-
-      d.selectedObjectId = moved.id;
-    }),
-  );
-},
-
-toggleObjectVisible(objectId: string) {
-  setState(
-    produce(state, (d) => {
-      const s = getSelectedScreenDraft(d);
-      const obj: any = s.objects.find((o: any) => o.id === objectId);
-      if (!obj) return;
-
-      const cur = obj.visible !== false;
-      obj.visible = !cur;
-    }),
-  );
-},
 };

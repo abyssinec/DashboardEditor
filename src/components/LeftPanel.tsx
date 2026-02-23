@@ -30,61 +30,48 @@ function EyeIcon({ visible, onClick }: { visible: boolean; onClick: () => void }
         e.stopPropagation();
         onClick();
       }}
-      style={{
-        opacity: visible ? 1 : 0.55,
-      }}
+      style={{ opacity: visible ? 1 : 0.55 }}
     >
-      {/* eye / eye-off */}
-      {visible ? (
-        <svg viewBox="0 0 24 24" fill="none">
-          <path
-            d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-            stroke="currentColor"
-            strokeWidth="2"
-          />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="none">
-          <path
-            d="M3 3l18 18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M10.6 10.6A3.5 3.5 0 0 0 13.4 13.4"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M7.2 7.2C4.5 9 2.5 12 2.5 12s3.5 7 9.5 7c2 0 3.7-.5 5.1-1.3"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M14.8 14.8C17.5 13 19.5 12 21.5 12s-3.5-7-9.5-7c-.8 0-1.6.1-2.3.3"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
+      <svg viewBox="0 0 24 24" fill="none">
+        {visible ? (
+          <>
+            <path
+              d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+          </>
+        ) : (
+          <>
+            <path
+              d="M2 12s3.5-7 10-7c2.45 0 4.52.95 6.14 2.1"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M22 12s-3.5 7-10 7c-2.6 0-4.78-1.02-6.45-2.22"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path d="M4 4l16 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </>
+        )}
+      </svg>
     </div>
   );
 }
+
+type DropHint = { overId: string; where: "before" | "after" };
 
 export function LeftPanel() {
   const screens = useStore((s) => s.project.screens);
   const selectedScreenId = useStore((s) => s.selectedScreenId);
   const selectedObjectId = useStore((s) => s.selectedObjectId);
+  const selectedObjectIds = useStore((s) => (s as any).selectedObjectIds ?? (s.selectedObjectId ? [s.selectedObjectId] : []));
 
   const selectedScreen = useStore((s) => s.project.screens.find((x) => x.id === s.selectedScreenId));
 
@@ -93,9 +80,8 @@ export function LeftPanel() {
     return [...list].sort((a, b) => a.z - b.z);
   }, [selectedScreen?.objects, selectedScreen?.id]);
 
-  // --- Drag & Drop state for objects ---
   const [dragId, setDragId] = React.useState<string | null>(null);
-  const [dropHint, setDropHint] = React.useState<{ overId: string; where: "before" | "after" } | null>(null);
+  const [dropHint, setDropHint] = React.useState<DropHint | null>(null);
 
   const isDragging = !!dragId;
 
@@ -115,16 +101,13 @@ export function LeftPanel() {
 
   const onObjDragOver = React.useCallback(
     (e: React.DragEvent, overId: string) => {
-      if (!dragId) return;
-      if (overId === dragId) return;
-
+      if (!dragId || dragId === overId) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
 
-      const el = e.currentTarget as HTMLDivElement;
-      const r = el.getBoundingClientRect();
-      const midY = r.top + r.height / 2;
-      const where: "before" | "after" = e.clientY < midY ? "before" : "after";
+      const target = e.currentTarget as HTMLDivElement;
+      const rect = target.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const where: DropHint["where"] = y < rect.height / 2 ? "before" : "after";
 
       setDropHint({ overId, where });
     },
@@ -134,22 +117,8 @@ export function LeftPanel() {
   const onObjDrop = React.useCallback(
     (e: React.DragEvent, overId: string) => {
       e.preventDefault();
-
-      const idFromData = (() => {
-        try {
-          return e.dataTransfer.getData("text/plain");
-        } catch {
-          return "";
-        }
-      })();
-
-      const id = idFromData || dragId;
-      if (!id) {
-        setDragId(null);
-        setDropHint(null);
-        return;
-      }
-      if (id === overId) {
+      const id = dragId;
+      if (!id || id === overId) {
         setDragId(null);
         setDropHint(null);
         return;
@@ -165,11 +134,9 @@ export function LeftPanel() {
 
       const where = dropHint?.overId === overId ? dropHint.where : "before";
       let rawToIndex = overIndex + (where === "after" ? 1 : 0);
-
       if (fromIndex < rawToIndex) rawToIndex -= 1;
 
       const toIndex = Math.max(0, Math.min(rawToIndex, objects.length - 1));
-
       Actions.reorderObject(id, toIndex);
 
       setDragId(null);
@@ -195,9 +162,7 @@ export function LeftPanel() {
             >
               <div className="name">{sc.name}</div>
               <div className="itemRight">
-                {sc.id === selectedScreenId && screens.length > 1 ? (
-                  <TrashIcon onClick={() => Actions.deleteScreen(sc.id)} />
-                ) : null}
+                {sc.id === selectedScreenId && screens.length > 1 ? <TrashIcon onClick={() => Actions.deleteScreen(sc.id)} /> : null}
               </div>
             </div>
           ))}
@@ -212,6 +177,7 @@ export function LeftPanel() {
         <div className="list">
           {objects.map((o) => {
             const visible = (o as any).visible !== false; // default true
+            const isActive = selectedObjectIds.includes(o.id) || o.id === selectedObjectId;
 
             const showBefore = isDragging && dropHint?.overId === o.id && dropHint.where === "before" && dragId !== o.id;
             const showAfter = isDragging && dropHint?.overId === o.id && dropHint.where === "after" && dragId !== o.id;
@@ -230,14 +196,24 @@ export function LeftPanel() {
                 ) : null}
 
                 <div
-                  className={`listItem ${o.id === selectedObjectId ? "active" : ""}`}
+                  className={`listItem ${isActive ? "active" : ""}`}
                   draggable
                   onDragStart={(e) => onObjDragStart(e, o.id)}
                   onDragEnd={onObjDragEnd}
                   onDragOver={(e) => onObjDragOver(e, o.id)}
                   onDrop={(e) => onObjDrop(e, o.id)}
                   onDragLeave={onObjDragLeave}
-                  onClick={() => Actions.selectObject(o.id)}
+                  onClick={(e) => {
+                    if (e.shiftKey) {
+                      Actions.selectRange(o.id);
+                      return;
+                    }
+                    if (e.ctrlKey || e.metaKey) {
+                      Actions.toggleObjectSelection(o.id);
+                      return;
+                    }
+                    Actions.selectObject(o.id);
+                  }}
                   style={{
                     cursor: "grab",
                     opacity: dragId === o.id ? 0.55 : 1,
