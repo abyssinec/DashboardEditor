@@ -1,11 +1,11 @@
-﻿import React, { useEffect, useRef } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { AssetsPanel } from "./components/AssetsPanel";
 import { Inspector } from "./components/Inspector";
 import { LeftPanel } from "./components/LeftPanel";
 import { ViewPanel } from "./components/ViewPanel";
 import { useStore } from "./hooks/useStore";
-import { Actions, redo, undo } from "./store";
+import { Actions } from "./store";
 import { exportDashboard, importDashboard } from "./utils/dashboardFormat";
 
 export default function App() {
@@ -14,64 +14,36 @@ export default function App() {
   const assetsOpen = useStore((s) => s.assetsPanel.isOpen);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const projectName = project.project.name || "ProjectName";
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(projectName);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
-    function isTypingTarget(el: EventTarget | null) {
-      const t = el as HTMLElement | null;
-      if (!t) return false;
-      const tag = t.tagName?.toLowerCase();
-      return tag === "input" || tag === "textarea" || (t as any).isContentEditable;
+    if (!editingName) setNameDraft(projectName);
+  }, [projectName, editingName]);
+
+  useEffect(() => {
+    if (editingName) {
+      requestAnimationFrame(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select();
+      });
     }
+  }, [editingName]);
 
-    function onKeyDown(e: KeyboardEvent) {
-      // Don't hijack shortcuts while user is typing in inputs.
-      if (isTypingTarget(e.target)) return;
-
-      const key = e.key.toLowerCase();
-
-      // Undo / Redo
-      if (e.ctrlKey && !e.altKey && key === "z") {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
-        return;
-      }
-
-      // Common redo shortcut
-      if (e.ctrlKey && !e.altKey && key === "y") {
-        e.preventDefault();
-        redo();
-        return;
-      }
-
-      // Copy / Paste / Duplicate
-      if (e.ctrlKey && !e.altKey && key === "c") {
-        e.preventDefault();
-        Actions.copySelected();
-        return;
-      }
-
-      if (e.ctrlKey && !e.altKey && key === "v") {
-        e.preventDefault();
-        Actions.paste();
-        return;
-      }
-
-      if (e.ctrlKey && !e.altKey && key === "d") {
-        e.preventDefault();
-        Actions.duplicateSelected();
-        return;
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown, { passive: false });
-    return () => window.removeEventListener("keydown", onKeyDown as any);
-  }, []);
+  const safeFileName = useMemo(() => {
+    const base = (projectName || "project").trim();
+    const cleaned = base.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_");
+    return cleaned || "project";
+  }, [projectName]);
 
   async function onExport() {
     const blob = await exportDashboard(project, "0.0.1", assetBytes);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${project.project.name.replace(/\s+/g, "_") || "project"}.dashboard`;
+    a.download = `${safeFileName}.dashboard`;
     a.click();
   }
 
@@ -89,35 +61,118 @@ export default function App() {
     window.location.reload();
   }
 
+  function commitProjectName(nextRaw: string) {
+    const next = (nextRaw || "").trim();
+    if (!next) {
+      setNameDraft(projectName);
+      setEditingName(false);
+      return;
+    }
+    Actions.setProjectName(next);
+    setEditingName(false);
+  }
+
+  function cancelEdit() {
+    setNameDraft(projectName);
+    setEditingName(false);
+  }
+
   return (
     <div className="appRoot">
-      {/* Top */}
-      <div className="topBar">
-        <div className="brand">
+      {/* TOP BAR */}
+      <div
+        className="topBar"
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+          height: 30,
+        }}
+      >
+        {/* LEFT */}
+        <div className="brand" style={{ display: "flex", flexDirection: "column" }}>
           <div className="title">DashboardEditor</div>
           <div className="version">v0.0.1</div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
-          <div className="topActions">
-            <div className="topBtn" onClick={onNew}>
-              New
+        {/* CENTER (absolute centered) */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "auto",
+          }}
+        >
+          {!editingName ? (
+            <div
+              className="projectName"
+              onClick={() => setEditingName(true)}
+              onDoubleClick={() => setEditingName(true)}
+              style={{
+                cursor: "text",
+                fontSize: 18,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                maxWidth: 600,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {projectName}
             </div>
-            <div className="topBtn" onClick={onImportClick}>
-              Import
-            </div>
-            <div className="topBtn" onClick={() => void onExport()}>
-              Export
-            </div>
-          </div>
-
-          <div className="projectName">{project.project.name}</div>
+          ) : (
+            <input
+              ref={nameInputRef}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={() => commitProjectName(nameDraft)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitProjectName(nameDraft);
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelEdit();
+                }
+              }}
+              style={{
+                width: 360,
+                maxWidth: "40vw",
+                textAlign: "center",
+                background: "rgba(255,255,255,0.06)",
+                border: "0px solid rgba(255,255,255,0.12)",
+                color: "white",
+                borderRadius: 10,
+                padding: "6px 12px",
+                outline: "none",
+                fontSize: 18,
+                fontWeight: 600,
+              }}
+            />
+          )}
         </div>
 
-        {/* <div className="account">Account</div> */}
+        {/* RIGHT */}
+        <div className="topActions" style={{ display: "flex", gap: 16 }}>
+          <div className="topBtn" onClick={onNew}>
+            New
+          </div>
+          <div className="topBtn" onClick={onImportClick}>
+            Import
+          </div>
+          <div className="topBtn" onClick={() => void onExport()}>
+            Export
+          </div>
+        </div>
       </div>
 
-      {/* Main */}
+      {/* MAIN */}
       <div className="mainGrid">
         <div className="panel">
           <div className="panelInner">
@@ -132,7 +187,9 @@ export default function App() {
         </div>
 
         <div className="panel">
-          <div className="panelInner">{assetsOpen ? <AssetsPanel /> : <Inspector />}</div>
+          <div className="panelInner">
+            {assetsOpen ? <AssetsPanel /> : <Inspector />}
+          </div>
         </div>
       </div>
 

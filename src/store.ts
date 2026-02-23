@@ -55,8 +55,13 @@ const history: History = {
   limit: 200,
 };
 
-// --- Copy / Paste (internal clipboard) ---
-let clipboardObject: AnyObj | null = null;
+// --- Clipboard (object OR screen) ---
+type Clipboard =
+  | { kind: "object"; obj: AnyObj }
+  | { kind: "screen"; screen: Screen }
+  | null;
+
+let clipboard: Clipboard = null;
 
 function cloneSnapshot(s: State): State {
   return structuredClone(s);
@@ -72,7 +77,6 @@ export function subscribe(fn: Listener) {
 }
 
 type SetStateOpts = {
-  // If false, do not write this update into history (useful for selection/UI-only changes).
   history?: boolean;
 };
 
@@ -84,7 +88,6 @@ function pushPastSnapshotOnce() {
   const prevSnap = cloneSnapshot(state);
   history.past.push(prevSnap);
   if (history.past.length > history.limit) history.past.shift();
-  // new change clears redo
   history.future = [];
 }
 
@@ -159,14 +162,6 @@ function getSelectedObject(s: State): AnyObj | undefined {
   return screen.objects.find((o) => o.id === s.selectedObjectId);
 }
 
-function cloneObjectForPaste(src: AnyObj, screen: Screen): AnyObj {
-  const o = structuredClone(src) as AnyObj;
-  o.id = "obj_" + nanoid(6);
-  o.z = nextZ(screen);
-  o.name = `${src.name} Copy`;
-  return o;
-}
-
 function makeDefaultScreen(id = "screen_1", name = "Screen 1"): Screen {
   return {
     id,
@@ -198,6 +193,29 @@ function getSelectedScreenDraft(d: { project: Project; selectedScreenId: string 
   return d.project.screens.find((s) => s.id === d.selectedScreenId) ?? d.project.screens[0];
 }
 
+function cloneObjectForPaste(src: AnyObj, screen: Screen): AnyObj {
+  const o = structuredClone(src) as AnyObj;
+  o.id = "obj_" + nanoid(6);
+  o.z = nextZ(screen);
+  o.name = `${src.name} Copy`;
+  return o;
+}
+
+function cloneScreenForPaste(src: Screen): Screen {
+  const s = structuredClone(src) as Screen;
+  s.id = "screen_" + nanoid(5);
+  s.name = `${src.name} Copy`;
+
+  // IMPORTANT: give NEW ids to all objects to avoid collisions
+  s.objects = (s.objects || []).map((o: AnyObj) => {
+    const c = structuredClone(o) as AnyObj;
+    c.id = "obj_" + nanoid(6);
+    return c;
+  });
+
+  return s;
+}
+
 export const Actions = {
   hydrate(project: Project, assetBytes: Record<string, Uint8Array>) {
     const safeProject: Project = {
@@ -218,7 +236,7 @@ export const Actions = {
     );
   },
 
-  // ✅ for drag/resize batching
+  // for drag/resize batching
   beginGesture() {
     beginHistoryBatch();
   },
@@ -242,32 +260,69 @@ export const Actions = {
     setState({ ...state, selectedObjectId: id }, { history: false });
   },
 
+  // ✅ COPY: object if selected, otherwise screen
   copySelected() {
     const obj = getSelectedObject(state);
-    clipboardObject = obj ? (structuredClone(obj) as AnyObj) : null;
+    if (obj) {
+      clipboard = { kind: "object", obj: structuredClone(obj) as AnyObj };
+      return;
+    }
+    const scr = getSelectedScreen(state);
+    if (scr) clipboard = { kind: "screen", screen: structuredClone(scr) as Screen };
   },
 
+  // ✅ PASTE: object OR screen depending on clipboard
   paste() {
-    if (!clipboardObject) return;
-    setState(
-      produce(state, (d) => {
-        const s = getSelectedScreenDraft(d);
-        const pasted = cloneObjectForPaste(clipboardObject!, s);
-        s.objects.push(pasted);
-        d.selectedObjectId = pasted.id;
-      }),
-    );
+    if (!clipboard) return;
+
+    if (clipboard.kind === "object") {
+      setState(
+        produce(state, (d) => {
+          const s = getSelectedScreenDraft(d);
+          const pasted = cloneObjectForPaste(clipboard!.obj, s);
+          s.objects.push(pasted);
+          d.selectedObjectId = pasted.id;
+        }),
+      );
+      return;
+    }
+
+    if (clipboard.kind === "screen") {
+      setState(
+        produce(state, (d) => {
+          const cloned = cloneScreenForPaste(clipboard!.screen);
+          d.project.screens.push(cloned);
+          d.selectedScreenId = cloned.id;
+          d.selectedObjectId = undefined;
+        }),
+      );
+    }
   },
 
+  // ✅ DUPLICATE: object if selected, otherwise screen
   duplicateSelected() {
-    const src = getSelectedObject(state);
-    if (!src) return;
+    const obj = getSelectedObject(state);
+    if (obj) {
+      setState(
+        produce(state, (d) => {
+          const s = getSelectedScreenDraft(d);
+          const dup = cloneObjectForPaste(obj, s);
+          s.objects.push(dup);
+          d.selectedObjectId = dup.id;
+        }),
+      );
+      return;
+    }
+
+    const scr = getSelectedScreen(state);
+    if (!scr) return;
+
     setState(
       produce(state, (d) => {
-        const s = getSelectedScreenDraft(d);
-        const dup = cloneObjectForPaste(src, s);
-        s.objects.push(dup);
-        d.selectedObjectId = dup.id;
+        const cloned = cloneScreenForPaste(scr);
+        d.project.screens.push(cloned);
+        d.selectedScreenId = cloned.id;
+        d.selectedObjectId = undefined;
       }),
     );
   },
@@ -516,7 +571,6 @@ export const Actions = {
 
         delete d.assetBytes[assetId];
 
-        // unlink
         for (const s of d.project.screens) {
           if (s.style.backgroundImageAssetId === assetId) s.style.backgroundImageAssetId = undefined;
 
@@ -547,6 +601,16 @@ export const Actions = {
         }
 
         d.assetsPanel = { isOpen: false, tab: "Images" };
+      }),
+    );
+  },
+  setProjectName(name: string) {
+    const trimmed = (name ?? "").trim();
+    if (!trimmed) return;
+
+    setState(
+      produce(state, (d) => {
+        d.project.project.name = trimmed;
       }),
     );
   },
