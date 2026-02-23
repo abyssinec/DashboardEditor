@@ -1,26 +1,46 @@
-import React from "react";
+﻿import React from "react";
 
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 
 import { CanvasView } from "./CanvasView";
 function IconPlus() {
-  // выглядит как "выделение/рамка" (как на 2 скрине)
+
   return (
-    <svg viewBox="0 0 24 24" fill="none">
-      {/* рамка */}
-      <rect x="6" y="6" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="2" />
-      {/* уголки/хэндлы */}
-      <path d="M6 9V6h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M18 9V6h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 15v3h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M18 15v3h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+   <svg viewBox="0 0 24 24" fill="none">
+   <path d="M10 7.5
+           C9 6.7 7.8 6.5 6.8 6.8
+           C5.6 7.1 5 7.8 5 8.6
+           C5 9.5 5.8 10 7.4 10.3
+           C9.2 10.6 10 11.2 10 12.2
+           C10 13.3 9 14.2 7.5 14.5
+           C6.5 14.7 5.3 14.5 4.5 13.8"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"/>
+  <path d="M12.5 10.5
+           C12.5 9.3 13.4 8.5 14.8 8.5
+           C15.8 8.5 16.6 9 17 9.8
+           M17 13.2
+           C16.6 14 15.8 14.5 14.8 14.5
+           C13.4 14.5 12.5 13.7 12.5 12.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"/>
+  <path d="M19 14.5 V8.5
+           M19 11.2
+           C19 9.6 20 8.5 21.5 8.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"/>
+</svg>
   );
 }
 
 function IconLabel() {
-  // буква "A" (как на 2 скрине)
   return (
     <svg viewBox="0 0 24 24" fill="none">
       <path
@@ -42,7 +62,6 @@ function IconLabel() {
 }
 
 function IconImage() {
-  // картинка в "плашке" (как на 2 скрине)
   return (
     <svg viewBox="0 0 24 24" fill="none">
       <rect x="4" y="6" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
