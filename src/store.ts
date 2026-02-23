@@ -148,12 +148,6 @@ function cloneObjectForPaste(src: AnyObj, screen: Screen): AnyObj {
   o.id = "obj_" + nanoid(6);
   o.z = nextZ(screen);
   o.name = `${src.name} Copy`;
-
-  // Nudge so the user can see it was pasted/duplicated.
-  const t: any = (o as any).transform;
-  if (t && typeof t.x === "number") t.x += 20;
-  if (t && typeof t.y === "number") t.y += 20;
-
   return o;
 }
 
