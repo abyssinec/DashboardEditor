@@ -614,4 +614,24 @@ export const Actions = {
       }),
     );
   },
+reorderObject(objectId: string, toIndex: number) {
+  setState(
+    produce(state, (d) => {
+      const s = getSelectedScreenDraft(d);
+      const arr = s.objects;
+
+      const from = arr.findIndex((o) => o.id === objectId);
+      if (from < 0) return;
+
+      const clamped = Math.max(0, Math.min(toIndex, arr.length - 1));
+      if (from === clamped) return;
+
+      const [moved] = arr.splice(from, 1);
+      arr.splice(clamped, 0, moved);
+      for (let i = 0; i < arr.length; i++) arr[i].z = i;
+
+      d.selectedObjectId = moved.id;
+    }),
+  );
+},
 };
