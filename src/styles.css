@@ -1,4 +1,4 @@
-/* DashboardEditor — responsive app layout (no page scroll) */
+﻿/* DashboardEditor — responsive app layout (no page scroll) */
 :root {
   --bg: #111111;
   --panel: #171717;
@@ -107,7 +107,7 @@ body {
 .mainGrid {
   display: grid;
   grid-template-columns: 304px 1fr 382px;
-  gap: 12px;
+  gap: 10px;
   overflow: hidden;
   min-height: 0;
 }
@@ -149,7 +149,7 @@ body {
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .listItem {
@@ -159,7 +159,7 @@ body {
   align-items: center;
   background: transparent;
   color: var(--text);
-  opacity: 0.75;
+  opacity: 1;
   cursor: pointer;
   user-select: none;
   border: none;
@@ -188,7 +188,7 @@ body {
 .itemRight {
   margin-left: auto;
   display: flex;
-  gap: 6px;
+  gap: 0px;
   align-items: center;
   padding-right: 8px;
 }
@@ -320,7 +320,7 @@ body {
   background: var(--insGreen);
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 10px;
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -736,7 +736,7 @@ input[type="number"] { -moz-appearance: textfield; }
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.22);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: flex-start;
@@ -766,7 +766,6 @@ input[type="number"] { -moz-appearance: textfield; }
   align-items: center;
   justify-content: center;
   padding: 0 14px;
-  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
 }
 
 .assetsHeaderTitle {
@@ -824,7 +823,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .assetsSection { margin-bottom: 10px; }
 .assetsSectionHead {
   width: 100%;
-  height: 34px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -851,18 +850,18 @@ input[type="number"] { -moz-appearance: textfield; }
 .assetsCaret.open { transform: rotate(180deg); }
 .assetsCaret svg { width: 18px; height: 18px; }
 
-.assetsList { display: flex; flex-direction: column; gap: 8px; }
+.assetsList { display: flex; flex-direction: column; gap: 10px; }
 
 .assetsRow {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 20px;
   padding: 10px 10px;
   border-radius: 12px;
   border: none;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.0);
   color: rgba(255,255,255,0.86);
   cursor: pointer;
   text-align: left;
@@ -875,8 +874,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .assetsRowRight { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
 
 .assetsIconBtn {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border-radius: 10px;
   border: none;
   background: rgba(255,255,255,0.04);
@@ -884,7 +883,7 @@ input[type="number"] { -moz-appearance: textfield; }
   cursor: pointer;
 }
 .assetsIconBtn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.95); }
-.assetsIconBtn svg { width: 16px; height: 16px; }
+.assetsIconBtn svg { width: 18px; height: 18px; }
 
 .assetsTrashBtn {
   background: transparent !important;
@@ -903,7 +902,6 @@ input[type="number"] { -moz-appearance: textfield; }
   flex: 0 0 auto;
   padding: 16px 24px 24px 24px;
   background: transparent;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .assetsUploadBtn {
@@ -917,7 +915,6 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .assetsUploadBtn:hover { background: rgba(62,163,255,0.56); }
 
-/* Responsive tweaks */
 @media (max-width: 1280px) {
   .mainGrid { grid-template-columns: 280px 1fr 360px; }
 }

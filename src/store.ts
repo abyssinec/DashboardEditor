@@ -1,4 +1,4 @@
-import { produce } from "immer";
+﻿import { produce } from "immer";
 import { nanoid } from "nanoid";
 
 import type { AnyObj, Asset, AssetKind, Project, Screen } from "./types";
@@ -24,7 +24,7 @@ export const defaultProject = (): Project => {
   const screen1: Screen = makeDefaultScreen("screen_1", "Screen 1");
 
   return {
-    project: { id: "proj_" + nanoid(6), name: "ProjectName.dashboard" },
+    project: { id: "proj_" + nanoid(6), name: "ProjectName" },
     assets: { images: [], fonts: [] },
     screens: [screen1],
   };

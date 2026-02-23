@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { AnyObj } from "../types";
@@ -17,8 +17,8 @@ type ResizeState = {
   startH: number;
 };
 
-const MIN_OBJ_W = 20;
-const MIN_OBJ_H = 20;
+const MIN_OBJ_W = 1;
+const MIN_OBJ_H = 1;
 
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));

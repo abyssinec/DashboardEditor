@@ -6,8 +6,8 @@ import { ColorPicker } from "./ColorPicker";
 import { clamp, clampInt, normalizeHex } from "../utils/inspector";
 import { Dropdown } from "./Dropdown";
 
-const MIN_OBJ_W = 20;
-const MIN_OBJ_H = 20;
+const MIN_OBJ_W = 1;
+const MIN_OBJ_H = 1;
 
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
