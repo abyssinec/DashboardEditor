@@ -60,18 +60,12 @@ type HistorySnapshot = {
 };
 
 function safeClone<T>(v: T): T {
-  // Prefer structuredClone when available; fallback to JSON clone for plain project data.
-  // IMPORTANT: keep this function lightweight (history snapshots rely on it).
+  // Prefer structuredClone, fallback to JSON for cases where runtime objects accidentally contain non-cloneables.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sc = (globalThis as any).structuredClone as undefined | ((x: any) => any);
-    if (typeof sc === "function") return sc(v) as T;
-  } catch {}
-  try {
-    return JSON.parse(JSON.stringify(v)) as T;
+    // @ts-ignore
+    return safeClone(v);
   } catch {
-    // As a last resort, return original reference (better than crashing).
-    return v;
+    return JSON.parse(JSON.stringify(v));
   }
 }
 
@@ -777,7 +771,11 @@ export const Actions = {
 
           const ctx = getPasteContext(s, d.selectedObjectId);
 
-          const { root, all } = cloneObjectOrSubtreeForPaste(clipboard!.obj, s);
+          // Clipboard object may come from another screen, so clone directly from the packed data.
+          const { roots, all } = clonePackedObjectsForPaste([clipboard!.obj], s);
+          const root = roots[0];
+          if (!root) return;
+
           for (const o of all) s.objects.push(o);
 
           insertObjectIntoParent(s, root, ctx);

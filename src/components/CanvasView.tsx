@@ -546,32 +546,25 @@ export function CanvasView() {
       // screen -> world using latest vp
       const beforeX = (sx - c.width / 2) / v0.zoom - v0.panX;
       const beforeY = (sy - c.height / 2) / v0.zoom - v0.panY;
+      // Wheel = zoom (no Ctrl)
+      const delta = -ev.deltaY;
+      const factor = delta > 0 ? 1.08 : 0.92;
 
-      // Figma-like: Ctrl+Wheel = zoom, Wheel = pan/scroll content
-      const sw = screen.settings.width;
-      const sh = screen.settings.height;
+      setVp((v) => {
+        const nz = clamp(v.zoom * factor, 0.15, 3);
 
-      if (ev.ctrlKey) {
-        const delta = -ev.deltaY;
-        const factor = delta > 0 ? 1.08 : 0.92;
+        // keep cursor point stable
+        const x2 = (sx - c.width / 2) / nz - v.panX;
+        const y2 = (sy - c.height / 2) / nz - v.panY;
 
-        setVp((v) => {
-          const nz = clamp(v.zoom * factor, 0.15, 3);
+        const dx = beforeX - x2;
+        const dy = beforeY - y2;
 
-          // keep cursor point stable
-          const x2 = (sx - c.width / 2) / nz - v.panX;
-          const y2 = (sy - c.height / 2) / nz - v.panY;
+        return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
+      });
 
-          const dx = beforeX - x2;
-          const dy = beforeY - y2;
-
-          return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
-        });
-
-        return;
-      }
-
-      // Try scrolling hovered frame (only if clipContent enabled)
+      return;
+// Try scrolling hovered frame (only if clipContent enabled)
       const frame = topFrameAt(sx, sy, sw, sh) as any;
       if (frame && frame.settings?.clipContent !== false) {
         const pad = frame.settings?.padding ?? { left: 0, top: 0, right: 0, bottom: 0 };
@@ -1170,28 +1163,11 @@ export function CanvasView() {
     let img = cache.get(imgId) || null;
 
     if (!img) {
-      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer | undefined | null;
+      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
       const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
 
-      // bytes can be missing while assets are still loading or after import; guard to avoid createObjectURL crashes
-      let url: string | null = null;
-      try {
-        if (bytes) {
-          const ab =
-            bytes instanceof ArrayBuffer
-              ? bytes
-              : bytes instanceof Uint8Array
-                ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-                : null;
-
-          if (ab && (ab as ArrayBuffer).byteLength > 0) {
-            const blob = new Blob([ab], { type: mime });
-            url = URL.createObjectURL(blob);
-          }
-        }
-      } catch {
-        url = null;
-      }
+      const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
 
       const im = new Image();
       im.onload = () => {
@@ -1214,14 +1190,10 @@ export function CanvasView() {
         } catch {}
         urlCache.delete(imgId);
       };
-      if (url) {
-        im.src = url;
-        urlCache.set(imgId, url);
-        img = im;
-      } else {
-        // No bytes yet: render placeholder until assetBytes arrive.
-        img = null;
-      }
+      im.src = url;
+
+      urlCache.set(imgId, url);
+      img = im;
     }
 
     // если ещё не загрузилась — рисуем рамку
