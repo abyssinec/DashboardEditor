@@ -1576,6 +1576,17 @@ function makeDefaultGauge(prev?: any): any {
   const smoothingFactor =
     typeof g.smoothingFactor === "number" && isFinite(g.smoothingFactor) ? g.smoothingFactor : 0;
 
-  return { dataType, gaugeType: gaugeType || "None", rangeMin, rangeMax, updateRateMs, smoothingFactor };
+    const curve = Array.isArray(g.curve)
+    ? g.curve
+        .map((p: any) => {
+          const input = typeof p?.input === "number" ? p.input : Number(p?.input);
+          const output = typeof p?.output === "number" ? p.output : Number(p?.output);
+          if (!isFinite(input) || !isFinite(output)) return null;
+          return { input, output };
+        })
+        .filter(Boolean)
+    : undefined;
+
+  return { dataType, gaugeType: gaugeType || "None", rangeMin, rangeMax, curve, updateRateMs, smoothingFactor };
 }
 

@@ -193,6 +193,7 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
   const [openTransform, setOpenTransform] = useState(true);
   const [openSettings, setOpenSettings] = useState(true);
   const [openStyle, setOpenStyle] = useState(true);
+  const [openNonLinear, setOpenNonLinear] = useState(false);
   const [openGauge, setOpenGauge] = useState(true);
 
   // main picker
@@ -472,6 +473,94 @@ export function BarInspector({ obj }: { obj: AnyObj }) {
               />
             </div>
           </Row2>
+        </div>
+                <div style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            className="insSectionHead"
+            onClick={() => setOpenNonLinear((v) => !v)}
+            style={{ height: 28, padding: 0, justifyContent: "space-between" }}
+          >
+            <span>Non-linear mapping (optional)</span>
+            <Caret open={openNonLinear} />
+          </button>
+          {openNonLinear ? (
+            <div style={{ marginTop: 6 }}>
+              <div style={{ marginTop: 4, marginBottom: 8, color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+                Add points to map PID value → Bar value (%) non-linearly. The curve is piecewise-linear between points.
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {(obj.gauge.curve || [])
+                  .slice()
+                  .sort((a: any, b: any) => (a.input ?? 0) - (b.input ?? 0))
+                  .map((pt: any, idx: number) => (
+                    <div key={idx} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.04)" }}>
+                      <Row2>
+                        <div>
+                          <Label style={{ opacity: 0.75 }}>PID value</Label>
+                          <TextField
+                            value={pt.input}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const n = Number(raw);
+                              const min = typeof obj.gauge.rangeMin === "number" ? obj.gauge.rangeMin : -Infinity;
+                              const max = typeof obj.gauge.rangeMax === "number" ? obj.gauge.rangeMax : Infinity;
+                              const clamped = raw.trim() === "" || !isFinite(n) ? 0 : Math.min(max, Math.max(min, n));
+                              const next = (obj.gauge.curve || []).slice();
+                              next[idx] = { ...(next[idx] || {}), input: clamped };
+                              Actions.updateObjectDeep(obj.id, ["gauge", "curve"], next);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label style={{ opacity: 0.75 }}>Bar value (%)</Label>
+                          <TextField
+                            value={pt.output}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const n = Number(raw);
+                              const clamped = raw.trim() === "" || !isFinite(n) ? 0 : Math.min(100, Math.max(0, n));
+                              const next = (obj.gauge.curve || []).slice();
+                              next[idx] = { ...(next[idx] || {}), output: clamped };
+                              Actions.updateObjectDeep(obj.id, ["gauge", "curve"], next);
+                            }}
+                          />
+                        </div>
+                      </Row2>
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                        <button
+                          className="insBtn"
+                          style={{ height: 32, padding: "0 12px", borderRadius: 10 }}
+                          onClick={() => {
+                            const next = (obj.gauge.curve || []).slice();
+                            next.splice(idx, 1);
+                            Actions.updateObjectDeep(obj.id, ["gauge", "curve"], next.length ? next : undefined);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              <div style={{ marginTop: 10 }}>
+                <button
+                  className="insBtn"
+                  onClick={() => {
+                    const min = typeof obj.gauge.rangeMin === "number" ? obj.gauge.rangeMin : 0;
+                    const next = (obj.gauge.curve || []).slice();
+                    next.push({ input: min, output: 0 });
+                    Actions.updateObjectDeep(obj.id, ["gauge", "curve"], next);
+                  }}
+                >
+                  Add point
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div style={{ marginTop: 18 }}>

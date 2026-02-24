@@ -10,6 +10,8 @@ export type Asset = {
 
 export type DataType = "None" | "OBD_CAN" | "CLUSTER_CAN";
 
+export type GaugeCurvePoint = { input: number; output: number };
+
 export type Gauge = {
   // Data source: OBD CAN, Cluster CAN, or None (disabled)
   dataType: DataType;
@@ -20,6 +22,10 @@ export type Gauge = {
   // Optional mapping range (if not set, runtime may use PID-specific defaults)
   rangeMin?: number;
   rangeMax?: number;
+
+  // Optional non-linear mapping (piecewise linear). Only used by Arc/Bar.
+  // Points are in the input PID value domain (input) and output is 0..100 (%) for arc/bar.
+  curve?: GaugeCurvePoint[];
 
   updateRateMs: number;
   smoothingFactor: number;

@@ -715,7 +715,16 @@ input[type="number"] { -moz-appearance: textfield; }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.dropdownMenu { max-height: 320px; overflow: auto; padding: 6px; }
+.dropdownMenu { 
+  max-height: 320px; 
+  overflow: auto; 
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #323232 transparent;
+}
+.dropdownMenu::-webkit-scrollbar { width: 6px; }
+.dropdownMenu::-webkit-scrollbar-thumb { background: #323232; border-radius: 4px; }
+
 
  .dropdownItem {
   width: 100%;
