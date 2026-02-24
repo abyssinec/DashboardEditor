@@ -53,12 +53,6 @@ function mapLinear(input: number, min: number, max: number) {
 
 
 
-function speedFactor(v: number) {
-  // v: -100..100; 0 => 1x; negative slows, positive speeds up
-  const n = clamp(v, -100, 100);
-  if (n >= 0) return 1 + n / 50; // up to 3x
-  return 1 / (1 + (-n) / 50); // down to ~0.33x
-}
 
 function formatNumberForLabel(
   v: number,
@@ -94,6 +88,13 @@ function formatNumberForLabel(
   if (a >= 100) return padLeft(String(Math.round(v)));
   if (a >= 10) return (Math.round(v * 10) / 10).toFixed(1);
   return (Math.round(v * 100) / 100).toFixed(2);
+}
+
+function speedFactorSigned(v: number) {
+  // v: -3..+3; 0 => 1x; negative slows (down to 0.33x), positive speeds (up to 3x)
+  const x = clamp(v, -3, 3);
+  if (x >= 0) return 1 + (2 * x) / 3; // 0 -> 1x, +3 -> 3x
+  return 1 / (1 + (2 * (-x)) / 3);    // 0 -> 1x, -3 -> 1/3x
 }
 
 export function PlayModePage() {
@@ -142,7 +143,7 @@ export function PlayModePage() {
   // Raw simulated values per object (in gauge input domain)
   const [raw, setRaw] = useState<Record<string, number>>({});
   const [running, setRunning] = useState(false);
-  const [simSpeed, setSimSpeed] = useState(0); // -100..100
+    const [simSpeed, setSimSpeed] = useState(0); // -3..+3
 
   // Smooth value state in 0..100 (percent)
   const smoothRef = useRef<Record<string, number>>({});
@@ -248,7 +249,7 @@ export function PlayModePage() {
           const dir = dirRef[b.id] ?? 1;
           const span = b.rangeMax - b.rangeMin;
           const stepBase = span === 0 ? 0 : span / 120; // ~2 seconds full travel at 60fps
-          const step = stepBase * speedFactor(simSpeed); // ~2 seconds full travel at 60fps
+          const step = stepBase * speedFactorSigned(simSpeed); // ~2 seconds full travel at 60fps
           let v = cur + step * dir;
 
           if (v >= b.rangeMax) {
@@ -293,13 +294,13 @@ export function PlayModePage() {
 
       <div className="playControls">
         <div className="playControlsTop">
-          <div className="playHint">Simulation speed ({(1 + simSpeed/50).toFixed(2)}x)
+          <div className="playHint">Simulation speed <span className="playVal">{simSpeed.toFixed(1)} / {speedFactorSigned(simSpeed).toFixed(2)}x</span>
         <input
           className="playSlider"
           type="range"
-          min={-100}
-          max={100}
-          step={1}
+          min={-3}
+          max={3}
+          step={0.1}
           value={simSpeed}
           onChange={(e) => setSimSpeed(Number(e.target.value))}
         />
