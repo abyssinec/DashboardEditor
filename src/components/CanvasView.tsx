@@ -319,6 +319,7 @@ export function CanvasView() {
   }, [screen.id, (screen as any).style?.backgroundImageAssetId, (screen as any).style?.fill, imageAssets, assetBytes]);
 
   const [vp, setVp] = useState<Viewport>(() => ({ zoom: 1, panX: 0, panY: 0 }));
+  const [fontVersion, setFontVersion] = useState(0); // redraw after async font registration
   // Keep latest viewport in a ref so native wheel handler always uses fresh values
   const vpRef = useRef(vp);
   useEffect(() => { vpRef.current = vp; }, [vp]);
@@ -391,6 +392,7 @@ export function CanvasView() {
     const reg: Set<string> = anyWin.__dash_fontReg;
 
     (async () => {
+      let added = false;
       for (const a of fontAssets) {
         const id = a?.id;
         if (!id) continue;
@@ -411,9 +413,16 @@ export function CanvasView() {
           await ff.load();
           (document as any).fonts.add(ff);
           reg.add(id);
+          added = true;
         } catch {
           reg.add(id);
         }
+
+      }
+
+      if (added) {
+        // Force a redraw so freshly loaded fonts apply immediately after import
+        setFontVersion((v) => v + 1);
       }
     })();
   }, [fontAssets, assetBytes]);
@@ -501,6 +510,8 @@ export function CanvasView() {
     const sh = screen.settings.height;
 
     for (const o of [...sorted].reverse()) {
+      // Skip hidden objects
+      if ((o as any).visible === false) continue;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;
@@ -666,6 +677,8 @@ export function CanvasView() {
 
     // objects
     for (const o of sorted) {
+      // Skip hidden objects
+      if ((o as any).visible === false) continue;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;
@@ -1043,6 +1056,7 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     }
   }, [
     // force redraw on deep changes
+    fontVersion,
     screenSig,
     sorted,
     selectedObjectId,
@@ -1107,7 +1121,6 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
 
       // start drag
       if (!gestureActiveRef.current) { Actions.beginGesture(); gestureActiveRef.current = true; }
-
       const w = screenToWorld(sx, sy);
       const b = objectBounds(hit);
       const objWorldX = b.x - sw / 2;
