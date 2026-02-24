@@ -1170,11 +1170,28 @@ export function CanvasView() {
     let img = cache.get(imgId) || null;
 
     if (!img) {
-      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
+      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer | undefined | null;
       const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
 
-      const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
+      // bytes can be missing while assets are still loading or after import; guard to avoid createObjectURL crashes
+      let url: string | null = null;
+      try {
+        if (bytes) {
+          const ab =
+            bytes instanceof ArrayBuffer
+              ? bytes
+              : bytes instanceof Uint8Array
+                ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+                : null;
+
+          if (ab && (ab as ArrayBuffer).byteLength > 0) {
+            const blob = new Blob([ab], { type: mime });
+            url = URL.createObjectURL(blob);
+          }
+        }
+      } catch {
+        url = null;
+      }
 
       const im = new Image();
       im.onload = () => {
@@ -1197,10 +1214,14 @@ export function CanvasView() {
         } catch {}
         urlCache.delete(imgId);
       };
-      im.src = url;
-
-      urlCache.set(imgId, url);
-      img = im;
+      if (url) {
+        im.src = url;
+        urlCache.set(imgId, url);
+        img = im;
+      } else {
+        // No bytes yet: render placeholder until assetBytes arrive.
+        img = null;
+      }
     }
 
     // если ещё не загрузилась — рисуем рамку

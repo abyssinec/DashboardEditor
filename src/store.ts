@@ -60,12 +60,18 @@ type HistorySnapshot = {
 };
 
 function safeClone<T>(v: T): T {
-  // Prefer structuredClone, fallback to JSON for cases where runtime objects accidentally contain non-cloneables.
+  // Prefer structuredClone when available; fallback to JSON clone for plain project data.
+  // IMPORTANT: keep this function lightweight (history snapshots rely on it).
   try {
-    // @ts-ignore
-    return safeClone(v);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sc = (globalThis as any).structuredClone as undefined | ((x: any) => any);
+    if (typeof sc === "function") return sc(v) as T;
+  } catch {}
+  try {
+    return JSON.parse(JSON.stringify(v)) as T;
   } catch {
-    return JSON.parse(JSON.stringify(v));
+    // As a last resort, return original reference (better than crashing).
+    return v;
   }
 }
 
