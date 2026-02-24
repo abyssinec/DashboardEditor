@@ -600,51 +600,6 @@ export function CanvasView() {
       });
 
       return;
-// Try scrolling hovered frame (only if clipContent enabled)
-      const frame = topFrameAt(sx, sy, sw, sh) as any;
-      if (frame && frame.settings?.clipContent !== false) {
-        const pad = frame.settings?.padding ?? { left: 0, top: 0, right: 0, bottom: 0 };
-        const fb = objectBounds(frame);
-        const innerW = Math.max(0, fb.w - (pad.left ?? 0) - (pad.right ?? 0));
-        const innerH = Math.max(0, fb.h - (pad.top ?? 0) - (pad.bottom ?? 0));
-
-        const scrollX = frame.settings?.scrollX ?? 0;
-        const scrollY = frame.settings?.scrollY ?? 0;
-
-        // Compute content extents in frame local space (add current scroll back)
-        let contentW = 0;
-        let contentH = 0;
-        const kids: string[] = Array.isArray(frame.children) ? frame.children : [];
-        for (const cid of kids) {
-          const child: any = byIdResolved.get(cid);
-          if (!child || hiddenById.get(cid)) continue;
-          const cb = objectBounds(child);
-          const relX = (child.transform?.x ?? 0) - (frame.transform?.x ?? 0) - (pad.left ?? 0) + scrollX;
-          const relY = (child.transform?.y ?? 0) - (frame.transform?.y ?? 0) - (pad.top ?? 0) + scrollY;
-          contentW = Math.max(contentW, relX + (cb.w ?? 0));
-          contentH = Math.max(contentH, relY + (cb.h ?? 0));
-        }
-
-        const maxX = Math.max(0, contentW - innerW);
-        const maxY = Math.max(0, contentH - innerH);
-
-        // wheel deltas are in screen px -> world px
-        const dxWorld = (ev.shiftKey ? ev.deltaY : ev.deltaX) / v0.zoom;
-        const dyWorld = (ev.shiftKey ? 0 : ev.deltaY) / v0.zoom;
-
-        if (maxX > 0 && Math.abs(dxWorld) > 0.01) {
-          const nx = clamp(scrollX + dxWorld, 0, maxX);
-          if (nx !== scrollX) Actions.updateObjectDeep(frame.id, ["settings", "scrollX"], nx);
-        }
-        if (maxY > 0 && Math.abs(dyWorld) > 0.01) {
-          const ny = clamp(scrollY + dyWorld, 0, maxY);
-          if (ny !== scrollY) Actions.updateObjectDeep(frame.id, ["settings", "scrollY"], ny);
-        }
-
-        // If can scroll, don't pan canvas
-        if (maxX > 0 || maxY > 0) return;
-      }
-
       // Pan canvas
       setVp((v) => ({
         ...v,
@@ -1207,11 +1162,13 @@ export function CanvasView() {
       }
       if (bytes) {
         const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
-        const blobPart = bytes instanceof ArrayBuffer ? bytes : (bytes as Uint8Array).buffer.slice(0);
-      const blob = new Blob([blobPart], { type: mime });
+        // Copy into a real ArrayBuffer to avoid SharedArrayBuffer typing issues in TS (Node 22 / lib.dom updates)
+        const u8 = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : new Uint8Array(bytes as Uint8Array);
+        const ab = u8.slice().buffer; // guaranteed ArrayBuffer
+        const blob = new Blob([ab], { type: mime });
         const url = URL.createObjectURL(blob);
 
-      const im = new Image();
+        const im = new Image();
       im.onload = () => {
         cache.set(imgId, im);
         // Keep objectURL alive; revoke via housekeeping (on asset removal/unmount).

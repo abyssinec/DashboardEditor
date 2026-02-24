@@ -106,7 +106,8 @@ function SpinNumber({
         className="insField insSpinInput"
         value={Number.isFinite(value) ? value : 0}
         onChange={(e) => {
-          const n = clampInt(parseInt(e.target.value || "0", 10), min, max);
+          const raw = clampInt(parseInt(e.target.value || "0", 10), 0);
+          const n = Math.max(min, Math.min(max, raw));
           onChange(n);
         }}
         inputMode="numeric"
