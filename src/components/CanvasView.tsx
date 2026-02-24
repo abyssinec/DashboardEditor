@@ -1207,7 +1207,8 @@ export function CanvasView() {
       }
       if (bytes) {
         const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
-        const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
+        const blobPart = bytes instanceof ArrayBuffer ? bytes : (bytes as Uint8Array).buffer.slice(0);
+      const blob = new Blob([blobPart], { type: mime });
         const url = URL.createObjectURL(blob);
 
       const im = new Image();

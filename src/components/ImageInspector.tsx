@@ -366,11 +366,11 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
         <div style={{ marginTop: 2 }}>
           <Label>Animation type</Label>
           <Dropdown
-            value={obj.settings.animation?.type || "None"}
+            value={(obj.settings as any).animation?.type || "None"}
             options={animationTypeOptions as any}
             onChange={(v) => {
               // ensure animation object exists
-              if (!obj.settings.animation || typeof obj.settings.animation !== "object") {
+              if (!(obj.settings as any).animation || typeof (obj.settings as any).animation !== "object") {
                 Actions.updateObjectDeep(obj.id, ["settings", "animation"], { type: "None" });
               }
               Actions.updateObjectDeep(obj.id, ["settings", "animation", "type"], v);
@@ -379,7 +379,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
               const needsMove = v === "Move" || v === "Rotation+Move";
               const needsRot = v === "Rotation" || v === "Rotation+Move";
 
-              const anim = obj.settings.animation || ({ type: "None" } as any);
+              const anim = (obj.settings as any).animation || ({ type: "None" } as any);
 
               if (needsMove) {
                 if (anim.startX === undefined) Actions.updateObjectDeep(obj.id, ["settings", "animation", "startX"], obj.transform.x);
@@ -393,13 +393,13 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
           />
         </div>
 
-        {(obj.settings.animation?.type === "Rotation" || obj.settings.animation?.type === "Rotation+Move") && (
+        {((obj.settings as any).animation?.type === "Rotation" || (obj.settings as any).animation?.type === "Rotation+Move") && (
           <div style={{ marginTop: 14 }}>
             <Row2>
               <div>
                 <Label>Start rotation</Label>
                 <TextField
-                  value={String(obj.settings.animation?.startRot ?? 0)}
+                  value={String((obj.settings as any).animation?.startRot ?? 0)}
                   onChange={(e) =>
                     Actions.updateObjectDeep(obj.id, ["settings", "animation", "startRot"], Number(e.target.value) || 0)
                   }
@@ -408,7 +408,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
               <div>
                 <Label>End rotation</Label>
                 <TextField
-                  value={String(obj.settings.animation?.endRot ?? 0)}
+                  value={String((obj.settings as any).animation?.endRot ?? 0)}
                   onChange={(e) =>
                     Actions.updateObjectDeep(obj.id, ["settings", "animation", "endRot"], Number(e.target.value) || 0)
                   }
@@ -418,14 +418,14 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
           </div>
         )}
 
-        {(obj.settings.animation?.type === "Move" || obj.settings.animation?.type === "Rotation+Move") && (
+        {((obj.settings as any).animation?.type === "Move" || (obj.settings as any).animation?.type === "Rotation+Move") && (
           <div style={{ marginTop: 14 }}>
             <Label style={{ marginBottom: 6 }}>Move (X/Y)</Label>
             <Row2>
               <div>
                 <Label>Start X</Label>
                 <TextField
-                  value={String(obj.settings.animation?.startX ?? obj.transform.x)}
+                  value={String((obj.settings as any).animation?.startX ?? obj.transform.x)}
                   onChange={(e) =>
                     Actions.updateObjectDeep(obj.id, ["settings", "animation", "startX"], Number(e.target.value) || 0)
                   }
@@ -434,7 +434,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
               <div>
                 <Label>Start Y</Label>
                 <TextField
-                  value={String(obj.settings.animation?.startY ?? obj.transform.y)}
+                  value={String((obj.settings as any).animation?.startY ?? obj.transform.y)}
                   onChange={(e) =>
                     Actions.updateObjectDeep(obj.id, ["settings", "animation", "startY"], Number(e.target.value) || 0)
                   }
@@ -447,7 +447,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
                 <div>
                   <Label>End X</Label>
                   <TextField
-                    value={String(obj.settings.animation?.endX ?? obj.transform.x)}
+                    value={String((obj.settings as any).animation?.endX ?? obj.transform.x)}
                     onChange={(e) =>
                       Actions.updateObjectDeep(obj.id, ["settings", "animation", "endX"], Number(e.target.value) || 0)
                     }
@@ -456,7 +456,7 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
                 <div>
                   <Label>End Y</Label>
                   <TextField
-                    value={String(obj.settings.animation?.endY ?? obj.transform.y)}
+                    value={String((obj.settings as any).animation?.endY ?? obj.transform.y)}
                     onChange={(e) =>
                       Actions.updateObjectDeep(obj.id, ["settings", "animation", "endY"], Number(e.target.value) || 0)
                     }

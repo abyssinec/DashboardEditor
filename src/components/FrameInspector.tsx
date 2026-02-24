@@ -115,14 +115,14 @@ function SpinNumber({
         <button
           type="button"
           className="insSpinBtn"
-          onClick={() => onChange(clampInt((value ?? 0) + step, min, max))}
+          onClick={() => onChange((Math.max(min, Math.min(max, clampInt((value ?? 0) + step, 0)))))}
         >
           ▲
         </button>
         <button
           type="button"
           className="insSpinBtn"
-          onClick={() => onChange(clampInt((value ?? 0) - step, min, max))}
+          onClick={() => onChange((Math.max(min, Math.min(max, clampInt((value ?? 0) - step, 0)))))}
         >
           ▼
         </button>
