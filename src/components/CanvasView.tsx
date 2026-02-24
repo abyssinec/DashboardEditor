@@ -1200,37 +1200,31 @@ export function CanvasView() {
     let img = cache.get(imgId) || null;
 
     if (!img) {
-      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer;
-      const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
-
-      const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
+      const bytes = (assetBytes as any)[imgId] as Uint8Array | ArrayBuffer | undefined;
+      if (!bytes) {
+        // Asset bytes not ready / missing (e.g. during import or after deletion)
+        img = null;
+      }
+      if (bytes) {
+        const mime = (imageAssets as any[]).find((a) => a.id === imgId)?.mime || "image/png";
+        const blob = bytes instanceof ArrayBuffer ? new Blob([bytes], { type: mime }) : new Blob([bytes], { type: mime });
+        const url = URL.createObjectURL(blob);
 
       const im = new Image();
       im.onload = () => {
         cache.set(imgId, im);
-        // после загрузки можно освобождать objectURL — данные уже в памяти Image
-        try {
-          const u = urlCache.get(imgId);
-          if (u) URL.revokeObjectURL(u);
-        } catch {}
-        urlCache.delete(imgId);
-
-        // форсим перерисовку сразу после загрузки
+        // Keep objectURL alive; revoke via housekeeping (on asset removal/unmount).
         requestAnimationFrame(() => setImgVersion((v) => v + 1));
       };
       im.onerror = () => {
-        // если ошибка — тоже чистим url, чтобы не течь
-        try {
-          const u = urlCache.get(imgId);
-          if (u) URL.revokeObjectURL(u);
-        } catch {}
+        // On error, just drop cache entry; housekeeping will revoke.
         urlCache.delete(imgId);
       };
       im.src = url;
 
       urlCache.set(imgId, url);
       img = im;
+      }
     }
 
     // если ещё не загрузилась — рисуем рамку

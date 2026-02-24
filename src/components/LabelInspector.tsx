@@ -9,6 +9,44 @@ import { Dropdown } from "./Dropdown";
 import { DraftNumberInput } from "./DraftNumberInput";
 import { PID_CATALOG } from "../pids";
 
+
+function formatNumberForLabel(
+  v: number,
+  fmt?: {
+    valueFormatMode?: "Auto" | "Integer" | "Decimal";
+    valuePadDigits?: number;
+    valueDecimals?: number;
+    valueTrimZeros?: boolean;
+  },
+) {
+  if (!Number.isFinite(v)) return "—";
+
+  const mode = fmt?.valueFormatMode || "Auto";
+  const pad = Math.max(0, Math.min(12, Math.floor(Number(fmt?.valuePadDigits ?? 0) || 0)));
+  const dec = Math.max(0, Math.min(6, Math.floor(Number(fmt?.valueDecimals ?? 1) || 0)));
+  const trimZeros = !!fmt?.valueTrimZeros;
+
+  const padLeft = (s: string) => (pad > 0 ? s.padStart(pad, "0") : s);
+
+  if (mode === "Integer") {
+    const n = Math.round(v);
+    return padLeft(String(n));
+  }
+
+  if (mode === "Decimal") {
+    let s = (Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec)).toFixed(dec);
+    if (trimZeros && dec > 0) s = s.replace(/\.?0+$/, "");
+    return s;
+  }
+
+  // Auto
+  const a = Math.abs(v);
+  if (a >= 100) return padLeft(String(Math.round(v)));
+  if (a >= 10) return (Math.round(v * 10) / 10).toFixed(1);
+  return (Math.round(v * 100) / 100).toFixed(2);
+}
+
+
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
     <div className="insLbl" style={style}>
@@ -388,257 +426,138 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
 </div>
       </Collapse>
 
-      <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
+      <Collapse title="Gauge settings" open={openGauge} onToggle={() => setOpenGauge((v) => !v)}>
+  <div style={{ marginTop: 2 }}>
+    <Label>Data type</Label>
+    <Dropdown
+      value={obj.gauge.dataType || "None"}
+      options={dataTypeOptions as any}
+      onChange={(v) => {
+        Actions.updateObjectDeep(obj.id, ["gauge", "dataType"], v);
+        // if switching away from OBD, clear gaugeType to None (safe default)
+        if (v !== "OBD_CAN" && obj.gauge.gaugeType !== "None") {
+          Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], "None");
+        }
+      }}
+    />
+  </div>
+
+  <div style={{ marginTop: 14 }}>
+    <Label>Gauge type</Label>
+    <Dropdown
+      value={obj.gauge.gaugeType || "None"}
+      options={(obj.gauge.dataType === "OBD_CAN" ? pidOptions : [{ value: "None", label: "(empty)" }]) as any}
+            disabled={obj.gauge.dataType !== "OBD_CAN"}
+      onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], v)}
+    />
+  </div>
+
+  <Row2>
+    <div style={{ marginTop: 18 }}>
+      <Label>Range min (optional)</Label>
+      <SpinNumber
+        value={Number(obj.gauge.rangeMin ?? 0)}
+        min={-1000000}
+        max={1000000}
+        onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "rangeMin"], v)}
+      />
+    </div>
+    <div style={{ marginTop: 18 }}>
+      <Label>Range max (optional)</Label>
+      <SpinNumber
+        value={Number(obj.gauge.rangeMax ?? 100)}
+        min={-1000000}
+        max={1000000}
+        onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "rangeMax"], v)}
+      />
+    </div>
+  </Row2>
+
+  {obj.gauge.dataType !== "None" && (
+    <div style={{ marginTop: 14 }}>
+      <Label>Value format</Label>
+      <Dropdown
+        value={(obj.gauge as any).valueFormatMode || "Auto"}
+        onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "valueFormatMode"], v as any)}
+        options={[
+          { value: "Auto", label: "Auto" },
+          { value: "Integer", label: "Integer" },
+          { value: "Decimal", label: "Decimal" },
+        ]}
+      />
+
+      {(obj.gauge as any).valueFormatMode === "Integer" && (
         <Row2>
-          <div>
-            <Label>Color</Label>
-            <div className="insColorRow">
-              <button
-                ref={btnRef}
-                type="button"
-                className="insColorSwatchBtn"
-                onClick={() => setPickerOpen((v) => !v)}
-                title="Pick color"
-                style={{ background: colorHex }}
-              />
-              <TextField
-                value={colorHex}
-                onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "color"], normalizeHex(e.target.value))}
-              />
-            </div>
-
-            <PortalPopover open={pickerOpen} anchorRef={btnRef as any} onClose={() => setPickerOpen(false)}>
-              <div className="insPickerPopover" style={{ position: "static" }}>
-                <ColorPicker
-                  value={colorHex}
-                  alpha={alpha}
-                  onChange={(nextHex, nextAlpha) => {
-                    Actions.updateObjectDeep(obj.id, ["style", "color"], normalizeHex(nextHex));
-                    Actions.updateObjectDeep(obj.id, ["style", "alpha"], clampInt(nextAlpha, alpha));
-                  }}
-                />
-              </div>
-            </PortalPopover>
-          </div>
-
-          <div>
-            <Label>Alpha</Label>
+          <div style={{ marginTop: 10 }}>
+            <Label>Min digits (pad)</Label>
             <SpinNumber
-              value={alpha}
+              value={Number((obj.gauge as any).valuePadDigits || 0)}
               min={0}
-              max={100}
-              onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "alpha"], v)}
+              max={12}
+              onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "valuePadDigits"], v)}
             />
+          </div>
+          <div />
+        </Row2>
+      )}
+
+      {(obj.gauge as any).valueFormatMode === "Decimal" && (
+        <Row2>
+          <div style={{ marginTop: 10 }}>
+            <Label>Decimals</Label>
+            <SpinNumber
+              value={Number((obj.gauge as any).valueDecimals ?? 1)}
+              min={0}
+              max={6}
+              onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "valueDecimals"], v)}
+            />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <Label>Trim zeros</Label>
+            <div className="insCheckRow">
+              <input
+                type="checkbox"
+                checked={!!(obj.gauge as any).valueTrimZeros}
+                onChange={(e) => Actions.updateObjectDeep(obj.id, ["gauge", "valueTrimZeros"], e.target.checked)}
+              />
+              <div className="insCheckText">Remove trailing 0s</div>
+            </div>
           </div>
         </Row2>
+      )}
 
-        <div style={{ marginTop: 25 }}>
-          <Row2>
-            <div>
-              <Label>Glow</Label>
-              <SpinNumber
-                value={obj.style.glow}
-                min={0}
-                max={1000}
-                onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "glow"], v)}
-              />
-            </div>
-            <div />
-          </Row2>
-        </div>
+      <div className="insHint" style={{ marginTop: 10 }}>
+        Preview:{" "}
+        <b>
+          {formatNumberForLabel(7, obj.gauge as any)} / {formatNumberForLabel(0.1, obj.gauge as any)} /{" "}
+          {formatNumberForLabel(0.01, obj.gauge as any)}
+        </b>
+      </div>
+    </div>
+  )}
 
-        <div style={{ marginTop: 25 }}>
-          <Label>Shadow Color</Label>
-          <div className="insColorRow">
-            <button
-              ref={shadowBtnRef}
-              type="button"
-              className="insColorSwatchBtn"
-              style={{ background: shadowHex }}
-              onClick={() => setShadowOpen((v) => !v)}
-              title="Pick shadow color"
-            />
-            <TextField
-              value={shadowHex}
-              onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "shadowColor"], normalizeHex(e.target.value))}
-            />
-          </div>
-
-          <PortalPopover open={shadowOpen} anchorRef={shadowBtnRef as any} onClose={() => setShadowOpen(false)}>
-            <div className="insPickerPopover" style={{ position: "static" }}>
-              <ColorPicker
-                value={shadowHex}
-                alpha={100}
-                onChange={(nextHex) => {
-                  Actions.updateObjectDeep(obj.id, ["style", "shadowColor"], normalizeHex(nextHex));
-                }}
-              />
-            </div>
-          </PortalPopover>
-        </div>
-
-        <div style={{ marginTop: 25 }}>
-          <Row2>
-            <div>
-              <Label>Shadow Offset X</Label>
-              <SpinNumber
-                value={obj.style.shadowOffsetX}
-                onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "shadowOffsetX"], v)}
-              />
-            </div>
-            <div>
-              <Label>Shadow Offset Y</Label>
-              <SpinNumber
-                value={obj.style.shadowOffsetY}
-                onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "shadowOffsetY"], v)}
-              />
-            </div>
-          </Row2>
-        </div>
-
-        <div style={{ marginTop: 25 }}>
-          <Label>Shadow Blur</Label>
-          <SpinNumber
-            value={obj.style.shadowBlur}
-            min={0}
-            max={1000}
-            onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "shadowBlur"], v)}
-          />
-        </div>
-
-        <div style={{ marginTop: 25 }}>
-          <Label>Outline Color</Label>
-          <div className="insColorRow">
-            <button
-              ref={outlineBtnRef}
-              type="button"
-              className="insColorSwatchBtn"
-              style={{ background: outlineHex }}
-              onClick={() => setOutlineOpen((v) => !v)}
-              title="Pick outline color"
-            />
-            <TextField
-              value={outlineHex}
-              onChange={(e) => Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(e.target.value))}
-            />
-          </div>
-
-          <PortalPopover open={outlineOpen} anchorRef={outlineBtnRef as any} onClose={() => setOutlineOpen(false)}>
-            <div className="insPickerPopover" style={{ position: "static" }}>
-              <ColorPicker
-                value={outlineHex}
-                alpha={100}
-                onChange={(nextHex) => {
-                  Actions.updateObjectDeep(obj.id, ["style", "outlineColor"], normalizeHex(nextHex));
-                }}
-              />
-            </div>
-          </PortalPopover>
-        </div>
-
-        <div style={{ marginTop: 25 }}>
-          <Label>Outline Thickness</Label>
-          <SpinNumber
-            value={obj.style.outlineThickness}
-            min={0}
-            max={1000}
-            onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "outlineThickness"], v)}
-          />
-        </div>
-      </Collapse>
-
-      <Collapse title="Gauge settings" open={openGauge} onToggle={() => setOpenGauge((v) => !v)}>
-        <div style={{ marginTop: 2 }}>
-
-          <Label>Data type</Label>
-          <Dropdown
-            value={obj.gauge.dataType || "None"}
-            options={dataTypeOptions as any}
-            onChange={(v) => {
-              Actions.updateObjectDeep(obj.id, ["gauge", "dataType"], v);
-              // if switching away from OBD, clear gaugeType to None (safe default)
-              if (v !== "OBD_CAN" && obj.gauge.gaugeType !== "None") {
-                Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], "None");
-              }
-            }}
-          />
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <Label>Gauge type</Label>
-          <Dropdown
-            value={obj.gauge.gaugeType || "None"}
-            options={(obj.gauge.dataType === "OBD_CAN" ? pidOptions : [{ value: "None", label: "(empty)" }]) as any}
-            disabled={obj.gauge.dataType !== "OBD_CAN"}
-            onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], v)}
-          />
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <Row2>
-            <div>
-              <Label>Range min (optional)</Label>
-              <TextField
-                value={obj.gauge.rangeMin ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  const n = Number(raw);
-                  Actions.updateObjectDeep(obj.id, ["gauge", "rangeMin"], raw.trim() === "" || !isFinite(n) ? undefined : n);
-                }}
-              />
-            </div>
-            <div>
-              <Label>Range max (optional)</Label>
-              <TextField
-                value={obj.gauge.rangeMax ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  const n = Number(raw);
-                  Actions.updateObjectDeep(obj.id, ["gauge", "rangeMax"], raw.trim() === "" || !isFinite(n) ? undefined : n);
-                }}
-              />
-            </div>
-          </Row2>
-        
-        {obj.gauge.dataType !== "None" && (
-
-                  <div style={{ marginTop: 8 }}>
-                    <Label>Value format</Label>
-                    <Dropdown
-                      value={obj.settings.valueFormat || "Auto"}
-                      onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "valueFormat"], v as any)}
-                      options={[
-                        { value: "Auto", label: "Auto" },
-                        { value: "WithoutDecimal", label: "Without decimal" },
-                        { value: "WithDecimal", label: "With decimal" },
-                      ]}
-                    />
-                  </div>
-        )}
-</div>
-
-        <div style={{ marginTop: 18 }}>
-          <Row2>
-            <div>
-              <Label>Update rate (ms)</Label>
-              <SpinNumber
-                value={obj.gauge.updateRateMs}
-                min={1}
-                max={100000}
-                onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "updateRateMs"], v)}
-              />
-            </div>
-            <div>
-              <Label>Smoothing factor</Label>
-              <TextField
-                value={String(obj.gauge.smoothingFactor)}
-                onChange={(e) =>
-                  Actions.updateObjectDeep(obj.id, ["gauge", "smoothingFactor"], Number(e.target.value) || 0)
-                }
-              />
-            </div>
-          </Row2>
-        </div>
+  <div style={{ marginTop: 18 }}>
+    <Row2>
+      <div>
+        <Label>Update rate (ms)</Label>
+        <SpinNumber
+          value={obj.gauge.updateRateMs}
+          min={1}
+          max={100000}
+          onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "updateRateMs"], v)}
+        />
+      </div>
+      <div>
+        <Label>Smoothing factor</Label>
+        <TextField
+          value={String(obj.gauge.smoothingFactor)}
+          onChange={(e) =>
+            Actions.updateObjectDeep(obj.id, ["gauge", "smoothingFactor"], Number(e.target.value) || 0)
+          }
+        />
+      </div>
+    </Row2>
+  </div>
 </Collapse>
     </div>
   );

@@ -51,17 +51,6 @@ function mapLinear(input: number, min: number, max: number) {
   return ((input - min) / den) * 100;
 }
 
-function formatValue(v: number, mode: "Auto" | "WithDecimal" | "WithoutDecimal" = "Auto") {
-  if (!Number.isFinite(v)) return "—";
-  if (mode === "WithoutDecimal") return String(Math.round(v));
-  if (mode === "WithDecimal") return (Math.round(v * 10) / 10).toFixed(1);
-
-  // Auto
-  const a = Math.abs(v);
-  if (a >= 100) return String(Math.round(v));
-  if (a >= 10) return (Math.round(v * 10) / 10).toFixed(1);
-  return (Math.round(v * 100) / 100).toFixed(2);
-}
 
 
 function speedFactor(v: number) {
@@ -69,6 +58,42 @@ function speedFactor(v: number) {
   const n = clamp(v, -100, 100);
   if (n >= 0) return 1 + n / 50; // up to 3x
   return 1 / (1 + (-n) / 50); // down to ~0.33x
+}
+
+function formatNumberForLabel(
+  v: number,
+  fmt?: {
+    valueFormatMode?: "Auto" | "Integer" | "Decimal";
+    valuePadDigits?: number;
+    valueDecimals?: number;
+    valueTrimZeros?: boolean;
+  },
+) {
+  if (!Number.isFinite(v)) return "—";
+
+  const mode = fmt?.valueFormatMode || "Auto";
+  const pad = Math.max(0, Math.min(12, Math.floor(Number(fmt?.valuePadDigits ?? 0) || 0)));
+  const dec = Math.max(0, Math.min(6, Math.floor(Number(fmt?.valueDecimals ?? 1) || 0)));
+  const trimZeros = !!fmt?.valueTrimZeros;
+
+  const padLeft = (s: string) => (pad > 0 ? s.padStart(pad, "0") : s);
+
+  if (mode === "Integer") {
+    const n = Math.round(v);
+    return padLeft(String(n));
+  }
+
+  if (mode === "Decimal") {
+    let s = (Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec)).toFixed(dec);
+    if (trimZeros && dec > 0) s = s.replace(/\.?0+$/, "");
+    return s;
+  }
+
+  // Auto
+  const a = Math.abs(v);
+  if (a >= 100) return padLeft(String(Math.round(v)));
+  if (a >= 10) return (Math.round(v * 10) / 10).toFixed(1);
+  return (Math.round(v * 100) / 100).toFixed(2);
 }
 
 export function PlayModePage() {
@@ -161,7 +186,10 @@ export function PlayModePage() {
 
       // Label: show input value
       if (b.type === "Label") {
-        overrides[b.id] = { ...(overrides[b.id] || {}), labelText: formatValue(input, (o?.gauge?.valueFormat || o?.settings?.valueFormat || "Auto")) };
+        overrides[b.id] = {
+          ...(overrides[b.id] || {}),
+          labelText: formatNumberForLabel(input, (o?.gauge as any) || {}),
+        };
       }
 
       // Image: animation based on t=percent
@@ -306,7 +334,7 @@ export function PlayModePage() {
                       setRaw((p) => ({ ...p, [b.id]: nv }));
                     }}
                   />
-                  <div className="playSliderValue">{formatValue(v)}</div>
+                  <div className="playSliderValue">{formatNumberForLabel(v)}</div>
                 </div>
               );
             })
