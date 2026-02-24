@@ -2,40 +2,40 @@ export type PidInfo = { pid: string; name_en: string; name_ru: string; unit: str
 export const PID_CATALOG: Record<string, PidInfo> = {
   "00": {
     pid: "00",
-    name_en: "PIDs supported [01вЂ“20]",
-    name_ru: "РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ PID 01вЂ“20",
+    name_en: "PIDs supported [01-20]",
+    name_ru: "Поддерживаемые PID [01–20]",
     unit: "mask",
     kind: "plain",
     category: "Support masks",
   },
   "20": {
     pid: "20",
-    name_en: "PIDs supported [21вЂ“40]",
-    name_ru: "РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ PID 21вЂ“40",
+    name_en: "PIDs supported [21-40]",
+    name_ru: "Поддерживаемые PID [21–40]",
     unit: "mask",
     kind: "plain",
     category: "Support masks",
   },
   "40": {
     pid: "40",
-    name_en: "PIDs supported [41вЂ“60]",
-    name_ru: "РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ PID 41вЂ“60",
+    name_en: "PIDs supported [41-60]",
+    name_ru: "Поддерживаемые PID [41–60]",
     unit: "mask",
     kind: "plain",
     category: "Support masks",
   },
   "60": {
     pid: "60",
-    name_en: "PIDs supported [61вЂ“80]",
-    name_ru: "РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ PID 61вЂ“80",
+    name_en: "PIDs supported [61-80]",
+    name_ru: "Поддерживаемые PID [61–80]",
     unit: "mask",
     kind: "plain",
     category: "Support masks",
   },
   "7F": {
     pid: "7F",
-    name_en: "PIDs supported [81вЂ“A0]",
-    name_ru: "РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ PID 81вЂ“A0",
+    name_en: "PIDs supported [81-A0]",
+    name_ru: "Поддерживаемые PID [81–A0]",
     unit: "mask",
     kind: "plain",
     category: "Support masks",
@@ -43,7 +43,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "80": {
     pid: "80",
     name_en: "Reserved/transition",
-    name_ru: "Р РµР·РµСЂРІ/РїРµСЂРµС…РѕРґ",
+    name_ru: "Резерв/переход",
     unit: "-",
     kind: "plain",
     category: "Other",
@@ -51,7 +51,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "01": {
     pid: "01",
     name_en: "Monitor status since DTCs cleared",
-    name_ru: "РЎС‚Р°С‚СѓСЃ РјРѕРЅРёС‚РѕСЂРѕРІ РїРѕСЃР»Рµ РѕС‡РёСЃС‚РєРё DTC (MIL/РіРѕС‚РѕРІРЅРѕСЃС‚СЊ)",
+    name_ru: "Статус мониторов после очистки DTC",
     unit: "flags",
     kind: "plain",
     category: "Status / Diagnostic",
@@ -59,7 +59,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "02": {
     pid: "02",
     name_en: "Freeze DTC",
-    name_ru: "Freeze DTC (РєРѕРґ Р·Р°РјРѕСЂРѕР¶РµРЅРЅРѕРіРѕ РєР°РґСЂР°)",
+    name_ru: "Freeze DTC (код заморозки)",
     unit: "code",
     kind: "plain",
     category: "Other",
@@ -67,7 +67,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "03": {
     pid: "03",
     name_en: "Fuel system status",
-    name_ru: "РЎРѕСЃС‚РѕСЏРЅРёРµ С‚РѕРїР»РёРІРЅРѕР№ СЃРёСЃС‚РµРјС‹",
+    name_ru: "Состояние топливной системы",
     unit: "status",
     kind: "plain",
     category: "Fuel / AFR",
@@ -75,7 +75,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "04": {
     pid: "04",
     name_en: "Calculated engine load",
-    name_ru: "Р Р°СЃС‡С‘С‚РЅР°СЏ РЅР°РіСЂСѓР·РєР° РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Расчётная нагрузка двигателя",
     unit: "%",
     kind: "plain",
     category: "Engine",
@@ -83,39 +83,39 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "05": {
     pid: "05",
     name_en: "Engine coolant temperature",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РћР–",
+    name_ru: "Температура охлаждающей жидкости",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
   },
   "06": {
     pid: "06",
-    name_en: "Short term fuel trim вЂ” Bank 1",
-    name_ru: "РљСЂР°С‚РєРѕСЃСЂРѕС‡РЅР°СЏ РєРѕСЂСЂРµРєС†РёСЏ С‚РѕРїР»РёРІР° Р±Р°РЅРє 1 (STFT)",
+    name_en: "Short term fuel trim — Bank 1",
+    name_ru: "Краткосрочная коррекция топлива (STFT), банк 1",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
   },
   "07": {
     pid: "07",
-    name_en: "Long term fuel trim вЂ” Bank 1",
-    name_ru: "Р”РѕР»РіРѕСЃСЂРѕС‡РЅР°СЏ РєРѕСЂСЂРµРєС†РёСЏ С‚РѕРїР»РёРІР° Р±Р°РЅРє 1 (LTFT)",
+    name_en: "Long term fuel trim — Bank 1",
+    name_ru: "Долгосрочная коррекция топлива (LTFT), банк 1",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
   },
   "08": {
     pid: "08",
-    name_en: "Short term fuel trim вЂ” Bank 2",
-    name_ru: "РљСЂР°С‚РєРѕСЃСЂРѕС‡РЅР°СЏ РєРѕСЂСЂРµРєС†РёСЏ С‚РѕРїР»РёРІР° Р±Р°РЅРє 2 (STFT)",
+    name_en: "Short term fuel trim — Bank 2",
+    name_ru: "Краткосрочная коррекция топлива (STFT), банк 2",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
   },
   "09": {
     pid: "09",
-    name_en: "Long term fuel trim вЂ” Bank 2",
-    name_ru: "Р”РѕР»РіРѕСЃСЂРѕС‡РЅР°СЏ РєРѕСЂСЂРµРєС†РёСЏ С‚РѕРїР»РёРІР° Р±Р°РЅРє 2 (LTFT)",
+    name_en: "Long term fuel trim — Bank 2",
+    name_ru: "Долгосрочная коррекция топлива (LTFT), банк 2",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
@@ -123,7 +123,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "0A": {
     pid: "0A",
     name_en: "Fuel pressure (gauge)",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ С‚РѕРїР»РёРІР° (gauge)",
+    name_ru: "Давление топлива (избыточное)",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -131,7 +131,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "0B": {
     pid: "0B",
     name_en: "Intake manifold absolute pressure (MAP)",
-    name_ru: "MAP вЂ” Р°Р±СЃРѕР»СЋС‚РЅРѕРµ РґР°РІР»РµРЅРёРµ РІРѕ РІРїСѓСЃРєРµ",
+    name_ru: "Абсолютное давление во впуске (MAP)",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -139,7 +139,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "0C": {
     pid: "0C",
     name_en: "Engine RPM",
-    name_ru: "РћР±РѕСЂРѕС‚С‹ РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Обороты двигателя",
     unit: "rpm",
     kind: "plain",
     category: "Engine",
@@ -147,7 +147,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "0D": {
     pid: "0D",
     name_en: "Vehicle speed",
-    name_ru: "РЎРєРѕСЂРѕСЃС‚СЊ Р°РІС‚РѕРјРѕР±РёР»СЏ",
+    name_ru: "Скорость автомобиля",
     unit: "km/h",
     kind: "plain",
     category: "Vehicle",
@@ -155,7 +155,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "0E": {
     pid: "0E",
     name_en: "Timing advance",
-    name_ru: "РћРїРµСЂРµР¶РµРЅРёРµ Р·Р°Р¶РёРіР°РЅРёСЏ",
+    name_ru: "Угол опережения зажигания",
     unit: "В°",
     kind: "plain",
     category: "Engine",
@@ -163,7 +163,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "0F": {
     pid: "0F",
     name_en: "Intake air temperature (IAT)",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РІРѕР·РґСѓС…Р° РЅР° РІРїСѓСЃРєРµ (IAT)",
+    name_ru: "Температура воздуха на впуске (IAT)",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -171,7 +171,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "10": {
     pid: "10",
     name_en: "MAF air flow rate",
-    name_ru: "MAF вЂ” РјР°СЃСЃРѕРІС‹Р№ СЂР°СЃС…РѕРґ РІРѕР·РґСѓС…Р°",
+    name_ru: "Массовый расход воздуха (MAF)",
     unit: "g/s",
     kind: "plain",
     category: "Engine",
@@ -179,7 +179,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "11": {
     pid: "11",
     name_en: "Throttle position (absolute)",
-    name_ru: "РџРѕР»РѕР¶РµРЅРёРµ РґСЂРѕСЃСЃРµР»СЏ (Р°Р±СЃРѕР»СЋС‚РЅРѕРµ)",
+    name_ru: "Положение дросселя (абсолютное)",
     unit: "%",
     kind: "plain",
     category: "Engine",
@@ -187,7 +187,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "12": {
     pid: "12",
     name_en: "Commanded secondary air status",
-    name_ru: "РЎС‚Р°С‚СѓСЃ РІС‚РѕСЂРёС‡РЅРѕРіРѕ РІРѕР·РґСѓС…Р°",
+    name_ru: "Команда/статус вторичного воздуха",
     unit: "status",
     kind: "plain",
     category: "Status / Diagnostic",
@@ -195,7 +195,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "13": {
     pid: "13",
     name_en: "Oxygen sensors present (2 banks)",
-    name_ru: "РќР°Р»РёС‡РёРµ O2 РґР°С‚С‡РёРєРѕРІ (2 Р±Р°РЅРєР°)",
+    name_ru: "Наличие кислородных датчиков (2 банка)",
     unit: "flags",
     kind: "plain",
     category: "Emissions",
@@ -203,7 +203,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "14": {
     pid: "14",
     name_en: "O2 Sensor 1 (B1S1) voltage / STFT",
-    name_ru: "O2 B1S1 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 1 (B1S1): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -211,7 +211,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "15": {
     pid: "15",
     name_en: "O2 Sensor 2 (B1S2) voltage / STFT",
-    name_ru: "O2 B1S2 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 2 (B1S2): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -219,7 +219,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "16": {
     pid: "16",
     name_en: "O2 Sensor 3 (B1S3) voltage / STFT",
-    name_ru: "O2 B1S3 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 3 (B1S3): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -227,7 +227,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "17": {
     pid: "17",
     name_en: "O2 Sensor 4 (B1S4) voltage / STFT",
-    name_ru: "O2 B1S4 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 4 (B1S4): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -235,7 +235,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "18": {
     pid: "18",
     name_en: "O2 Sensor 5 (B2S1) voltage / STFT",
-    name_ru: "O2 B2S1 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 5 (B2S1): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -243,7 +243,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "19": {
     pid: "19",
     name_en: "O2 Sensor 6 (B2S2) voltage / STFT",
-    name_ru: "O2 B2S2 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 6 (B2S2): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -251,7 +251,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "1A": {
     pid: "1A",
     name_en: "O2 Sensor 7 (B2S3) voltage / STFT",
-    name_ru: "O2 B2S3 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 7 (B2S3): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -259,7 +259,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "1B": {
     pid: "1B",
     name_en: "O2 Sensor 8 (B2S4) voltage / STFT",
-    name_ru: "O2 B2S4 (РЅР°РїСЂСЏР¶РµРЅРёРµ/РєРѕСЂСЂРµРєС†РёСЏ)",
+    name_ru: "Датчик O2 8 (B2S4): напряжение / STFT",
     unit: "mixed",
     kind: "plain",
     category: "Electrical",
@@ -267,7 +267,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "1C": {
     pid: "1C",
     name_en: "OBD standards this vehicle conforms to",
-    name_ru: "РЎС‚Р°РЅРґР°СЂС‚ OBD Р°РІС‚РѕРјРѕР±РёР»СЏ",
+    name_ru: "Стандарт OBD, поддерживаемый автомобилем",
     unit: "enum",
     kind: "plain",
     category: "Other",
@@ -275,7 +275,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "1D": {
     pid: "1D",
     name_en: "Oxygen sensors present (4 banks)",
-    name_ru: "РќР°Р»РёС‡РёРµ O2 РґР°С‚С‡РёРєРѕРІ (4 Р±Р°РЅРєР°)",
+    name_ru: "Наличие кислородных датчиков (4 банка)",
     unit: "flags",
     kind: "plain",
     category: "Emissions",
@@ -283,7 +283,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "1E": {
     pid: "1E",
     name_en: "Auxiliary input status",
-    name_ru: "РЎС‚Р°С‚СѓСЃ РґРѕРї. РІС…РѕРґР°",
+    name_ru: "Статус доп. входа",
     unit: "flags",
     kind: "plain",
     category: "Status / Diagnostic",
@@ -291,7 +291,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "1F": {
     pid: "1F",
     name_en: "Run time since engine start",
-    name_ru: "Р’СЂРµРјСЏ СЂР°Р±РѕС‚С‹ РїРѕСЃР»Рµ Р·Р°РїСѓСЃРєР°",
+    name_ru: "Время работы после запуска двигателя",
     unit: "s",
     kind: "plain",
     category: "Engine",
@@ -299,7 +299,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "21": {
     pid: "21",
     name_en: "Distance traveled with MIL on",
-    name_ru: "РџСЂРѕР±РµРі СЃ MIL (Check Engine)",
+    name_ru: "Пробег с горящим MIL",
     unit: "km",
     kind: "plain",
     category: "Other",
@@ -307,7 +307,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "22": {
     pid: "22",
     name_en: "Fuel rail pressure (relative to vacuum)",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ РІ С‚РѕРїР»РёРІРЅРѕР№ СЂРµР№РєРµ (РѕС‚РЅ. Рє СЂР°Р·СЂРµР¶РµРЅРёСЋ)",
+    name_ru: "Давление в топливной рампе (относительно вакуума во впуске)",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -315,7 +315,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "23": {
     pid: "23",
     name_en: "Fuel rail pressure (diesel/direct injection)",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ РІ С‚РѕРїР»РёРІРЅРѕР№ СЂРµР№РєРµ (DI/РґРёР·РµР»СЊ)",
+    name_ru: "Давление в топливной рампе (дизель / непосредственный впрыск)",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -323,7 +323,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "2C": {
     pid: "2C",
     name_en: "Commanded EGR",
-    name_ru: "РљРѕРјР°РЅРґР° EGR",
+    name_ru: "Команда EGR",
     unit: "%",
     kind: "plain",
     category: "Emissions",
@@ -331,7 +331,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "2D": {
     pid: "2D",
     name_en: "EGR error",
-    name_ru: "РћС€РёР±РєР° EGR",
+    name_ru: "Ошибка EGR",
     unit: "%",
     kind: "plain",
     category: "Emissions",
@@ -339,7 +339,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "2E": {
     pid: "2E",
     name_en: "Commanded evaporative purge",
-    name_ru: "РљРѕРјР°РЅРґР° РїСЂРѕРґСѓРІРєРё EVAP",
+    name_ru: "Команда продувки адсорбера (EVAP purge)",
     unit: "%",
     kind: "plain",
     category: "Emissions",
@@ -347,7 +347,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "2F": {
     pid: "2F",
     name_en: "Fuel level input",
-    name_ru: "РЈСЂРѕРІРµРЅСЊ С‚РѕРїР»РёРІР°",
+    name_ru: "Уровень топлива",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
@@ -355,7 +355,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "30": {
     pid: "30",
     name_en: "Warm-ups since codes cleared",
-    name_ru: "РџСЂРѕРіСЂРµРІС‹ РїРѕСЃР»Рµ СЃР±СЂРѕСЃР° DTC",
+    name_ru: "Количество прогревов после очистки кодов",
     unit: "count",
     kind: "plain",
     category: "Other",
@@ -363,7 +363,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "31": {
     pid: "31",
     name_en: "Distance since codes cleared",
-    name_ru: "РџСЂРѕР±РµРі РїРѕСЃР»Рµ СЃР±СЂРѕСЃР° DTC",
+    name_ru: "Пробег после очистки кодов",
     unit: "km",
     kind: "plain",
     category: "Other",
@@ -371,7 +371,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "32": {
     pid: "32",
     name_en: "Evap system vapor pressure",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ РїР°СЂРѕРІ EVAP",
+    name_ru: "Давление паров системы EVAP",
     unit: "Pa",
     kind: "plain",
     category: "Pressures",
@@ -379,7 +379,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "33": {
     pid: "33",
     name_en: "Absolute barometric pressure (BARO)",
-    name_ru: "BARO вЂ” Р°С‚РјРѕСЃС„РµСЂРЅРѕРµ РґР°РІР»РµРЅРёРµ",
+    name_ru: "Абсолютное барометрическое давление (BARO)",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -387,7 +387,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "3C": {
     pid: "3C",
     name_en: "Catalyst temperature Bank1 Sensor1",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РєР°С‚Р°Р»РёР·Р°С‚РѕСЂР° B1S1",
+    name_ru: "Температура катализатора: банк 1, датчик 1",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -395,7 +395,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "3D": {
     pid: "3D",
     name_en: "Catalyst temperature Bank2 Sensor1",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РєР°С‚Р°Р»РёР·Р°С‚РѕСЂР° B2S1",
+    name_ru: "Температура катализатора: банк 2, датчик 1",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -403,7 +403,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "3E": {
     pid: "3E",
     name_en: "Catalyst temperature Bank1 Sensor2",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РєР°С‚Р°Р»РёР·Р°С‚РѕСЂР° B1S2",
+    name_ru: "Температура катализатора: банк 1, датчик 2",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -411,7 +411,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "3F": {
     pid: "3F",
     name_en: "Catalyst temperature Bank2 Sensor2",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РєР°С‚Р°Р»РёР·Р°С‚РѕСЂР° B2S2",
+    name_ru: "Температура катализатора: банк 2, датчик 2",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -419,7 +419,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "41": {
     pid: "41",
     name_en: "Monitor status this drive cycle",
-    name_ru: "РЎС‚Р°С‚СѓСЃ РјРѕРЅРёС‚РѕСЂРѕРІ С‚РµРєСѓС‰РµРіРѕ С†РёРєР»Р°",
+    name_ru: "Статус мониторов в текущем цикле поездки",
     unit: "flags",
     kind: "plain",
     category: "Status / Diagnostic",
@@ -427,7 +427,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "42": {
     pid: "42",
     name_en: "Control module voltage",
-    name_ru: "РќР°РїСЂСЏР¶РµРЅРёРµ РїРёС‚Р°РЅРёСЏ Р­Р‘РЈ",
+    name_ru: "Напряжение блока управления",
     unit: "V",
     kind: "plain",
     category: "Electrical",
@@ -435,7 +435,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "43": {
     pid: "43",
     name_en: "Absolute load value",
-    name_ru: "РђР±СЃРѕР»СЋС‚РЅР°СЏ РЅР°РіСЂСѓР·РєР°",
+    name_ru: "Абсолютная нагрузка",
     unit: "%",
     kind: "plain",
     category: "Other",
@@ -443,7 +443,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "44": {
     pid: "44",
     name_en: "Commanded air-fuel equivalence ratio",
-    name_ru: "РљРѕРјР°РЅРґСѓРµРјР°СЏ Р»СЏРјР±РґР° (СЌРєРІ. AFR)",
+    name_ru: "Командуемое эквивалентное соотношение воздух/топливо (λ)",
     unit: "ratio",
     kind: "plain",
     category: "Fuel / AFR",
@@ -451,7 +451,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "45": {
     pid: "45",
     name_en: "Relative throttle position",
-    name_ru: "РћС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕРµ РїРѕР»РѕР¶РµРЅРёРµ РґСЂРѕСЃСЃРµР»СЏ",
+    name_ru: "Относительное положение дросселя",
     unit: "%",
     kind: "plain",
     category: "Engine",
@@ -459,7 +459,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "46": {
     pid: "46",
     name_en: "Ambient air temperature",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РѕРєСЂСѓР¶Р°СЋС‰РµРіРѕ РІРѕР·РґСѓС…Р°",
+    name_ru: "Температура окружающего воздуха",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -467,7 +467,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "49": {
     pid: "49",
     name_en: "Accelerator pedal position D",
-    name_ru: "РџРµРґР°Р»СЊ РіР°Р·Р° D",
+    name_ru: "Положение педали акселератора D",
     unit: "%",
     kind: "plain",
     category: "Other",
@@ -475,7 +475,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "4A": {
     pid: "4A",
     name_en: "Accelerator pedal position E",
-    name_ru: "РџРµРґР°Р»СЊ РіР°Р·Р° E",
+    name_ru: "Положение педали акселератора E",
     unit: "%",
     kind: "plain",
     category: "Other",
@@ -483,7 +483,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "4B": {
     pid: "4B",
     name_en: "Accelerator pedal position F",
-    name_ru: "РџРµРґР°Р»СЊ РіР°Р·Р° F",
+    name_ru: "Положение педали акселератора F",
     unit: "%",
     kind: "plain",
     category: "Other",
@@ -491,7 +491,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "4C": {
     pid: "4C",
     name_en: "Commanded throttle actuator",
-    name_ru: "РљРѕРјР°РЅРґР° РїСЂРёРІРѕРґР° РґСЂРѕСЃСЃРµР»СЏ",
+    name_ru: "Команда привода дросселя",
     unit: "%",
     kind: "plain",
     category: "Engine",
@@ -499,7 +499,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "4D": {
     pid: "4D",
     name_en: "Time run with MIL on",
-    name_ru: "Р’СЂРµРјСЏ СЂР°Р±РѕС‚С‹ СЃ MIL",
+    name_ru: "Время работы с горящим MIL",
     unit: "min",
     kind: "plain",
     category: "Other",
@@ -507,7 +507,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "4E": {
     pid: "4E",
     name_en: "Time since codes cleared",
-    name_ru: "Р’СЂРµРјСЏ СЃ РјРѕРјРµРЅС‚Р° СЃР±СЂРѕСЃР° DTC",
+    name_ru: "Время после очистки кодов",
     unit: "min",
     kind: "plain",
     category: "Other",
@@ -515,7 +515,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "51": {
     pid: "51",
     name_en: "Fuel type",
-    name_ru: "РўРёРї С‚РѕРїР»РёРІР°",
+    name_ru: "Тип топлива",
     unit: "enum",
     kind: "plain",
     category: "Fuel / AFR",
@@ -523,7 +523,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "52": {
     pid: "52",
     name_en: "Ethanol fuel %",
-    name_ru: "РџСЂРѕС†РµРЅС‚ СЌС‚Р°РЅРѕР»Р°",
+    name_ru: "Доля этанола в топливе",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
@@ -531,7 +531,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "53": {
     pid: "53",
     name_en: "Absolute evap system vapor pressure",
-    name_ru: "РђР±СЃРѕР»СЋС‚РЅРѕРµ РґР°РІР»РµРЅРёРµ РїР°СЂРѕРІ EVAP",
+    name_ru: "Абсолютное давление паров системы EVAP",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -539,7 +539,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "59": {
     pid: "59",
     name_en: "Fuel rail absolute pressure",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ РІ СЂРµР№РєРµ (Р°Р±СЃРѕР»СЋС‚РЅРѕРµ)",
+    name_ru: "Абсолютное давление в топливной рампе",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -547,7 +547,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "5C": {
     pid: "5C",
     name_en: "Engine oil temperature",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РјР°СЃР»Р° РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Температура масла двигателя",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -555,15 +555,15 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "5E": {
     pid: "5E",
     name_en: "Engine fuel rate",
-    name_ru: "Р Р°СЃС…РѕРґ С‚РѕРїР»РёРІР° РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Расход топлива двигателя",
     unit: "L/h",
     kind: "plain",
     category: "Fuel / AFR",
   },
   "61": {
     pid: "61",
-    name_en: "DriverвЂ™s demand engine torque",
-    name_ru: "Р—Р°РїСЂРѕСЃ РІРѕРґРёС‚РµР»СЏ РїРѕ РјРѕРјРµРЅС‚Сѓ",
+    name_en: "Driver’ demand engine torque",
+    name_ru: "Запрошенный водителем крутящий момент двигателя",
     unit: "%",
     kind: "plain",
     category: "Engine",
@@ -571,7 +571,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "62": {
     pid: "62",
     name_en: "Actual engine torque",
-    name_ru: "Р¤Р°РєС‚РёС‡РµСЃРєРёР№ РјРѕРјРµРЅС‚ РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Фактический крутящий момент двигателя",
     unit: "%",
     kind: "plain",
     category: "Engine",
@@ -579,7 +579,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "63": {
     pid: "63",
     name_en: "Engine reference torque",
-    name_ru: "Р­С‚Р°Р»РѕРЅРЅС‹Р№ РјРѕРјРµРЅС‚ РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Эталонный крутящий момент двигателя",
     unit: "Nm",
     kind: "plain",
     category: "Engine",
@@ -587,7 +587,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "6F": {
     pid: "6F",
     name_en: "Turbo compressor inlet pressure",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ РЅР° РІС…РѕРґРµ РєРѕРјРїСЂРµСЃСЃРѕСЂР° С‚СѓСЂР±РёРЅС‹",
+    name_ru: "Давление на входе компрессора турбины",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -595,7 +595,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "73": {
     pid: "73",
     name_en: "Exhaust pressure",
-    name_ru: "Р”Р°РІР»РµРЅРёРµ РІС‹С…Р»РѕРїР°",
+    name_ru: "Давление выхлопа",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -603,7 +603,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "74": {
     pid: "74",
     name_en: "Turbocharger RPM",
-    name_ru: "РћР±РѕСЂРѕС‚С‹ С‚СѓСЂР±РёРЅС‹",
+    name_ru: "Обороты турбокомпрессора",
     unit: "rpm",
     kind: "plain",
     category: "Engine",
@@ -611,7 +611,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "77": {
     pid: "77",
     name_en: "Charge air cooler temperature",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РїРѕСЃР»Рµ РёРЅС‚РµСЂРєСѓР»РµСЂР° (CAC)",
+    name_ru: "Температура интеркулера",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -619,7 +619,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "78": {
     pid: "78",
     name_en: "Exhaust gas temperature bank 1",
-    name_ru: "EGT Р±Р°РЅРє 1",
+    name_ru: "Температура выхлопных газов, банк 1",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -627,7 +627,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "79": {
     pid: "79",
     name_en: "Exhaust gas temperature bank 2",
-    name_ru: "EGT Р±Р°РЅРє 2",
+    name_ru: "Температура выхлопных газов, банк 2",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -635,7 +635,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "84": {
     pid: "84",
     name_en: "Manifold surface temperature",
-    name_ru: "РўРµРјРїРµСЂР°С‚СѓСЂР° РїРѕРІРµСЂС…РЅРѕСЃС‚Рё РІРїСѓСЃРєР°",
+    name_ru: "Температура поверхности коллектора",
     unit: "В°C",
     kind: "plain",
     category: "Temperatures",
@@ -643,7 +643,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "87": {
     pid: "87",
     name_en: "Intake manifold absolute pressure (extended)",
-    name_ru: "MAP (СЂР°СЃС€РёСЂ.)",
+    name_ru: "Абсолютное давление во впуске (расшир.)",
     unit: "kPa",
     kind: "pressure",
     category: "Pressures",
@@ -651,7 +651,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "90": {
     pid: "90",
     name_en: "Engine exhaust flow rate",
-    name_ru: "Р Р°СЃС…РѕРґ РІС‹С…Р»РѕРїР° РґРІРёРіР°С‚РµР»СЏ",
+    name_ru: "Расход выхлопных газов двигателя",
     unit: "g/s",
     kind: "plain",
     category: "Engine",
@@ -659,7 +659,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "91": {
     pid: "91",
     name_en: "Fuel system percentage use",
-    name_ru: "РџСЂРѕС†РµРЅС‚ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ СЂРµР¶РёРјРѕРІ С‚РѕРїР»РёРІР°",
+    name_ru: "Доля использования топливной системы",
     unit: "%",
     kind: "plain",
     category: "Fuel / AFR",
@@ -667,7 +667,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "94": {
     pid: "94",
     name_en: "Transmission actual gear",
-    name_ru: "РўРµРєСѓС‰Р°СЏ РїРµСЂРµРґР°С‡Р°",
+    name_ru: "Текущая передача",
     unit: "gear",
     kind: "plain",
     category: "Transmission",
@@ -675,7 +675,7 @@ export const PID_CATALOG: Record<string, PidInfo> = {
   "96": {
     pid: "96",
     name_en: "Odometer (if provided)",
-    name_ru: "РћРґРѕРјРµС‚СЂ (РµСЃР»Рё РѕС‚РґР°С‘С‚ Р­Р‘РЈ)",
+    name_ru: "Одометр (если поддерживается)",
     unit: "km",
     kind: "plain",
     category: "Vehicle",
