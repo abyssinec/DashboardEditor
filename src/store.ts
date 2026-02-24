@@ -25,6 +25,22 @@ export type State = {
 
   assetBytes: Record<string, Uint8Array>;
   assetsPanel: AssetsPanelState;
+
+  // Runtime-only play mode (not persisted in undo/redo history)
+  playMode: {
+    enabled: boolean;
+    // overrides for rendering (previewValue for Arc/Bar, label text, image transform)
+    overrides: Record<
+      string,
+      {
+        previewValue?: number; // 0..100
+        labelText?: string;
+        x?: number;
+        y?: number;
+        rotation?: number;
+      }
+    >;
+  };
 };
 
 export const defaultProject = (): Project => {
@@ -45,6 +61,7 @@ const initial: State = {
   selectionAnchorId: undefined,
   assetBytes: {},
   assetsPanel: { isOpen: false, tab: "Images" },
+  playMode: { enabled: false, overrides: {} },
 };
 
 type Listener = () => void;
@@ -63,7 +80,7 @@ function safeClone<T>(v: T): T {
   // Prefer structuredClone, fallback to JSON for cases where runtime objects accidentally contain non-cloneables.
   try {
     // @ts-ignore
-    return safeClone(v);
+    return structuredClone(v);
   } catch {
     return JSON.parse(JSON.stringify(v));
   }
@@ -631,6 +648,41 @@ export const Actions = {
         selectedObjectIds: [],
         selectionAnchorId: undefined,
         assetsPanel: { isOpen: false, tab: "Images" },
+        playMode: { enabled: false, overrides: {} },
+      },
+      { history: false },
+    );
+  },
+
+  setPlayModeEnabled(enabled: boolean) {
+    setState(
+      {
+        ...state,
+        playMode: enabled ? { ...state.playMode, enabled: true } : { enabled: false, overrides: {} },
+        // In play mode we don't want editor selections.
+        selectedObjectId: enabled ? undefined : state.selectedObjectId,
+        selectedObjectIds: enabled ? [] : state.selectedObjectIds,
+        selectionAnchorId: enabled ? undefined : state.selectionAnchorId,
+      },
+      { history: false },
+    );
+  },
+
+  setPlayOverrides(overrides: State["playMode"]["overrides"]) {
+    setState(
+      {
+        ...state,
+        playMode: { ...state.playMode, overrides: overrides || {} },
+      },
+      { history: false },
+    );
+  },
+
+  clearPlayOverrides() {
+    setState(
+      {
+        ...state,
+        playMode: { ...state.playMode, overrides: {} },
       },
       { history: false },
     );

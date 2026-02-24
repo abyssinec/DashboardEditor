@@ -5,6 +5,7 @@ import type { AnyObj } from "../types";
 import { ColorPicker } from "./ColorPicker";
 import { clamp, clampInt, normalizeHex } from "../utils/inspector";
 import { Dropdown } from "./Dropdown";
+import { DraftNumberInput } from "./DraftNumberInput";
 import { PID_CATALOG } from "../pids";
 
 const MIN_OBJ_W = 1;

@@ -1,8 +1,28 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 
+function PlayIcon({ size = 40 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 22 22" fill="none" aria-hidden="true">
+      <path
+        d="M9 7.7c0-1.28 1.39-2.06 2.48-1.38l8.34 5.3c1.02.65 1.02 2.12 0 2.77l-8.34 5.3C10.39 20.36 9 19.58 9 18.3V7.7z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function StopIcon({ size = 40 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="7" y="7" width="10" height="10" rx="2.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 import { AssetsPanel } from "./components/AssetsPanel";
 import { Inspector } from "./components/Inspector";
 import { LeftPanel } from "./components/LeftPanel";
+import { PlayModePage } from "./components/PlayModePage";
 import { ViewPanel } from "./components/ViewPanel";
 import { useStore } from "./hooks/useStore";
 import { Actions, getState, redo, undo } from "./store";
@@ -19,6 +39,7 @@ export default function App() {
   const project = useStore((s) => s.project);
   const assetBytes = useStore((s) => s.assetBytes);
   const assetsOpen = useStore((s) => s.assetsPanel.isOpen);
+  const playEnabled = useStore((s) => s.playMode.enabled);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const projectName = project.project.name || "ProjectName";
@@ -45,6 +66,18 @@ export default function App() {
     function onKeyDown(e: KeyboardEvent) {
       // не перехватываем когда печатаем
       if (isTypingTarget(e.target)) return;
+
+      // In play mode: keep it minimal
+      const ps = getState().playMode?.enabled;
+      if (ps) {
+        const key = (e.key || "").toLowerCase();
+        if (key === "escape") {
+          e.preventDefault();
+          Actions.setPlayModeEnabled(false);
+          Actions.clearPlayOverrides();
+        }
+        return;
+      }
 
       const key = (e.key || "").toLowerCase();
       const mod = e.ctrlKey || e.metaKey; // Ctrl / Cmd
@@ -252,27 +285,41 @@ export default function App() {
           <div className="topBtn" onClick={() => void onExport()}>
             Export
           </div>
+          <div 
+            className="topBtn"
+            onClick={() => {
+              Actions.setPlayModeEnabled(!playEnabled);
+              if (playEnabled) Actions.clearPlayOverrides();
+            }}
+            style={{ opacity: playEnabled ? 1 : 0.92 }}
+          >
+            {playEnabled ? <span style={{ color: "var(--insGreen)" }}><StopIcon /></span> : <span style={{ color: "var(--insGreen)" }}><PlayIcon /></span>}
+          </div>
         </div>
       </div>
 
       {/* MAIN */}
-      <div className="mainGrid">
-        <div className="panel">
-          <div className="panelInner">
-            <LeftPanel />
+      {!playEnabled ? (
+        <div className="mainGrid">
+          <div className="panel">
+            <div className="panelInner">
+              <LeftPanel />
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panelInner">
+              <ViewPanel />
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panelInner">{assetsOpen ? <AssetsPanel /> : <Inspector />}</div>
           </div>
         </div>
-
-        <div className="panel">
-          <div className="panelInner">
-            <ViewPanel />
-          </div>
-        </div>
-
-        <div className="panel">
-          <div className="panelInner">{assetsOpen ? <AssetsPanel /> : <Inspector />}</div>
-        </div>
-      </div>
+      ) : (
+        <PlayModePage />
+      )}
 
       <input
         ref={fileRef}

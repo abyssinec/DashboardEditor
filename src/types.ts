@@ -32,7 +32,6 @@ export type Gauge = {
 };
 
 export type CapStyle = "Flat" | "Round";
- = "Flat" | "Round";
 
 export type ScreenStyle = {
   color: string;
@@ -120,6 +119,8 @@ export type LabelSettings = {
   italic: "Yes" | "No";
   align: "Left";
   wrap: "No wrap";
+  valueFormat?: "Auto" | "WithDecimal" | "WithoutDecimal";
+
 };
 
 export type LabelStyle = {
@@ -169,12 +170,12 @@ export type ArcStyle = {
   alpha: number;
   glow: number;
   thickness: number;
-  capStyle: "Flat";
+  capStyle: CapStyle;
   backgroundColor: string;
   backgroundAlpha: number;
   backgroundGlow: number;
   backgroundThickness: number;
-  backgroundCapStyle: "Flat";
+  backgroundCapStyle: CapStyle;
 };
 
 export type BarSettings = {
@@ -189,7 +190,7 @@ export type BarStyle = {
   backgroundAlpha: number;
   backgroundGlow: number;
   radius: number;
-  capStyle: "Flat";
+  capStyle: CapStyle;
   backgroundCapStyle: CapStyle;
 };
 

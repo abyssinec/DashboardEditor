@@ -74,11 +74,17 @@ function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   ctx.quadraticCurveTo(x, y, x + rr, y);
 }
 
-function objectBounds(o: AnyObj) {
+function baseObjectBounds(
+  o: AnyObj,
+  overrides?: Record<string, { x?: number; y?: number; rotation?: number; previewValue?: number; labelText?: string }>,
+) {
+  const ov = overrides ? overrides[o.id] : undefined;
+  const ox = ov?.x ?? (o.transform as any).x ?? 0;
+  const oy = ov?.y ?? (o.transform as any).y ?? 0;
   if (o.type === "Label") {
     const w = (o.transform as any).width ?? 220;
     const h = (o.transform as any).height ?? 60;
-    return { x: o.transform.x, y: o.transform.y, w, h };
+    return { x: ox, y: oy, w, h };
   }
  if (o.type === "Image") {
   const t: any = o.transform as any;
@@ -94,20 +100,20 @@ function objectBounds(o: AnyObj) {
   const w = Number.isFinite(wNew) && wNew > 0 ? wNew : wLegacy;
   const h = Number.isFinite(hNew) && hNew > 0 ? hNew : hLegacy;
 
-  return { x: o.transform.x, y: o.transform.y, w, h };
+  return { x: ox, y: oy, w, h };
 }
  if (o.type === "Arc") {
   const w = (o.transform as any).width ?? 240;
   const h = (o.transform as any).height ?? 240;
-  return { x: o.transform.x, y: o.transform.y, w, h };
+  return { x: ox, y: oy, w, h };
 }
   if ((o as any).type === "Frame") {
     const w = (o.transform as any).width ?? 420;
     const h = (o.transform as any).height ?? 260;
-    return { x: (o.transform as any).x ?? 0, y: (o.transform as any).y ?? 0, w, h };
+    return { x: ox, y: oy, w, h };
   }
 // Bar
-  return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
+  return { x: ox, y: oy, w: (o.transform as any).width, h: (o.transform as any).height };
 }
 
 function degToRad(deg: number) {
@@ -202,11 +208,28 @@ export function CanvasView() {
   const selectedScreenId = useStore((s) => s.selectedScreenId);
   const screen = useStore((s) => s.project.screens.find((x) => x.id === selectedScreenId)!);
   const selectedObjectId = useStore((s) => s.selectedObjectId);
+  const playEnabled = useStore((s) => s.playMode.enabled);
+  const playOverrides = useStore((s) => s.playMode.overrides);
+
+  // Runtime-aware bounds (play mode can animate/move Image objects)
+  const objectBounds = useMemo(() => {
+    return (o: AnyObj) => baseObjectBounds(o, playOverrides as any);
+  }, [playOverrides]);
 
   // Signature to force rerender on deep mutations (width/height/x/y/rotation/z/etc.)
   const screenSig = useStore((s) => {
     const sc = s.project.screens.find((x) => x.id === selectedScreenId);
     if (!sc) return "";
+    const ov = (s.playMode && s.playMode.enabled ? s.playMode.overrides : {}) || {};
+    const ovSig = s.playMode?.enabled
+      ? Object.keys(ov)
+          .sort()
+          .map((id) => {
+            const o = (ov as any)[id] || {};
+            return [id, o.previewValue, o.labelText, o.x, o.y, o.rotation].join(",");
+          })
+          .join("|")
+      : "";
     return (
       sc.id +
       "|" +
@@ -250,9 +273,21 @@ export function CanvasView() {
             (o.settings as any)?.fillMode,
             // style
             (o.style as any)?.alpha,
+            // Arc/Bar preview (affects rendering)
+            (o.settings as any)?.previewValue,
+            // Image animation settings (affects rendering in play mode)
+            (o.settings as any)?.animation?.type,
+            (o.settings as any)?.animation?.startX,
+            (o.settings as any)?.animation?.startY,
+            (o.settings as any)?.animation?.endX,
+            (o.settings as any)?.animation?.endY,
+            (o.settings as any)?.animation?.startRot,
+            (o.settings as any)?.animation?.endRot,
           ].join(":"),
         )
-        .join(",")
+        .join(",") +
+      "|" +
+      ovSig
     );
   });
 
@@ -530,6 +565,7 @@ export function CanvasView() {
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
+    if (playEnabled) return;
 
     const onWheelNative = (ev: WheelEvent) => {
       ev.preventDefault();
@@ -619,7 +655,7 @@ export function CanvasView() {
 
     el.addEventListener("wheel", onWheelNative, { passive: false });
     return () => el.removeEventListener("wheel", onWheelNative);
-  }, [screen.settings.width, screen.settings.height, sorted, hiddenById, byIdResolved]);
+  }, [screen.settings.width, screen.settings.height, sorted, hiddenById, byIdResolved, playEnabled]);
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
@@ -999,13 +1035,14 @@ export function CanvasView() {
     for (const o of sorted) {
       // Skip hidden objects (inherited from parent frames)
       if (hiddenById.get(o.id)) continue;
+      const ov = playOverrides ? (playOverrides as any)[o.id] : undefined;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;
       const h = b.h * vp.zoom;
 
       // rotation
-      const rotDeg = (o.transform as any).rotation ?? 0;
+      const rotDeg = (ov?.rotation ?? (o.transform as any).rotation) ?? 0;
       const rot = degToRad(rotDeg);
       const cx = p.sx + w / 2;
       const cy = p.sy + h / 2;
@@ -1031,7 +1068,7 @@ export function CanvasView() {
 
       if (o.type === "Label") {
         const alpha = (o.style.alpha ?? 100) / 100;
-        const txt = o.settings.text?.length ? o.settings.text : o.name;
+        const txt = (ov?.labelText ?? (o.settings.text?.length ? o.settings.text : o.name)) as string;
 
         const bold = o.settings.bold === "Yes";
         const italic = o.settings.italic === "Yes";
@@ -1306,7 +1343,8 @@ ctx.stroke();
 ctx.restore();
 
   // value arc
-  const value = clamp(((o.settings as any)?.previewValue ?? 100) / 100, 0, 1);
+  const pv = (ov?.previewValue ?? (o.settings as any)?.previewValue ?? 100) as number;
+  const value = clamp(pv / 100, 0, 1);
   const valueEnd = startRad0 + (endRad0 - startRad0) * value;
 
   const mainGlow = (o.style.glow ?? 0) * vp.zoom;
@@ -1329,7 +1367,8 @@ ctx.restore();
   ctx.restore();
 } else if (o.type === "Bar") {
         const alpha = (o.style.alpha ?? 100) / 100;
-        const value = clamp((o.settings.previewValue ?? 50) / 100, 0, 1);
+        const pv = (ov?.previewValue ?? (o.settings as any).previewValue ?? 50) as number;
+        const value = clamp(pv / 100, 0, 1);
 
         const radius = o.style.radius ?? 0;
         const cap = (o.style.capStyle ?? "Flat") as any;
@@ -1663,10 +1702,10 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     <div
       ref={wrapRef}
       style={{ position: "absolute", inset: 0 }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={endDrag}
-      onMouseLeave={endDrag}
+      onMouseDown={playEnabled ? undefined : onMouseDown}
+      onMouseMove={playEnabled ? undefined : onMouseMove}
+      onMouseUp={playEnabled ? undefined : endDrag}
+      onMouseLeave={playEnabled ? undefined : endDrag}
       
     >
       <canvas

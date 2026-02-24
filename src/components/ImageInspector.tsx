@@ -3,6 +3,7 @@ import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { AnyObj } from "../types";
 import { Dropdown } from "./Dropdown";
+import { DraftNumberInput } from "./DraftNumberInput";
 import { PID_CATALOG } from "../pids";
 import { clamp, clampInt } from "../utils/inspector";
 

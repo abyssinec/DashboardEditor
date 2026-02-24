@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-import { clamp, clampInt } from "../utils/ui";
+import { clamp } from "../utils/ui";
 
 type Props = {
   label: string;
@@ -15,6 +15,11 @@ type Props = {
   suffix?: string;
 };
 
+function isTransient(s: string) {
+  const t = s.trim();
+  return t === "" || t === "-" || t === "+" || t === "-." || t === ".";
+}
+
 export function NumericField({
   label,
   value,
@@ -27,6 +32,12 @@ export function NumericField({
   const safeMin = min ?? -1e9;
   const safeMax = max ?? 1e9;
 
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
   return (
     <div className="insRow">
       <div className="insLabel">{label}</div>
@@ -35,11 +46,34 @@ export function NumericField({
         <input
           className="numInput"
           type="text"
-          inputMode="numeric"
-          value={Number.isFinite(value) ? String(value) : "0"}
+          inputMode="text"
+          value={draft}
           onChange={(e) => {
-            const next = clampInt(e.target.value, value);
-            onChange(clamp(next, safeMin, safeMax));
+            const s = e.target.value;
+            setDraft(s);
+
+            if (isTransient(s)) return;
+            const n = Number.parseInt(String(s), 10);
+            if (!Number.isFinite(n)) return;
+
+            onChange(clamp(n, safeMin, safeMax));
+          }}
+          onBlur={() => {
+            if (isTransient(draft)) {
+              setDraft(String(value));
+              return;
+            }
+            const n = Number.parseInt(String(draft), 10);
+            if (!Number.isFinite(n)) {
+              setDraft(String(value));
+              return;
+            }
+            const clamped = clamp(n, safeMin, safeMax);
+            if (clamped !== value) onChange(clamped);
+            setDraft(String(clamped));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
         />
 
@@ -47,14 +81,22 @@ export function NumericField({
           <button
             type="button"
             aria-label="Increase"
-            onClick={() => onChange(clamp(value + step, safeMin, safeMax))}
+            onClick={() => {
+              const next = clamp(value + step, safeMin, safeMax);
+              onChange(next);
+              setDraft(String(next));
+            }}
           >
             ▲
           </button>
           <button
             type="button"
             aria-label="Decrease"
-            onClick={() => onChange(clamp(value - step, safeMin, safeMax))}
+            onClick={() => {
+              const next = clamp(value - step, safeMin, safeMax);
+              onChange(next);
+              setDraft(String(next));
+            }}
           >
             ▼
           </button>

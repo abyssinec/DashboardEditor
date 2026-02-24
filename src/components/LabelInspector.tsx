@@ -6,6 +6,7 @@ import type { LabelObj } from "../types";
 import { ColorPicker } from "./ColorPicker";
 import { clamp, clampInt, normalizeHex } from "../utils/inspector";
 import { Dropdown } from "./Dropdown";
+import { DraftNumberInput } from "./DraftNumberInput";
 import { PID_CATALOG } from "../pids";
 
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
@@ -384,7 +385,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               />
             </div>
           </Row2>
-        </div>
+</div>
       </Collapse>
 
       <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
@@ -548,6 +549,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
 
       <Collapse title="Gauge settings" open={openGauge} onToggle={() => setOpenGauge((v) => !v)}>
         <div style={{ marginTop: 2 }}>
+
           <Label>Data type</Label>
           <Dropdown
             value={obj.gauge.dataType || "None"}
@@ -597,7 +599,23 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
               />
             </div>
           </Row2>
-        </div>
+        
+        {obj.gauge.dataType !== "None" && (
+
+                  <div style={{ marginTop: 8 }}>
+                    <Label>Value format</Label>
+                    <Dropdown
+                      value={obj.settings.valueFormat || "Auto"}
+                      onChange={(v) => Actions.updateObjectDeep(obj.id, ["settings", "valueFormat"], v as any)}
+                      options={[
+                        { value: "Auto", label: "Auto" },
+                        { value: "WithoutDecimal", label: "Without decimal" },
+                        { value: "WithDecimal", label: "With decimal" },
+                      ]}
+                    />
+                  </div>
+        )}
+</div>
 
         <div style={{ marginTop: 18 }}>
           <Row2>

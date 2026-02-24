@@ -81,6 +81,9 @@ body {
 }
 
 .topBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   user-select: none;
   font-size: 14px;
@@ -112,6 +115,147 @@ body {
   overflow: hidden;
   min-height: 0;
   
+}
+
+/* Play mode */
+.playRoot {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.playCanvasWrap {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.playCanvasFrame {
+  position: relative;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.playControls {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 10px 12px;
+  overflow: hidden;
+  width: min(40vw, 900px);
+  margin: 0 auto;
+}
+
+.playControlsTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.playHint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.playBtn {
+  background: var(--field);
+  color: var(--text);
+  border: none;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.playBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.playSliders {
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.playEmpty {
+  font-size: 13px;
+  opacity: 0.75;
+  padding: 10px 2px;
+}
+
+.playSliderRow {
+  display: grid;
+  grid-template-columns: 180px 1fr 80px;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border2);
+}
+
+.playSliderLabel .n {
+  font-size: 13px;
+  line-height: 1.15;
+}
+.playSliderLabel .t {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.playSlider {
+  width: 100%;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Range track + thumb (Play Mode) */
+.playSlider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+}
+.playSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--insGreen);
+  border: none;
+  margin-top: -4px;
+}
+.playSlider:focus { outline: none; }
+.playSlider:focus::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.playSlider::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+}
+.playSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--insGreen);
+  border: none;
+}
+
+@media (max-width: 900px) {
+  .playControls { width: 100%; }
+}
+
+.playSliderValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  opacity: 0.9;
 }
 
 /* Panels */
@@ -936,4 +1080,29 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 @media (max-width: 1080px) {
   .mainGrid { grid-template-columns: 260px 1fr 340px; }
+}
+
+
+/* Center left panel section titles (Screens) */
+.leftPanel .sectionTitle,
+.leftPanel .leftTitle,
+.leftPanel h3 {
+  text-align: center;
+}
+
+
+.playRowTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Force center Screens title */
+.leftPanel h2,
+.leftPanel h3,
+.leftPanel .title,
+.leftPanel .panelTitle {
+  text-align: center !important;
+  width: 100%;
 }
