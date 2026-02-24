@@ -375,6 +375,34 @@ export function CanvasView() {
   const gestureActiveRef = useRef(false);
   const endDragRef = useRef<() => void>(() => {});
 
+  // Throttle transform writes to the store to at most 1x per animation frame during drag/resize.
+  const pendingTransformRef = useRef<{
+    id: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  } | null>(null);
+  const transformRafRef = useRef<number | null>(null);
+
+  function scheduleTransformWrite(update: { id: string; x?: number; y?: number; width?: number; height?: number }) {
+    const cur = pendingTransformRef.current;
+    pendingTransformRef.current = cur && cur.id === update.id ? { ...cur, ...update } : { ...update };
+
+    if (transformRafRef.current != null) return;
+    transformRafRef.current = requestAnimationFrame(() => {
+      transformRafRef.current = null;
+      const u = pendingTransformRef.current;
+      pendingTransformRef.current = null;
+      if (!u) return;
+
+      if (u.x != null) Actions.updateObjectDeep(u.id, ["transform", "x"], u.x);
+      if (u.y != null) Actions.updateObjectDeep(u.id, ["transform", "y"], u.y);
+      if (u.width != null) Actions.updateObjectDeep(u.id, ["transform", "width"], u.width);
+      if (u.height != null) Actions.updateObjectDeep(u.id, ["transform", "height"], u.height);
+    });
+  }
+
   useEffect(() => {
     const onUp = () => endDragRef.current();
     window.addEventListener("mouseup", onUp, true);
@@ -414,6 +442,9 @@ export function CanvasView() {
           (document as any).fonts.add(ff);
           reg.add(id);
           added = true;
+          try {
+            URL.revokeObjectURL(url);
+          } catch {}
         } catch {
           reg.add(id);
         }
@@ -426,6 +457,38 @@ export function CanvasView() {
       }
     })();
   }, [fontAssets, assetBytes]);
+
+
+  // Image objectURL cache housekeeping:
+  // - revoke URLs once images are loaded (done in loader)
+  // - revoke stale URLs when assets change
+  // - revoke everything on unmount
+  useEffect(() => {
+    const cache: Map<string, HTMLImageElement> = ((CanvasView as any)._imgCache ??= new Map<string, HTMLImageElement>());
+    const urlCache: Map<string, string> = ((CanvasView as any)._imgUrlCache ??= new Map<string, string>());
+
+    const validIds = new Set<string>((imageAssets as any[]).map((a) => a.id).filter(Boolean));
+
+    // Drop stale entries
+    for (const [id, url] of [...urlCache.entries()]) {
+      if (!validIds.has(id) || !(assetBytes as any)[id]) {
+        try { URL.revokeObjectURL(url); } catch {}
+        urlCache.delete(id);
+      }
+    }
+    for (const id of [...cache.keys()]) {
+      if (!validIds.has(id) || !(assetBytes as any)[id]) cache.delete(id);
+    }
+
+    return () => {
+      for (const url of urlCache.values()) {
+        try { URL.revokeObjectURL(url); } catch {}
+      }
+      urlCache.clear();
+      cache.clear();
+    };
+  }, [imageAssets, assetBytes]);
+
 
   // Space for pan
   useEffect(() => {
@@ -828,8 +891,23 @@ export function CanvasView() {
       const im = new Image();
       im.onload = () => {
         cache.set(imgId, im);
+        // после загрузки можно освобождать objectURL — данные уже в памяти Image
+        try {
+          const u = urlCache.get(imgId);
+          if (u) URL.revokeObjectURL(u);
+        } catch {}
+        urlCache.delete(imgId);
+
         // форсим перерисовку сразу после загрузки
         requestAnimationFrame(() => setImgVersion((v) => v + 1));
+      };
+      im.onerror = () => {
+        // если ошибка — тоже чистим url, чтобы не течь
+        try {
+          const u = urlCache.get(imgId);
+          if (u) URL.revokeObjectURL(u);
+        } catch {}
+        urlCache.delete(imgId);
       };
       im.src = url;
 
@@ -1183,10 +1261,13 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
         newH = MIN_OBJ_H;
       }
 
-      Actions.updateObjectDeep(resizing.id, ["transform", "x"], Math.round(newX));
-      Actions.updateObjectDeep(resizing.id, ["transform", "y"], Math.round(newY));
-      Actions.updateObjectDeep(resizing.id, ["transform", "width"], Math.round(newW));
-      Actions.updateObjectDeep(resizing.id, ["transform", "height"], Math.round(newH));
+      scheduleTransformWrite({
+        id: resizing.id,
+        x: Math.round(newX),
+        y: Math.round(newY),
+        width: Math.round(newW),
+        height: Math.round(newH),
+      });
       return;
     }
 
@@ -1204,8 +1285,11 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     const newX = w.x - dragObj.dx + sw / 2;
     const newY = w.y - dragObj.dy + sh / 2;
 
-    Actions.updateObjectDeep(dragObj.id, ["transform", "x"], Math.round(newX));
-    Actions.updateObjectDeep(dragObj.id, ["transform", "y"], Math.round(newY));
+    scheduleTransformWrite({
+      id: dragObj.id,
+      x: Math.round(newX),
+      y: Math.round(newY),
+    });
   }
 
   function endDrag() {

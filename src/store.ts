@@ -51,10 +51,17 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let state: State = initial;
 
-// --- Undo / Redo history ---
+// --- Undo / Redo history (project-only snapshots) ---
+// We intentionally DO NOT store heavy/ephemeral UI state (selection, panels, assetBytes) in history.
+// This prevents huge memory usage and avoids undo/redo changing UI selection unexpectedly.
+type HistorySnapshot = {
+  project: Project;
+  selectedScreenId: string;
+};
+
 type History = {
-  past: State[];
-  future: State[];
+  past: HistorySnapshot[];
+  future: HistorySnapshot[];
   limit: number;
 };
 
@@ -73,8 +80,44 @@ type Clipboard =
 
 let clipboard: Clipboard = null;
 
-function cloneSnapshot(s: State): State {
-  return structuredClone(s);
+function cloneHistorySnapshot(s: State): HistorySnapshot {
+  // Project data is serializable (no functions), so structuredClone is OK and fast enough.
+  return structuredClone({ project: s.project, selectedScreenId: s.selectedScreenId });
+}
+
+function ensureValidSelection(next: State): State {
+  const screen = next.project.screens.find((x) => x.id === next.selectedScreenId) ?? next.project.screens[0];
+  const selectedScreenId = screen?.id ?? next.selectedScreenId;
+
+  let selectedObjectId = next.selectedObjectId;
+  let selectedObjectIds = next.selectedObjectIds ?? [];
+
+  const objects = (screen?.objects ?? []) as AnyObj[];
+  const idsSet = new Set(objects.map((o) => o.id));
+
+  // Drop ids that no longer exist after undo/redo.
+  selectedObjectIds = selectedObjectIds.filter((id) => idsSet.has(id));
+  if (selectedObjectId && !idsSet.has(selectedObjectId)) selectedObjectId = undefined;
+
+  // If we have multi-selection but no primary, pick the last one.
+  if (!selectedObjectId && selectedObjectIds.length) selectedObjectId = selectedObjectIds[selectedObjectIds.length - 1];
+
+  return {
+    ...next,
+    selectedScreenId,
+    selectedObjectId,
+    selectedObjectIds,
+  };
+}
+
+function applyHistorySnapshot(base: State, snap: HistorySnapshot): State {
+  // Preserve UI/ephemeral parts from `base`, but swap project data.
+  const merged: State = {
+    ...base,
+    project: snap.project,
+    selectedScreenId: snap.selectedScreenId,
+  };
+  return ensureValidSelection(merged);
 }
 
 export function getState() {
@@ -95,7 +138,7 @@ function notify() {
 }
 
 function pushPastSnapshotOnce() {
-  const prevSnap = cloneSnapshot(state);
+  const prevSnap = cloneHistorySnapshot(state);
   history.past.push(prevSnap);
   if (history.past.length > history.limit) history.past.shift();
   history.future = [];
@@ -123,7 +166,10 @@ function commit(next: State) {
 
 function setState(next: State, opts?: SetStateOpts) {
   const wantHistory = opts?.history !== false;
-  const useHistory = wantHistory && historyBatchDepth === 0;
+
+  // Only record history when project data or active screen changes, and we are not inside a gesture batch.
+  const projectChanged = next.project !== state.project || next.selectedScreenId !== state.selectedScreenId;
+  const useHistory = wantHistory && projectChanged && historyBatchDepth === 0;
 
   if (useHistory) commit(next);
   else {
@@ -135,17 +181,17 @@ function setState(next: State, opts?: SetStateOpts) {
 export function undo() {
   const prev = history.past.pop();
   if (!prev) return;
-  history.future.push(cloneSnapshot(state));
-  state = prev;
+  history.future.push(cloneHistorySnapshot(state));
+  state = applyHistorySnapshot(state, prev);
   notify();
 }
 
 export function redo() {
   const next = history.future.pop();
   if (!next) return;
-  history.past.push(cloneSnapshot(state));
+  history.past.push(cloneHistorySnapshot(state));
   if (history.past.length > history.limit) history.past.shift();
-  state = next;
+  state = applyHistorySnapshot(state, next);
   notify();
 }
 
