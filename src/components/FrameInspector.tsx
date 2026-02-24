@@ -107,7 +107,9 @@ function SpinNumber({
         value={Number.isFinite(value) ? value : 0}
         onChange={(e) => {
           const raw = clampInt(parseInt(e.target.value || "0", 10), 0);
-          const n = Math.max(min, Math.min(max, raw));
+          const safeMin = typeof min === 'number' ? min : -1000000;
+          const safeMax = typeof max === 'number' ? max : 1000000;
+          const n = Math.max(safeMin, Math.min(safeMax, raw));
           onChange(n);
         }}
         inputMode="numeric"
@@ -116,14 +118,14 @@ function SpinNumber({
         <button
           type="button"
           className="insSpinBtn"
-          onClick={() => onChange((Math.max(min, Math.min(max, clampInt((value ?? 0) + step, 0)))))}
+          onClick={() => onChange(((() => { const safeMin = typeof min === 'number' ? min : -1000000; const safeMax = typeof max === 'number' ? max : 1000000; return Math.max(safeMin, Math.min(safeMax, clampInt((value ?? 0) + step, 0))); })()))}
         >
           ▲
         </button>
         <button
           type="button"
           className="insSpinBtn"
-          onClick={() => onChange((Math.max(min, Math.min(max, clampInt((value ?? 0) - step, 0)))))}
+          onClick={() => onChange(((() => { const safeMin = typeof min === 'number' ? min : -1000000; const safeMax = typeof max === 'number' ? max : 1000000; return Math.max(safeMin, Math.min(safeMax, clampInt((value ?? 0) - step, 0))); })()))}
         >
           ▼
         </button>
