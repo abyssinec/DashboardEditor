@@ -3,6 +3,7 @@ import { useStore } from "../hooks/useStore";
 import { Actions } from "../store";
 import type { AnyObj } from "../types";
 import { Dropdown } from "./Dropdown";
+import { PID_CATALOG } from "../pids";
 import { clamp, clampInt } from "../utils/inspector";
 
 const MIN_OBJ_W = 1;
@@ -121,6 +122,8 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
   const [openTransform, setOpenTransform] = useState(true);
   const [openSettings, setOpenSettings] = useState(true);
   const [openStyle, setOpenStyle] = useState(true);
+  const [openAnimation, setOpenAnimation] = useState(true);
+  const [openGauge, setOpenGauge] = useState(true);
 
   const x = imageObj?.transform?.x ?? 0;
   const y = imageObj?.transform?.y ?? 0;
@@ -131,6 +134,34 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
   const height = imageObj?.transform?.height ?? Math.round(140 * (imageObj?.transform?.scaleY ?? 1));
 
   const alpha = clampInt(imageObj?.style?.alpha, 100);
+
+  const dataTypeOptions = useMemo(
+    () => [
+      { value: "None", label: "None" },
+      { value: "OBD_CAN", label: "OBD CAN" },
+      { value: "CLUSTER_CAN", label: "Cluster CAN" },
+    ],
+    [],
+  );
+
+  const pidOptions = useMemo(() => {
+    const list = Object.values(PID_CATALOG)
+      .slice()
+      .sort((a, b) => (a.pid < b.pid ? -1 : a.pid > b.pid ? 1 : 0))
+      .map((p) => ({ value: p.pid, label: `${p.pid} — ${p.name_ru || p.name_en}${p.unit ? ` (${p.unit})` : ""}` }));
+    return [{ value: "None", label: "None" }, ...list];
+  }, []);
+
+
+  const animationTypeOptions = useMemo(
+    () => [
+      { value: "None", label: "None" },
+      { value: "Rotation", label: "Rotation" },
+      { value: "Move", label: "Move" },
+      { value: "Rotation+Move", label: "Rotation + Move" },
+    ],
+    [],
+  );
 
   const keepAspectValue = (imageObj?.settings?.keepAspect ?? "Yes") as "Yes" | "No";
   const fillModeValue = (imageObj?.settings?.fillMode ?? "Fill") as "Fit" | "Fill" | "Stretch";
@@ -252,7 +283,190 @@ export function ImageInspector({ obj }: { obj: AnyObj }) {
       <Collapse title="Style" open={openStyle} onToggle={() => setOpenStyle((v) => !v)}>
         <Label>Alpha</Label>
         <SpinNumber value={alpha} min={0} max={100} step={1} onChange={(v) => Actions.updateObjectDeep(obj.id, ["style", "alpha"], v)} />
+      </Collapse><Collapse title="Gauge settings" open={openGauge} onToggle={() => setOpenGauge((v) => !v)}>
+        <div style={{ marginTop: 2 }}>
+          <Label>Data type</Label>
+          <Dropdown
+            value={obj.gauge.dataType || "None"}
+            options={dataTypeOptions as any}
+            onChange={(v) => {
+              Actions.updateObjectDeep(obj.id, ["gauge", "dataType"], v);
+              if (v !== "OBD_CAN" && obj.gauge.gaugeType !== "None") {
+                Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], "None");
+              }
+            }}
+          />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <Label>Gauge type</Label>
+          <Dropdown
+            value={obj.gauge.gaugeType || "None"}
+            options={(obj.gauge.dataType === "OBD_CAN" ? pidOptions : [{ value: "None", label: "(empty)" }]) as any}
+            disabled={obj.gauge.dataType !== "OBD_CAN"}
+            onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], v)}
+          />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <Row2>
+            <div>
+              <Label>Range min (optional)</Label>
+              <TextField
+                value={obj.gauge.rangeMin ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const n = Number(raw);
+                  Actions.updateObjectDeep(obj.id, ["gauge", "rangeMin"], raw.trim() === "" || !isFinite(n) ? undefined : n);
+                }}
+              />
+            </div>
+            <div>
+              <Label>Range max (optional)</Label>
+              <TextField
+                value={obj.gauge.rangeMax ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const n = Number(raw);
+                  Actions.updateObjectDeep(obj.id, ["gauge", "rangeMax"], raw.trim() === "" || !isFinite(n) ? undefined : n);
+                }}
+              />
+            </div>
+          </Row2>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <Row2>
+            <div>
+              <Label>Update rate (ms)</Label>
+              <SpinNumber
+                value={obj.gauge.updateRateMs}
+                min={1}
+                max={100000}
+                onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "updateRateMs"], v)}
+              />
+            </div>
+            <div>
+              <Label>Smoothing factor</Label>
+              <TextField
+                value={String(obj.gauge.smoothingFactor)}
+                onChange={(e) =>
+                  Actions.updateObjectDeep(obj.id, ["gauge", "smoothingFactor"], Number(e.target.value) || 0)
+                }
+              />
+            </div>
+          </Row2>
+        </div>
       </Collapse>
-    </div>
+    
+
+      
+      <Collapse title="Animation settings" open={openAnimation} onToggle={() => setOpenAnimation((v) => !v)}>
+        <div style={{ marginTop: 2 }}>
+          <Label>Animation type</Label>
+          <Dropdown
+            value={obj.settings.animation?.type || "None"}
+            options={animationTypeOptions as any}
+            onChange={(v) => {
+              // ensure animation object exists
+              if (!obj.settings.animation || typeof obj.settings.animation !== "object") {
+                Actions.updateObjectDeep(obj.id, ["settings", "animation"], { type: "None" });
+              }
+              Actions.updateObjectDeep(obj.id, ["settings", "animation", "type"], v);
+
+              // defaults: start pos/rot use current transform so user doesn't need to retype
+              const needsMove = v === "Move" || v === "Rotation+Move";
+              const needsRot = v === "Rotation" || v === "Rotation+Move";
+
+              const anim = obj.settings.animation || ({ type: "None" } as any);
+
+              if (needsMove) {
+                if (anim.startX === undefined) Actions.updateObjectDeep(obj.id, ["settings", "animation", "startX"], obj.transform.x);
+                if (anim.startY === undefined) Actions.updateObjectDeep(obj.id, ["settings", "animation", "startY"], obj.transform.y);
+              }
+              if (needsRot) {
+                if (anim.startRot === undefined)
+                  Actions.updateObjectDeep(obj.id, ["settings", "animation", "startRot"], obj.transform.rotation || 0);
+              }
+            }}
+          />
+        </div>
+
+        {(obj.settings.animation?.type === "Rotation" || obj.settings.animation?.type === "Rotation+Move") && (
+          <div style={{ marginTop: 14 }}>
+            <Row2>
+              <div>
+                <Label>Start rotation</Label>
+                <TextField
+                  value={String(obj.settings.animation?.startRot ?? 0)}
+                  onChange={(e) =>
+                    Actions.updateObjectDeep(obj.id, ["settings", "animation", "startRot"], Number(e.target.value) || 0)
+                  }
+                />
+              </div>
+              <div>
+                <Label>End rotation</Label>
+                <TextField
+                  value={String(obj.settings.animation?.endRot ?? 0)}
+                  onChange={(e) =>
+                    Actions.updateObjectDeep(obj.id, ["settings", "animation", "endRot"], Number(e.target.value) || 0)
+                  }
+                />
+              </div>
+            </Row2>
+          </div>
+        )}
+
+        {(obj.settings.animation?.type === "Move" || obj.settings.animation?.type === "Rotation+Move") && (
+          <div style={{ marginTop: 14 }}>
+            <Label style={{ marginBottom: 6 }}>Move (X/Y)</Label>
+            <Row2>
+              <div>
+                <Label>Start X</Label>
+                <TextField
+                  value={String(obj.settings.animation?.startX ?? obj.transform.x)}
+                  onChange={(e) =>
+                    Actions.updateObjectDeep(obj.id, ["settings", "animation", "startX"], Number(e.target.value) || 0)
+                  }
+                />
+              </div>
+              <div>
+                <Label>Start Y</Label>
+                <TextField
+                  value={String(obj.settings.animation?.startY ?? obj.transform.y)}
+                  onChange={(e) =>
+                    Actions.updateObjectDeep(obj.id, ["settings", "animation", "startY"], Number(e.target.value) || 0)
+                  }
+                />
+              </div>
+            </Row2>
+
+            <div style={{ marginTop: 10 }}>
+              <Row2>
+                <div>
+                  <Label>End X</Label>
+                  <TextField
+                    value={String(obj.settings.animation?.endX ?? obj.transform.x)}
+                    onChange={(e) =>
+                      Actions.updateObjectDeep(obj.id, ["settings", "animation", "endX"], Number(e.target.value) || 0)
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>End Y</Label>
+                  <TextField
+                    value={String(obj.settings.animation?.endY ?? obj.transform.y)}
+                    onChange={(e) =>
+                      Actions.updateObjectDeep(obj.id, ["settings", "animation", "endY"], Number(e.target.value) || 0)
+                    }
+                  />
+                </div>
+              </Row2>
+            </div>
+          </div>
+        )}
+      </Collapse>
+
+</div>
   );
 }

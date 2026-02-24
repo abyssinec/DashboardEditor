@@ -6,6 +6,7 @@ import type { LabelObj } from "../types";
 import { ColorPicker } from "./ColorPicker";
 import { clamp, clampInt, normalizeHex } from "../utils/inspector";
 import { Dropdown } from "./Dropdown";
+import { PID_CATALOG } from "../pids";
 
 function Label({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
@@ -206,6 +207,23 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
 
   const colorHex = normalizeHex(obj.style.color);
   const alpha = clampInt(obj.style.alpha, 100);
+
+  const dataTypeOptions = useMemo(
+    () => [
+      { value: "None", label: "None" },
+      { value: "OBD_CAN", label: "OBD CAN" },
+      { value: "CLUSTER_CAN", label: "Cluster CAN" },
+    ],
+    [],
+  );
+
+  const pidOptions = useMemo(() => {
+    const list = Object.values(PID_CATALOG)
+      .slice()
+      .sort((a, b) => (a.pid < b.pid ? -1 : a.pid > b.pid ? 1 : 0))
+      .map((p) => ({ value: p.pid, label: `${p.pid} — ${p.name_ru || p.name_en}${p.unit ? ` (${p.unit})` : ""}` }));
+    return [{ value: "None", label: "None" }, ...list];
+  }, []);
 
   // main color picker
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -530,14 +548,58 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
 
       <Collapse title="Gauge settings" open={openGauge} onToggle={() => setOpenGauge((v) => !v)}>
         <div style={{ marginTop: 2 }}>
-          <Label>Gauge Type</Label>
-          <TextField
-            value={obj.gauge.gaugeType}
-            onChange={(e) => Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], e.target.value)}
+          <Label>Data type</Label>
+          <Dropdown
+            value={obj.gauge.dataType || "None"}
+            options={dataTypeOptions as any}
+            onChange={(v) => {
+              Actions.updateObjectDeep(obj.id, ["gauge", "dataType"], v);
+              // if switching away from OBD, clear gaugeType to None (safe default)
+              if (v !== "OBD_CAN" && obj.gauge.gaugeType !== "None") {
+                Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], "None");
+              }
+            }}
           />
         </div>
 
-        <div style={{ marginTop: 25 }}>
+        <div style={{ marginTop: 14 }}>
+          <Label>Gauge type</Label>
+          <Dropdown
+            value={obj.gauge.gaugeType || "None"}
+            options={(obj.gauge.dataType === "OBD_CAN" ? pidOptions : [{ value: "None", label: "(empty)" }]) as any}
+            disabled={obj.gauge.dataType !== "OBD_CAN"}
+            onChange={(v) => Actions.updateObjectDeep(obj.id, ["gauge", "gaugeType"], v)}
+          />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <Row2>
+            <div>
+              <Label>Range min (optional)</Label>
+              <TextField
+                value={obj.gauge.rangeMin ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const n = Number(raw);
+                  Actions.updateObjectDeep(obj.id, ["gauge", "rangeMin"], raw.trim() === "" || !isFinite(n) ? undefined : n);
+                }}
+              />
+            </div>
+            <div>
+              <Label>Range max (optional)</Label>
+              <TextField
+                value={obj.gauge.rangeMax ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const n = Number(raw);
+                  Actions.updateObjectDeep(obj.id, ["gauge", "rangeMax"], raw.trim() === "" || !isFinite(n) ? undefined : n);
+                }}
+              />
+            </div>
+          </Row2>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
           <Row2>
             <div>
               <Label>Update rate (ms)</Label>
@@ -559,7 +621,7 @@ export function LabelInspector({ obj }: { obj: LabelObj }) {
             </div>
           </Row2>
         </div>
-      </Collapse>
+</Collapse>
     </div>
   );
 }

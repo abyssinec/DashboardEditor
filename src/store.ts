@@ -605,7 +605,21 @@ export const Actions = {
       ...project,
       screens: project.screens && project.screens.length ? project.screens : [makeDefaultScreen("screen_1", "Screen 1")],
     };
-    for (const s of safeProject.screens) { ensureParentLinks(s); rebuildZ(s); }
+    for (const s of safeProject.screens) {
+      for (const o of s.objects) {
+        // migrate gauge defaults (old projects may miss dataType/range fields)
+        (o as any).gauge = makeDefaultGauge((o as any).gauge);
+        // migrate image animation defaults
+        if ((o as any).type === "Image") {
+          const anim = (o as any).settings?.animation;
+          if (!anim || typeof anim.type !== "string") {
+            (o as any).settings = { ...(o as any).settings, animation: { type: "None" } };
+          }
+        }
+      }
+      ensureParentLinks(s);
+      rebuildZ(s);
+    }
     const first = safeProject.screens[0].id;
     setState(
       {
@@ -968,7 +982,7 @@ export const Actions = {
         type,
         name: `Label ${screen.objects.filter((o) => o.type === "Label").length + 1}`,
         z,
-        gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
+        gauge: makeDefaultGauge(),
         transform: { x: 0, y: 0, width: 220, height: 60, rotation: 0 },
         settings: {
           text: "",
@@ -998,9 +1012,10 @@ export const Actions = {
         type,
         name: `Image ${screen.objects.filter((o) => o.type === "Image").length + 1}`,
         z,
-        gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
+        gauge: makeDefaultGauge(),
         transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
         settings: {
+          animation: { type: "None" },
           imageAssetId: undefined,
           keepAspect: "Yes",
           fillMode: "Fill",
@@ -1014,7 +1029,7 @@ export const Actions = {
         type,
         name: `Arc ${screen.objects.filter((o) => o.type === "Arc").length + 1}`,
         z,
-        gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
+        gauge: makeDefaultGauge(),
         transform: { x: 0, y: 0, rotation: 0, startAngle: 0, endAngle: 0 },
         settings: { segments: 25, clockwise: "Yes", previewValue: 100 },
         style: {
@@ -1036,7 +1051,7 @@ export const Actions = {
         type,
         name: `Frame ${screen.objects.filter((o) => (o as any).type === "Frame").length + 1}`,
         z,
-        gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
+        gauge: makeDefaultGauge(),
         transform: { x: 0, y: 0, rotation: 0, width: 420, height: 260 },
         settings: {
           layout: "None",
@@ -1054,7 +1069,7 @@ export const Actions = {
         type,
         name: `Bar ${screen.objects.filter((o) => o.type === "Bar").length + 1}`,
         z,
-        gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
+        gauge: makeDefaultGauge(),
         transform: { x: 0, y: 0, rotation: 0, width: 250, height: 25 },
         settings: { previewValue: 50 },
         style: {
@@ -1546,3 +1561,21 @@ export const Actions = {
     );
   },
 };
+function makeDefaultGauge(prev?: any): any {
+  const g = prev || {};
+  const gaugeType = typeof g.gaugeType === "string" ? g.gaugeType : "None";
+  const dataType =
+    typeof g.dataType === "string"
+      ? g.dataType
+      : gaugeType && gaugeType !== "None"
+        ? "OBD_CAN"
+        : "None";
+  const rangeMin = typeof g.rangeMin === "number" ? g.rangeMin : undefined;
+  const rangeMax = typeof g.rangeMax === "number" ? g.rangeMax : undefined;
+  const updateRateMs = typeof g.updateRateMs === "number" && isFinite(g.updateRateMs) ? g.updateRateMs : 100;
+  const smoothingFactor =
+    typeof g.smoothingFactor === "number" && isFinite(g.smoothingFactor) ? g.smoothingFactor : 0;
+
+  return { dataType, gaugeType: gaugeType || "None", rangeMin, rangeMax, updateRateMs, smoothingFactor };
+}
+

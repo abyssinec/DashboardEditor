@@ -8,14 +8,25 @@ export type Asset = {
   mime: string;
 };
 
-export type GaugeType = "None" | "PID";
+export type DataType = "None" | "OBD_CAN" | "CLUSTER_CAN";
 
 export type Gauge = {
-  gaugeType: "None" | string; // "None" or PID key
+  // Data source: OBD CAN, Cluster CAN, or None (disabled)
+  dataType: DataType;
+
+  // For OBD_CAN: PID key from PID_CATALOG; for CLUSTER_CAN: reserved (empty for now); "None" disables binding
+  gaugeType: "None" | string;
+
+  // Optional mapping range (if not set, runtime may use PID-specific defaults)
+  rangeMin?: number;
+  rangeMax?: number;
+
   updateRateMs: number;
   smoothingFactor: number;
 };
+
 export type CapStyle = "Flat" | "Round";
+ = "Flat" | "Round";
 
 export type ScreenStyle = {
   color: string;
@@ -117,7 +128,22 @@ export type LabelStyle = {
   outlineThickness: number;
 };
 
+export type ImageAnimationType = "None" | "Rotation" | "Move" | "Rotation+Move";
+
+export type ImageAnimation = {
+  type: ImageAnimationType;
+  // Rotation (degrees)
+  startRot?: number;
+  endRot?: number;
+  // Move (pixels, in screen coords)
+  startX?: number;
+  startY?: number;
+  endX?: number;
+  endY?: number;
+};
+
 export type ImageSettings = {
+  animation?: ImageAnimation;
   imageAssetId?: string;
   keepAspect: "Yes" | "No";
   fillMode: "Fit" | "Fill" | "Stretch";

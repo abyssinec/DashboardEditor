@@ -717,7 +717,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .dropdownMenu { max-height: 320px; overflow: auto; padding: 6px; }
 
-.dropdownItem {
+ .dropdownItem {
   width: 100%;
   height: 34px;
   border: 0;
@@ -729,6 +729,11 @@ input[type="number"] { -moz-appearance: textfield; }
   cursor: pointer;
   font-size: 13px;
   outline: none;
+
+  /* keep lists visually consistent even with long labels (e.g., PID catalog) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dropdownItem:hover { background: rgba(114, 114, 114,0.14); }
 .dropdownItem.isActive { background: rgba(114, 114, 114, 0.22); }
