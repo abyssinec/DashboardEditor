@@ -101,6 +101,15 @@ function IconBar() {
   );
 }
 
+function IconFrame() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <rect x="5" y="6" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M9 10h6M9 14h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 
 export function ViewPanel() {
   const screens = useStore((s) => s.project.screens);
@@ -139,6 +148,10 @@ export function ViewPanel() {
             </div>
             <div className="toolBtn" onClick={() => Actions.addObject("Bar")}>
               <IconBar />
+            </div>
+
+            <div className="toolBtn" onClick={() => Actions.addObject("Frame")}> 
+              <IconFrame />
             </div>
 
             <div className="counter">

@@ -8,6 +8,7 @@ import { ScreenInspector } from "./ScreenInspector";
 import { ImageInspector } from "./ImageInspector";
 import { ArcInspector } from "./ArcInspector";
 import { BarInspector } from "./BarInspector";
+import { FrameInspector } from "./FrameInspector";
 
 function useSelectedScreen(): Screen {
   return useStore((s) => s.project.screens.find((x: Screen) => x.id === s.selectedScreenId)!);
@@ -39,6 +40,8 @@ export function Inspector() {
           <ArcInspector obj={obj} />
         ) : obj.type === "Bar" ? (
           <BarInspector obj={obj} />
+        ) : obj.type === "Frame" ? (
+          <FrameInspector obj={obj as any} />
         ) : (
           <div className="insRoot">TODO: next объектные инспекторы</div>
         )}

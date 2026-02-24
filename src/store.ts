@@ -208,6 +208,35 @@ function nextZ(screen: Screen) {
   return max < 0 ? 0 : max + 1;
 }
 
+function isFrame(o: AnyObj | undefined): o is Extract<AnyObj, { type: "Frame" }> {
+  return !!o && (o as any).type === "Frame";
+}
+
+function collectDescendants(screen: Screen, rootId: string): string[] {
+  const byId = new Map((screen.objects ?? []).map((o) => [o.id, o] as const));
+  const out: string[] = [];
+  const stack: string[] = [rootId];
+  while (stack.length) {
+    const id = stack.pop()!;
+    const o = byId.get(id);
+    if (!o) continue;
+    out.push(id);
+    if (isFrame(o)) {
+      for (const cid of (o as any).children ?? []) stack.push(cid);
+    }
+  }
+  return out;
+}
+
+function removeFromAllFrames(screen: Screen, ids: string[]) {
+  const set = new Set(ids);
+  for (const o of screen.objects ?? []) {
+    if (isFrame(o) && Array.isArray((o as any).children) && (o as any).children.length) {
+      (o as any).children = (o as any).children.filter((id: string) => !set.has(id));
+    }
+  }
+}
+
 function makeDefaultScreen(id = "screen_1", name = "Screen 1"): Screen {
   return {
     id,
@@ -284,12 +313,131 @@ function cloneScreenForPaste(src: Screen): Screen {
   return s;
 }
 
+function ensureParentLinks(screen: Screen) {
+  const byId = new Map((screen.objects ?? []).map((o) => [o.id, o] as const));
+
+  // 1) Normalize frame children lists and set child.parentId accordingly.
+  for (const o of screen.objects ?? []) {
+    if (!isFrame(o)) continue;
+    const f: any = o as any;
+
+    // Defaults for new frame settings (back-compat)
+    if (!f.settings) f.settings = {};
+    if (f.settings.clipContent == null) f.settings.clipContent = true;
+    if (typeof f.settings.scrollX !== "number") f.settings.scrollX = 0;
+    if (typeof f.settings.scrollY !== "number") f.settings.scrollY = 0;
+    const raw = Array.isArray(f.children) ? f.children : [];
+    const next: string[] = [];
+    const seen = new Set<string>();
+    for (const cid of raw) {
+      if (typeof cid !== "string") continue;
+      if (seen.has(cid)) continue;
+      const child = byId.get(cid);
+      if (!child) continue;
+      // prevent self-cycles
+      if (cid === o.id) continue;
+      seen.add(cid);
+      next.push(cid);
+      (child as any).parentId = o.id;
+    }
+    f.children = next;
+  }
+
+  // 2) Any non-frame object that references a missing parent -> root.
+  for (const o of screen.objects ?? []) {
+    const pid = (o as any).parentId;
+    if (!pid) continue;
+    const p = byId.get(pid);
+    if (!p || !isFrame(p)) {
+      (o as any).parentId = null;
+    }
+  }
+  // 3) Ensure that every object with parentId is present in the parent's children list (append if missing).
+  // This keeps tree structure consistent for paste/duplicate/import cases.
+  for (const o of screen.objects ?? []) {
+    const pid = (o as any).parentId ?? null;
+    if (!pid) continue;
+    const p = byId.get(pid);
+    if (!p || !isFrame(p)) continue;
+    if (o.id === pid) continue;
+    const f: any = p as any;
+    f.children = Array.isArray(f.children) ? f.children : [];
+    if (!f.children.includes(o.id)) f.children.push(o.id);
+  }
+}
+
+
+function getTopLevelIds(screen: Screen): string[] {
+  const objs = screen.objects ?? [];
+  return objs
+    .filter((o) => !(o as any).parentId)
+    .sort((a, b) => a.z - b.z)
+    .map((o) => o.id);
+}
+
+function rebuildZ(screen: Screen) {
+  const byId = new Map((screen.objects ?? []).map((o) => [o.id, o] as const));
+  const out: AnyObj[] = [];
+  const visit = (id: string) => {
+    const o = byId.get(id);
+    if (!o) return;
+    out.push(o);
+    if (isFrame(o)) {
+      const kids = ((o as any).children ?? []) as string[];
+      for (const cid of kids) visit(cid);
+    }
+  };
+
+  const top = getTopLevelIds(screen);
+  for (const id of top) visit(id);
+
+  // any orphaned objects (not reached due to stale children lists) — append at end
+  const seen = new Set(out.map((o) => o.id));
+  for (const o of screen.objects ?? []) {
+    if (!seen.has(o.id)) out.push(o);
+  }
+
+  // assign z in traversal order
+  for (let i = 0; i < out.length; i++) {
+    out[i].z = i;
+  }
+}
+
+function removeFromParent(screen: Screen, objectId: string, parentId: string | null | undefined) {
+  if (!parentId) return;
+  const p = (screen.objects ?? []).find((o) => o.id === parentId);
+  if (!p || !isFrame(p)) return;
+  (p as any).children = Array.isArray((p as any).children) ? (p as any).children : [];
+  (p as any).children = ((p as any).children as string[]).filter((id) => id !== objectId);
+}
+
+function insertIntoParent(
+  screen: Screen,
+  objectId: string,
+  parentId: string | null,
+  index: number | null,
+) {
+  if (!parentId) {
+    // root level — we encode order through z, so index handling happens by adjusting z later
+    return;
+  }
+  const p = (screen.objects ?? []).find((o) => o.id === parentId);
+  if (!p || !isFrame(p)) return;
+  (p as any).children = Array.isArray((p as any).children) ? (p as any).children : [];
+  const arr = (p as any).children as string[];
+  const cleaned = arr.filter((id) => id !== objectId);
+  const at = index == null ? cleaned.length : Math.max(0, Math.min(cleaned.length, index));
+  cleaned.splice(at, 0, objectId);
+  (p as any).children = cleaned;
+}
+
 export const Actions = {
   hydrate(project: Project, assetBytes: Record<string, Uint8Array>) {
     const safeProject: Project = {
       ...project,
       screens: project.screens && project.screens.length ? project.screens : [makeDefaultScreen("screen_1", "Screen 1")],
     };
+    for (const s of safeProject.screens) { ensureParentLinks(s); rebuildZ(s); }
     const first = safeProject.screens[0].id;
     setState(
       {
@@ -442,8 +590,30 @@ export const Actions = {
       setState(
         produce(state, (d) => {
           const s = getSelectedScreenDraft(d);
+          ensureParentLinks(s);
+
           const pasted = cloneObjectForPaste(clipboard!.obj, s);
           s.objects.push(pasted);
+
+          // Figma-like: paste into the currently selected frame, otherwise into the same parent as selection.
+          const sel = d.selectedObjectId ? (s.objects ?? []).find((o) => o.id === d.selectedObjectId) : undefined;
+          const targetParentId =
+            sel && isFrame(sel) ? sel.id : sel ? (((sel as any).parentId as string) ?? null) : null;
+          const targetParent = targetParentId ? (s.objects ?? []).find((o) => o.id === targetParentId) : undefined;
+
+          if (targetParentId && targetParent && isFrame(targetParent)) {
+            (pasted as any).parentId = targetParentId;
+            (targetParent as any).children = Array.isArray((targetParent as any).children) ? (targetParent as any).children : [];
+            (targetParent as any).children.push(pasted.id); // ✅ append to end
+            const pad = (targetParent as any).settings?.padding ?? { left: 0, top: 0 };
+            (pasted as any).transform.x = (pad.left ?? 0) + 6;
+            (pasted as any).transform.y = (pad.top ?? 0) + 6;
+          } else {
+            (pasted as any).parentId = null;
+          }
+
+          rebuildZ(s);
+
           d.selectedObjectId = pasted.id;
           d.selectedObjectIds = [pasted.id];
           d.selectionAnchorId = pasted.id;
@@ -456,12 +626,35 @@ export const Actions = {
       setState(
         produce(state, (d) => {
           const s = getSelectedScreenDraft(d);
+          ensureParentLinks(s);
+
+          // Determine target parent once.
+          const sel = d.selectedObjectId ? (s.objects ?? []).find((o) => o.id === d.selectedObjectId) : undefined;
+          const targetParentId =
+            sel && isFrame(sel) ? sel.id : sel ? (((sel as any).parentId as string) ?? null) : null;
+          const targetParent = targetParentId ? (s.objects ?? []).find((o) => o.id === targetParentId) : undefined;
+
           const created: string[] = [];
           for (const src of clipboard!.objs) {
             const pasted = cloneObjectForPaste(src, s);
             s.objects.push(pasted);
+
+            if (targetParentId && targetParent && isFrame(targetParent)) {
+              (pasted as any).parentId = targetParentId;
+              (targetParent as any).children = Array.isArray((targetParent as any).children) ? (targetParent as any).children : [];
+              (targetParent as any).children.push(pasted.id); // ✅ append to end
+              const pad = (targetParent as any).settings?.padding ?? { left: 0, top: 0 };
+              (pasted as any).transform.x = (pad.left ?? 0) + 6;
+              (pasted as any).transform.y = (pad.top ?? 0) + 6;
+            } else {
+              (pasted as any).parentId = null;
+            }
+
             created.push(pasted.id);
           }
+
+          rebuildZ(s);
+
           d.selectedObjectIds = created;
           d.selectedObjectId = created.length ? created[created.length - 1] : undefined;
           d.selectionAnchorId = created.length ? created[0] : undefined;
@@ -491,12 +684,34 @@ export const Actions = {
       setState(
         produce(state, (d) => {
           const s = getSelectedScreenDraft(d);
+          ensureParentLinks(s);
+
+          const sel = d.selectedObjectId ? (s.objects ?? []).find((o) => o.id === d.selectedObjectId) : undefined;
+          const targetParentId =
+            sel && isFrame(sel) ? sel.id : sel ? (((sel as any).parentId as string) ?? null) : null;
+          const targetParent = targetParentId ? (s.objects ?? []).find((o) => o.id === targetParentId) : undefined;
+
           const created: string[] = [];
           for (const src of objs) {
             const dup = cloneObjectForPaste(src, s);
             s.objects.push(dup);
+
+            if (targetParentId && targetParent && isFrame(targetParent)) {
+              (dup as any).parentId = targetParentId;
+              (targetParent as any).children = Array.isArray((targetParent as any).children) ? (targetParent as any).children : [];
+              (targetParent as any).children.push(dup.id); // ✅ append to end
+              const pad = (targetParent as any).settings?.padding ?? { left: 0, top: 0 };
+              (dup as any).transform.x = (pad.left ?? 0) + 6;
+              (dup as any).transform.y = (pad.top ?? 0) + 6;
+            } else {
+              (dup as any).parentId = null;
+            }
+
             created.push(dup.id);
           }
+
+          rebuildZ(s);
+
           d.selectedObjectIds = created;
           d.selectedObjectId = created.length ? created[created.length - 1] : undefined;
           d.selectionAnchorId = created.length ? created[0] : undefined;
@@ -636,6 +851,24 @@ export const Actions = {
           backgroundCapStyle: "Flat",
         },
       };
+    } else if (type === "Frame") {
+      obj = {
+        id,
+        type,
+        name: `Frame ${screen.objects.filter((o) => (o as any).type === "Frame").length + 1}`,
+        z,
+        gauge: { gaugeType: "None", updateRateMs: 100, smoothingFactor: 0 },
+        transform: { x: 0, y: 0, rotation: 0, width: 420, height: 260 },
+        settings: {
+          layout: "None",
+          padding: { left: 12, top: 12, right: 12, bottom: 12 },
+          gapX: 12,
+          gapY: 12,
+          gridCols: 2,
+          gridRows: 2,
+        },
+        children: [],
+      } as any;
     } else {
       obj = {
         id,
@@ -662,6 +895,20 @@ export const Actions = {
       produce(state, (d) => {
         const s = getSelectedScreenDraft(d);
         s.objects.push(obj);
+
+        // If currently selected object is a Frame — auto-nest the new object inside it.
+        const parent = s.objects.find((o) => o.id === d.selectedObjectId);
+        if (isFrame(parent) && obj.id !== parent.id) {
+          (parent as any).children = Array.isArray((parent as any).children) ? (parent as any).children : [];
+          (parent as any).children.push(obj.id);
+          (obj as any).parentId = parent.id;
+
+          // Place near top-left of frame content for a nice default.
+          const pad = (parent as any).settings?.padding ?? { left: 0, top: 0 };
+          (obj as any).transform.x = pad.left ?? 0;
+          (obj as any).transform.y = pad.top ?? 0;
+        }
+
         d.selectedObjectId = id;
         d.selectedObjectIds = [id];
         d.selectionAnchorId = id;
@@ -676,7 +923,15 @@ export const Actions = {
     setState(
       produce(state, (d) => {
         const s = getSelectedScreenDraft(d);
-        s.objects = s.objects.filter((o) => !ids.includes(o.id));
+        // cascade delete (frames delete all descendants)
+        const allIds: string[] = [];
+        for (const id of ids) allIds.push(...collectDescendants(s as any, id));
+        const uniq = Array.from(new Set(allIds));
+
+        // unlink from frames
+        removeFromAllFrames(s as any, uniq);
+
+        s.objects = s.objects.filter((o) => !uniq.includes(o.id));
         d.selectedObjectId = undefined;
         d.selectedObjectIds = [];
         d.selectionAnchorId = undefined;
@@ -688,10 +943,13 @@ export const Actions = {
     setState(
       produce(state, (d) => {
         const s = getSelectedScreenDraft(d);
-        s.objects = s.objects.filter((o) => o.id !== objectId);
-        if (d.selectedObjectId === objectId) d.selectedObjectId = undefined;
-        d.selectedObjectIds = (d.selectedObjectIds ?? []).filter((id) => id !== objectId);
-        if (d.selectionAnchorId === objectId) d.selectionAnchorId = d.selectedObjectIds[0];
+        const ids = collectDescendants(s as any, objectId);
+        removeFromAllFrames(s as any, ids);
+        s.objects = s.objects.filter((o) => !ids.includes(o.id));
+
+        if (ids.includes(d.selectedObjectId as any)) d.selectedObjectId = undefined;
+        d.selectedObjectIds = (d.selectedObjectIds ?? []).filter((id) => !ids.includes(id));
+        if (ids.includes(d.selectionAnchorId as any)) d.selectionAnchorId = d.selectedObjectIds[0];
       }),
     );
   },
@@ -713,6 +971,66 @@ export const Actions = {
     );
   },
 
+
+
+  /**
+   * Move object into a parent frame (or root when parentId is null) at a specific child index.
+   * Used by Canvas drag-reorder (Figma-like).
+   */
+  moveObjectIndexed(objectId: string, parentId: string | null, index: number) {
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        ensureParentLinks(s);
+
+        const byId = new Map((s.objects ?? []).map((o) => [o.id, o] as const));
+        const obj: any = byId.get(objectId);
+        if (!obj) return;
+
+        // Prevent self-drop / descendant cycles
+        if (parentId) {
+          if (parentId === objectId) return;
+          const descendants = new Set(collectDescendants(s, objectId));
+          if (descendants.has(parentId)) return;
+        }
+
+        const oldParent = (obj as any).parentId as string | null | undefined;
+        if (oldParent) {
+          const op: any = byId.get(oldParent);
+          if (op && isFrame(op)) {
+            op.children = (op.children ?? []).filter((cid: string) => cid !== objectId);
+          }
+        }
+
+        if (parentId) {
+          const p: any = byId.get(parentId);
+          if (!p || !isFrame(p)) return;
+          (obj as any).parentId = parentId;
+          const arr: string[] = Array.isArray(p.children) ? [...p.children] : [];
+          const clamped = Math.max(0, Math.min(index, arr.length));
+          // remove if already present
+          const cleaned = arr.filter((cid) => cid !== objectId);
+          cleaned.splice(clamped, 0, objectId);
+          p.children = cleaned;
+        } else {
+          (obj as any).parentId = null;
+
+          // Reorder among root objects via z
+          const roots = (s.objects ?? []).filter((o: any) => !o.parentId).sort((a, b) => a.z - b.z);
+          const ids = roots.map((o) => o.id).filter((id) => id !== objectId);
+          const clamped = Math.max(0, Math.min(index, ids.length));
+          ids.splice(clamped, 0, objectId);
+
+          for (let i = 0; i < ids.length; i++) {
+            const ro: any = byId.get(ids[i]);
+            if (ro) ro.z = i;
+          }
+        }
+
+        rebuildZ(s);
+      }),
+    );
+  },
   reorderObject(objectId: string, toIndex: number) {
     setState(
       produce(state, (d) => {
@@ -726,6 +1044,103 @@ export const Actions = {
         arr.splice(clamped, 0, moved);
         for (let i = 0; i < arr.length; i++) arr[i].z = i;
         s.objects = arr;
+      }),
+    );
+  },
+
+  /**
+   * Figma-like move/reorder:
+   * where = "before" | "after" | "inside"
+   * - "inside" nests into target Frame (at end)
+   * - "before"/"after" inserts next to target within the same parent (or at root)
+   */
+  moveObject(objectId: string, targetId: string | null, where: "before" | "after" | "inside") {
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        ensureParentLinks(s);
+
+        const byId = new Map((s.objects ?? []).map((o) => [o.id, o] as const));
+        const obj = byId.get(objectId);
+        if (!obj) return;
+
+        // disallow dropping into itself / descendants
+        const descendants = new Set(collectDescendants(s, objectId));
+        if (targetId && descendants.has(targetId)) return;
+
+        const oldParent = (obj as any).parentId ?? null;
+
+        // Remove from old parent list
+        removeFromParent(s, objectId, oldParent);
+
+        if (where === "inside") {
+          const target = targetId ? byId.get(targetId) : undefined;
+
+          // If user drops "inside" a non-frame row (e.g. onto a child),
+          // interpret it as nesting into the closest frame (the target itself if frame,
+          // otherwise its parent if that is a frame).
+          const frameTarget =
+            target && isFrame(target)
+              ? target
+              : target
+                ? byId.get(((target as any).parentId as string) ?? "")
+                : undefined;
+
+          if (!frameTarget || !isFrame(frameTarget)) {
+            // fallback to root
+            (obj as any).parentId = null;
+          } else {
+            (obj as any).parentId = (frameTarget as any).id;
+            // append to the end (Figma-like)
+            insertIntoParent(s, objectId, (frameTarget as any).id, null);
+          }
+          rebuildZ(s);
+          return;
+        }
+
+        // before/after
+        const target = targetId ? byId.get(targetId) : undefined;
+        const targetParent = target ? ((target as any).parentId ?? null) : null;
+
+        // if target missing -> move to root end
+        if (!target) {
+          (obj as any).parentId = null;
+          rebuildZ(s);
+          return;
+        }
+
+        // insert among siblings
+        (obj as any).parentId = targetParent;
+
+        if (targetParent) {
+          // sibling list is parent.children
+          const p = byId.get(targetParent);
+          if (p && isFrame(p)) {
+            const kids = Array.isArray((p as any).children) ? ((p as any).children as string[]) : [];
+            const cleaned = kids.filter((id) => id !== objectId);
+            const ti = cleaned.indexOf(target.id);
+            const at = ti < 0 ? cleaned.length : where === "before" ? ti : ti + 1;
+            cleaned.splice(at, 0, objectId);
+            (p as any).children = cleaned;
+            rebuildZ(s);
+            return;
+          }
+        }
+
+        // root level ordering: adjust z values by constructing desired top-level order
+        const top = getTopLevelIds(s).filter((id) => id !== objectId);
+        const ti = top.indexOf(target.id);
+        const at = ti < 0 ? top.length : where === "before" ? ti : ti + 1;
+        top.splice(at, 0, objectId);
+
+        // encode top-level order into z, then rebuildZ for full traversal stability
+        // First, set z for top-level in the desired order (keep relative for others until rebuild).
+        for (let i = 0; i < top.length; i++) {
+          const o = byId.get(top[i]);
+          if (o) o.z = i;
+        }
+        (obj as any).parentId = null;
+        rebuildZ(s);
       }),
     );
   },

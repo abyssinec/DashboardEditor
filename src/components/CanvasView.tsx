@@ -100,7 +100,13 @@ function objectBounds(o: AnyObj) {
   const w = (o.transform as any).width ?? 240;
   const h = (o.transform as any).height ?? 240;
   return { x: o.transform.x, y: o.transform.y, w, h };
-}// Bar
+}
+  if ((o as any).type === "Frame") {
+    const w = (o.transform as any).width ?? 420;
+    const h = (o.transform as any).height ?? 260;
+    return { x: (o.transform as any).x ?? 0, y: (o.transform as any).y ?? 0, w, h };
+  }
+// Bar
   return { x: o.transform.x, y: o.transform.y, w: o.transform.width, h: o.transform.height };
 }
 
@@ -256,12 +262,208 @@ export function CanvasView() {
   const [imgVersion, setImgVersion] = useState<number>(0);
 
 
-  const sorted = useMemo(() => {
+  const { sorted: sorted, parentOf, hiddenById } = useMemo(() => {
     // important: rely on screenSig so it updates even if objects mutated in place
     void screenSig;
     void imgVersion;
-    return [...screen.objects].sort((a, b) => a.z - b.z);
+
+    const objs = [...screen.objects];
+    const byId = new Map(objs.map((o) => [o.id, o] as const));
+
+    const isFrame = (o: AnyObj | undefined) => !!o && (o as any).type === "Frame";
+
+    // child -> parent frame
+    const parentOf = new Map<string, string>();
+    for (const o of objs) {
+      if (isFrame(o)) {
+        const kids = ((o as any).children ?? []) as string[];
+        for (const cid of kids) parentOf.set(cid, o.id);
+      }
+    }
+    // fallback: parentId field (in case children list is missing/out of sync)
+    for (const o of objs) {
+      const pid = (o as any).parentId;
+      if (pid && !parentOf.has(o.id)) parentOf.set(o.id, pid);
+    }
+
+    // inherited visibility
+    const hiddenById = new Map<string, boolean>();
+    const isHidden = (id: string): boolean => {
+      if (hiddenById.has(id)) return hiddenById.get(id)!;
+      const o: any = byId.get(id);
+      if (!o) {
+        hiddenById.set(id, true);
+        return true;
+      }
+      if (o.visible === false) {
+        hiddenById.set(id, true);
+        return true;
+      }
+      const p = parentOf.get(id);
+      if (!p) {
+        hiddenById.set(id, false);
+        return false;
+      }
+      const v = isHidden(p);
+      hiddenById.set(id, v);
+      return v;
+    };
+    for (const o of objs) isHidden(o.id);
+
+    // layout offsets per frame (computed from children order)
+    const offsets = new Map<string, { x: number; y: number }>();
+    const absPos = new Map<string, { x: number; y: number }>();
+
+    const resolveAbs = (id: string): { x: number; y: number } => {
+      const cached = absPos.get(id);
+      if (cached) return cached;
+      const o: any = byId.get(id);
+      if (!o) {
+        const v = { x: 0, y: 0 };
+        absPos.set(id, v);
+        return v;
+      }
+
+      const p = parentOf.get(id);
+      if (!p) {
+        const v = { x: o.transform?.x ?? 0, y: o.transform?.y ?? 0 };
+        absPos.set(id, v);
+        return v;
+      }
+
+      const pf: any = byId.get(p);
+      const pAbs = resolveAbs(p);
+      const pad = pf?.settings?.padding ?? { left: 0, top: 0, right: 0, bottom: 0 };
+
+      // ensure frame offsets computed once
+      if (isFrame(pf) && !offsets.has(`__frame__${p}`)) {
+        offsets.set(`__frame__${p}`, { x: 0, y: 0 });
+        const kids = ((pf as any).children ?? []) as string[];
+        const layout = (pf as any).settings?.layout ?? "None";
+        const gapX = (pf as any).settings?.gapX ?? 0;
+        const gapY = (pf as any).settings?.gapY ?? 0;
+        const b = objectBounds(pf);
+        const contentW = Math.max(0, (b.w ?? 0) - (pad.left ?? 0) - (pad.right ?? 0));
+        const contentH = Math.max(0, (b.h ?? 0) - (pad.top ?? 0) - (pad.bottom ?? 0));
+
+        if (layout === "Vertical") {
+          let cy = 0;
+          for (const cid of kids) {
+            const child = byId.get(cid);
+            if (!child) continue;
+            offsets.set(cid, { x: 0, y: cy });
+            const cb = objectBounds(child);
+            cy += (cb.h ?? 0) + gapY;
+          }
+        } else if (layout === "Horizontal") {
+          let cx = 0;
+          for (const cid of kids) {
+            const child = byId.get(cid);
+            if (!child) continue;
+            offsets.set(cid, { x: cx, y: 0 });
+            const cb = objectBounds(child);
+            cx += (cb.w ?? 0) + gapX;
+          }
+        } else if (layout === "Grid") {
+          const n = kids.length;
+          const colsRaw = Math.max(1, Math.round((pf as any).settings?.gridCols ?? 2));
+          const rowsRaw = Math.max(1, Math.round((pf as any).settings?.gridRows ?? 1));
+
+          // Prefer explicit cols; rows is a hint (we keep both visible in inspector)
+          const cols = colsRaw;
+          const rows = Math.max(rowsRaw, Math.ceil(n / cols));
+
+          const cellW = cols > 0 ? Math.max(0, (contentW - gapX * (cols - 1)) / cols) : contentW;
+          const cellH = rows > 0 ? Math.max(0, (contentH - gapY * (rows - 1)) / rows) : contentH;
+
+          for (let i = 0; i < n; i++) {
+            const cid = kids[i];
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            offsets.set(cid, { x: col * (cellW + gapX), y: row * (cellH + gapY) });
+          }
+        } else {
+          // None: keep children's own local x/y
+        }
+      }
+
+      const off = offsets.get(id);
+      const pfLayout = (pf as any)?.settings?.layout ?? "None";
+      const localX = pfLayout === "None" ? (o.transform?.x ?? 0) : (off?.x ?? 0);
+      const localY = pfLayout === "None" ? (o.transform?.y ?? 0) : (off?.y ?? 0);
+
+      const scrollX = (pf as any)?.settings?.scrollX ?? 0;
+      const scrollY = (pf as any)?.settings?.scrollY ?? 0;
+
+      const v = {
+        x: (pAbs.x ?? 0) + (pad.left ?? 0) + localX - scrollX,
+        y: (pAbs.y ?? 0) + (pad.top ?? 0) + localY - scrollY,
+      };
+      absPos.set(id, v);
+      return v;
+    };
+
+    // Build resolved objects with overridden x/y
+    const resolved = objs.map((o) => {
+      const p = parentOf.get(o.id);
+      if (!p) return o;
+      const abs = resolveAbs(o.id);
+      return {
+        ...(o as any),
+        transform: { ...(o as any).transform, x: abs.x, y: abs.y },
+      } as AnyObj;
+    });
+
+    return {
+      sorted: resolved.sort((a, b) => a.z - b.z),
+      parentOf,
+      hiddenById,
+    };
   }, [screenSig, imgVersion, screen.objects]);
+
+  const byIdResolved = useMemo(() => new Map(sorted.map((o) => [o.id, o] as const)), [sorted]);
+
+  function topFrameAt(sx: number, sy: number, sw: number, sh: number): AnyObj | null {
+    // top-most (highest z) frame containing point
+    for (const o of [...sorted].reverse()) {
+      if ((o as any).type !== "Frame") continue;
+      if (hiddenById.get(o.id)) continue;
+
+      const b = objectBounds(o);
+      const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
+      const w = b.w * vp.zoom;
+      const h = b.h * vp.zoom;
+
+      if (sx >= p.sx && sx <= p.sx + w && sy >= p.sy && sy <= p.sy + h) return o;
+    }
+    return null;
+  }
+
+  function clipChainFor(id: string): string[] {
+    const out: string[] = [];
+    let cur = parentOf.get(id) || null;
+    while (cur) {
+      const pf: any = byIdResolved.get(cur);
+      if (pf && pf.type === "Frame" && pf.settings?.clipContent !== false) out.push(cur);
+      cur = parentOf.get(cur) || null;
+    }
+    return out.reverse();
+  }
+
+  function pointInsideAllClips(sx: number, sy: number, id: string, sw: number, sh: number): boolean {
+    const chain = clipChainFor(id);
+    for (const fid of chain) {
+      const f = byIdResolved.get(fid) as any;
+      if (!f) continue;
+      const b = objectBounds(f);
+      const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
+      const w = b.w * vp.zoom;
+      const h = b.h * vp.zoom;
+      if (!(sx >= p.sx && sx <= p.sx + w && sy >= p.sy && sy <= p.sy + h)) return false;
+    }
+    return true;
+  }
+
 
   const fontAssets = useStore((s) => (s.project as any).assets?.fonts ?? []);
   const imageAssets = useStore((s) => (s.project as any).assets?.images ?? []);
@@ -345,30 +547,102 @@ export function CanvasView() {
       const beforeX = (sx - c.width / 2) / v0.zoom - v0.panX;
       const beforeY = (sy - c.height / 2) / v0.zoom - v0.panY;
 
-      const delta = -ev.deltaY;
-      const factor = delta > 0 ? 1.08 : 0.92;
+      // Figma-like: Ctrl+Wheel = zoom, Wheel = pan/scroll content
+      const sw = screen.settings.width;
+      const sh = screen.settings.height;
 
-      setVp((v) => {
-        const nz = clamp(v.zoom * factor, 0.15, 3);
+      if (ev.ctrlKey) {
+        const delta = -ev.deltaY;
+        const factor = delta > 0 ? 1.08 : 0.92;
 
-        // keep cursor point stable
-        const x2 = (sx - c.width / 2) / nz - v.panX;
-        const y2 = (sy - c.height / 2) / nz - v.panY;
+        setVp((v) => {
+          const nz = clamp(v.zoom * factor, 0.15, 3);
 
-        const dx = beforeX - x2;
-        const dy = beforeY - y2;
+          // keep cursor point stable
+          const x2 = (sx - c.width / 2) / nz - v.panX;
+          const y2 = (sy - c.height / 2) / nz - v.panY;
 
-        return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
-      });
+          const dx = beforeX - x2;
+          const dy = beforeY - y2;
+
+          return { zoom: nz, panX: v.panX + dx, panY: v.panY + dy };
+        });
+
+        return;
+      }
+
+      // Try scrolling hovered frame (only if clipContent enabled)
+      const frame = topFrameAt(sx, sy, sw, sh) as any;
+      if (frame && frame.settings?.clipContent !== false) {
+        const pad = frame.settings?.padding ?? { left: 0, top: 0, right: 0, bottom: 0 };
+        const fb = objectBounds(frame);
+        const innerW = Math.max(0, fb.w - (pad.left ?? 0) - (pad.right ?? 0));
+        const innerH = Math.max(0, fb.h - (pad.top ?? 0) - (pad.bottom ?? 0));
+
+        const scrollX = frame.settings?.scrollX ?? 0;
+        const scrollY = frame.settings?.scrollY ?? 0;
+
+        // Compute content extents in frame local space (add current scroll back)
+        let contentW = 0;
+        let contentH = 0;
+        const kids: string[] = Array.isArray(frame.children) ? frame.children : [];
+        for (const cid of kids) {
+          const child: any = byIdResolved.get(cid);
+          if (!child || hiddenById.get(cid)) continue;
+          const cb = objectBounds(child);
+          const relX = (child.transform?.x ?? 0) - (frame.transform?.x ?? 0) - (pad.left ?? 0) + scrollX;
+          const relY = (child.transform?.y ?? 0) - (frame.transform?.y ?? 0) - (pad.top ?? 0) + scrollY;
+          contentW = Math.max(contentW, relX + (cb.w ?? 0));
+          contentH = Math.max(contentH, relY + (cb.h ?? 0));
+        }
+
+        const maxX = Math.max(0, contentW - innerW);
+        const maxY = Math.max(0, contentH - innerH);
+
+        // wheel deltas are in screen px -> world px
+        const dxWorld = (ev.shiftKey ? ev.deltaY : ev.deltaX) / v0.zoom;
+        const dyWorld = (ev.shiftKey ? 0 : ev.deltaY) / v0.zoom;
+
+        if (maxX > 0 && Math.abs(dxWorld) > 0.01) {
+          const nx = clamp(scrollX + dxWorld, 0, maxX);
+          if (nx !== scrollX) Actions.updateObjectDeep(frame.id, ["settings", "scrollX"], nx);
+        }
+        if (maxY > 0 && Math.abs(dyWorld) > 0.01) {
+          const ny = clamp(scrollY + dyWorld, 0, maxY);
+          if (ny !== scrollY) Actions.updateObjectDeep(frame.id, ["settings", "scrollY"], ny);
+        }
+
+        // If can scroll, don't pan canvas
+        if (maxX > 0 || maxY > 0) return;
+      }
+
+      // Pan canvas
+      setVp((v) => ({
+        ...v,
+        panX: v.panX - ev.deltaX / v.zoom,
+        panY: v.panY - ev.deltaY / v.zoom,
+      }));
     };
 
     el.addEventListener("wheel", onWheelNative, { passive: false });
     return () => el.removeEventListener("wheel", onWheelNative);
-  }, []);
+  }, [screen.settings.width, screen.settings.height, sorted, hiddenById, byIdResolved]);
   const [dragObj, setDragObj] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
+
+  const [hoverFrameId, setHoverFrameId] = useState<string | null>(null);
+  const [dropHint, setDropHint] = useState<{
+    parentId: string;
+    index: number;
+    // in screen px for drawing
+    sx: number;
+    sy: number;
+    w: number;
+    h: number;
+    mode: "lineH" | "lineV" | "cell";
+  } | null>(null);
 
 
   // History batching for drag/resize (one undo step per gesture)
@@ -544,7 +818,7 @@ export function CanvasView() {
   }
 
   function hitResizeHandle(sel: AnyObj, sx: number, sy: number, sw: number, sh: number): ResizeHandle | null {
-   if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc")) return null;
+   if (!sel || (sel.type !== "Label" && sel.type !== "Image" && sel.type !== "Bar" && sel.type !== "Arc" && (sel as any).type !== "Frame")) return null;
 
     const b = objectBounds(sel);
     const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
@@ -573,8 +847,9 @@ export function CanvasView() {
     const sh = screen.settings.height;
 
     for (const o of [...sorted].reverse()) {
-      // Skip hidden objects
-      if ((o as any).visible === false) continue;
+      // Skip hidden objects (inherited from parent frames)
+      if (hiddenById.get(o.id)) continue;
+      if (!pointInsideAllClips(sx, sy, o.id, sw, sh)) continue;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;
@@ -740,8 +1015,8 @@ export function CanvasView() {
 
     // objects
     for (const o of sorted) {
-      // Skip hidden objects
-      if ((o as any).visible === false) continue;
+      // Skip hidden objects (inherited from parent frames)
+      if (hiddenById.get(o.id)) continue;
       const b = objectBounds(o);
       const p = worldToScreen(b.x - sw / 2, b.y - sh / 2);
       const w = b.w * vp.zoom;
@@ -752,6 +1027,20 @@ export function CanvasView() {
       const rot = degToRad(rotDeg);
       const cx = p.sx + w / 2;
       const cy = p.sy + h / 2;
+
+      ctx.save();
+      const chain = clipChainFor(o.id);
+      for (const fid of chain) {
+        const f = byIdResolved.get(fid) as any;
+        if (!f) continue;
+        const fb = objectBounds(f);
+        const fp = worldToScreen(fb.x - sw / 2, fb.y - sh / 2);
+        const fw = fb.w * vp.zoom;
+        const fh = fb.h * vp.zoom;
+        ctx.beginPath();
+        ctx.rect(fp.sx, fp.sy, fw, fh);
+        ctx.clip();
+      }
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -856,6 +1145,16 @@ export function CanvasView() {
           ctx.fillText(lines[i], x, yy);
         }
 
+        ctx.restore();
+      } else if ((o as any).type === "Frame") {
+        // Frame is a container. We draw only a subtle outline (stronger when selected)
+        const isSel = o.id === selectedObjectId;
+        ctx.save();
+        ctx.globalAlpha = isSel ? 0.45 : 0.12;
+        ctx.strokeStyle = "#3EA3FF";
+        ctx.lineWidth = isSel ? 2 : 1;
+        ctx.setLineDash(isSel ? [6, 4] : [4, 6]);
+        ctx.strokeRect(p.sx, p.sy, w, h);
         ctx.restore();
       } else if (o.type === "Image") {
   const imgId = (o.settings as any)?.imageAssetId as string | undefined;
@@ -1102,7 +1401,7 @@ ctx.restore();
 
       // Resize handles (Label only, only when selected)
       // Resize handles (Label/Image/Bar, only when selected)
-if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc")) {
+if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.type === "Bar" || o.type === "Arc" || (o as any).type === "Frame")) {
         const hs = 8;
         const half = hs / 2;
 
@@ -1131,6 +1430,49 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
       }
 
       ctx.restore(); // rotation scope
+      ctx.restore(); // clip scope
+    }
+
+    // drag target highlight (Frame)
+    if (hoverFrameId) {
+      const f: any = byIdResolved.get(hoverFrameId);
+      if (f && !hiddenById.get(hoverFrameId)) {
+        const fb = objectBounds(f);
+        const fp = worldToScreen(fb.x - sw / 2, fb.y - sh / 2);
+        const fw = fb.w * vp.zoom;
+        const fh = fb.h * vp.zoom;
+
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        ctx.strokeStyle = "#3EA3FF";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(fp.sx + 1, fp.sy + 1, fw - 2, fh - 2);
+        ctx.restore();
+      }
+    }
+
+    // drop placeholder
+    if (dropHint) {
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = "#3EA3FF";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      if (dropHint.mode === "lineH") {
+        ctx.beginPath();
+        ctx.moveTo(dropHint.sx, dropHint.sy);
+        ctx.lineTo(dropHint.sx + dropHint.w, dropHint.sy);
+        ctx.stroke();
+      } else if (dropHint.mode === "lineV") {
+        ctx.beginPath();
+        ctx.moveTo(dropHint.sx, dropHint.sy);
+        ctx.lineTo(dropHint.sx, dropHint.sy + dropHint.h);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(dropHint.sx, dropHint.sy, dropHint.w, dropHint.h);
+      }
+      ctx.restore();
     }
   }, [
     // force redraw on deep changes
@@ -1146,6 +1488,8 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     fontAssets,
     assetBytes,
     bgVersion,
+    hoverFrameId,
+    dropHint,
   ]);
 
   function onMouseDown(e: React.MouseEvent) {
@@ -1196,6 +1540,15 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
 
     if (hit) {
       Actions.selectObject(hit.id);
+
+      // If object is inside a layouted Frame (Vertical/Horizontal/Grid), its position is controlled by the Frame.
+      // We still allow selecting/editing it, but dragging is disabled to avoid "snapping back".
+      const p = parentOf.get(hit.id);
+      if (p) {
+        const pf: any = screen.objects.find((o) => o.id === p);
+        const lay = pf?.settings?.layout ?? "None";
+        if (lay !== "None") return;
+      }
 
       // start drag
       if (!gestureActiveRef.current) { Actions.beginGesture(); gestureActiveRef.current = true; }
@@ -1290,17 +1643,141 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
       x: Math.round(newX),
       y: Math.round(newY),
     });
+
+    // Update frame hover + drop placeholder (Figma-like)
+    const hovered = topFrameAt(sx, sy, sw, sh) as any;
+
+    // Disallow dropping into itself / descendants
+    const isBadTarget = (fid: string): boolean => {
+      if (fid === dragObj.id) return true;
+      let cur: string | null = fid;
+      while (cur) {
+        if (cur === dragObj.id) return true;
+        cur = parentOf.get(cur) || null;
+      }
+      return false;
+    };
+
+    if (hovered && !isBadTarget(hovered.id)) {
+      setHoverFrameId(hovered.id);
+
+      const layout = hovered.settings?.layout ?? "None";
+      const pad = hovered.settings?.padding ?? { left: 0, top: 0, right: 0, bottom: 0 };
+      const fb = objectBounds(hovered);
+      const innerW = Math.max(0, fb.w - (pad.left ?? 0) - (pad.right ?? 0));
+      const innerH = Math.max(0, fb.h - (pad.top ?? 0) - (pad.bottom ?? 0));
+      const scrollX = hovered.settings?.scrollX ?? 0;
+      const scrollY = hovered.settings?.scrollY ?? 0;
+
+      const cursorSX = w.x + sw / 2;
+      const cursorSY = w.y + sh / 2;
+
+      const relX = cursorSX - fb.x - (pad.left ?? 0) + scrollX;
+      const relY = cursorSY - fb.y - (pad.top ?? 0) + scrollY;
+
+      const kids: string[] = Array.isArray(hovered.children) ? hovered.children : [];
+      let index = kids.length;
+
+      if (layout === "Vertical") {
+        for (let i = 0; i < kids.length; i++) {
+          const child: any = byIdResolved.get(kids[i]);
+          if (!child) continue;
+          const cb = objectBounds(child);
+          const cRelY = (child.transform?.y ?? 0) - fb.y - (pad.top ?? 0) + scrollY;
+          const mid = cRelY + (cb.h ?? 0) / 2;
+          if (relY < mid) {
+            index = i;
+            break;
+          }
+        }
+        const lineY = fb.y + (pad.top ?? 0) + (index === kids.length ? Math.max(0, relY) : 0) - scrollY;
+        const wy = lineY - sh / 2;
+        const wx = (fb.x + (pad.left ?? 0)) - sw / 2;
+        const p = worldToScreen(wx, wy);
+        setDropHint({ parentId: hovered.id, index, sx: p.sx, sy: p.sy, w: innerW * vp.zoom, h: 0, mode: "lineH" });
+      } else if (layout === "Horizontal") {
+        for (let i = 0; i < kids.length; i++) {
+          const child: any = byIdResolved.get(kids[i]);
+          if (!child) continue;
+          const cb = objectBounds(child);
+          const cRelX = (child.transform?.x ?? 0) - fb.x - (pad.left ?? 0) + scrollX;
+          const mid = cRelX + (cb.w ?? 0) / 2;
+          if (relX < mid) {
+            index = i;
+            break;
+          }
+        }
+        const lineX = fb.x + (pad.left ?? 0) + Math.max(0, relX) - scrollX;
+        const wy = (fb.y + (pad.top ?? 0)) - sh / 2;
+        const wx = lineX - sw / 2;
+        const p = worldToScreen(wx, wy);
+        setDropHint({ parentId: hovered.id, index, sx: p.sx, sy: p.sy, w: 0, h: innerH * vp.zoom, mode: "lineV" });
+      } else if (layout === "Grid") {
+        const cols = Math.max(1, Math.round(hovered.settings?.gridCols ?? 2));
+        const rowsHint = Math.max(1, Math.round(hovered.settings?.gridRows ?? 1));
+        const n = Math.max(kids.length + 1, cols * rowsHint);
+        const rows = Math.max(rowsHint, Math.ceil(n / cols));
+
+        const gapX = hovered.settings?.gapX ?? 0;
+        const gapY = hovered.settings?.gapY ?? 0;
+
+        const cellW = cols > 0 ? Math.max(0, (innerW - gapX * (cols - 1)) / cols) : innerW;
+        const cellH = rows > 0 ? Math.max(0, (innerH - gapY * (rows - 1)) / rows) : innerH;
+
+        const col = Math.max(0, Math.min(cols - 1, Math.floor(relX / Math.max(1, cellW + gapX))));
+        const row = Math.max(0, Math.floor(relY / Math.max(1, cellH + gapY)));
+        index = row * cols + col;
+
+        const cellSX = fb.x + (pad.left ?? 0) + col * (cellW + gapX) - scrollX;
+        const cellSY = fb.y + (pad.top ?? 0) + row * (cellH + gapY) - scrollY;
+
+        const p = worldToScreen(cellSX - sw / 2, cellSY - sh / 2);
+        setDropHint({ parentId: hovered.id, index, sx: p.sx, sy: p.sy, w: cellW * vp.zoom, h: cellH * vp.zoom, mode: "cell" });
+      } else {
+        setDropHint(null);
+      }
+    } else {
+      setHoverFrameId(null);
+      setDropHint(null);
+    }
+
   }
 
   function endDrag() {
+    const draggedId = dragObj?.id ?? null;
+    const wasDragging = !!dragObj;
+    const wasResizing = !!resizing;
+    const wasPanning = !!panning;
+
     // end history batch if a drag/resize gesture was active
     if (gestureActiveRef.current) {
       Actions.endGesture();
       gestureActiveRef.current = false;
     }
+
     setDragObj(null);
     setPanning(null);
     setResizing(null);
+
+    // Figma-like: drop into/reorder inside frames (with placeholder)
+    if (wasDragging && !wasResizing && !wasPanning && draggedId) {
+      const dragged = (byIdResolved.get(draggedId) as any) ?? null;
+      if (!dragged) return;
+
+      if (dropHint && hoverFrameId && dropHint.parentId === hoverFrameId) {
+        Actions.moveObjectIndexed(draggedId, dropHint.parentId, dropHint.index);
+      } else if (hoverFrameId) {
+        // drop inside frame (append)
+        Actions.moveObject(draggedId, hoverFrameId, "inside");
+      } else {
+        // detach by dropping outside any frame
+        const pid = (dragged as any).parentId;
+        if (pid) Actions.moveObject(draggedId, null, "after");
+      }
+    }
+
+    setHoverFrameId(null);
+    setDropHint(null);
   }
 
   function onWheel(e: React.WheelEvent) {

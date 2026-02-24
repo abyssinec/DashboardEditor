@@ -64,6 +64,36 @@ export type ArcTransform = TransformBase & {
 };
 export type BarTransform = TransformBase & { width: number; height: number };
 
+export type FrameTransform = TransformBase & {
+  width: number;
+  height: number;
+};
+
+export type LayoutType = "None" | "Vertical" | "Horizontal" | "Grid";
+
+export type Padding = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+export type FrameSettings = {
+  layout: LayoutType;
+  padding: Padding;
+  gapX: number;
+  gapY: number;
+
+  // Grid params (используются только если layout === "Grid")
+  gridCols: number;
+  gridRows: number;
+
+  // Figma-like overflow behavior
+  clipContent: boolean;   // if true, children are clipped to frame bounds
+  scrollX: number;        // scroll offset (px)
+  scrollY: number;        // scroll offset (px)
+};
+
 export type LabelSettings = {
   text: string;
   fontAssetId?: string;
@@ -133,10 +163,14 @@ export type BarStyle = {
 
 export type ObjBase = {
   id: string;
-  type: "Label" | "Image" | "Arc" | "Bar";
+  type: "Label" | "Image" | "Arc" | "Bar" | "Frame";
   name: string;
   z: number;
   gauge: Gauge;
+  // optional visibility flag (default true)
+  visible?: boolean;
+  // optional parent container (Frame). null/undefined = screen root
+  parentId?: string | null;
 };
 
 export type LabelObj = ObjBase & {
@@ -167,7 +201,15 @@ export type BarObj = ObjBase & {
   style: BarStyle;
 };
 
-export type AnyObj = LabelObj | ImageObj | ArcObj | BarObj;
+export type FrameObj = ObjBase & {
+  type: "Frame";
+  transform: FrameTransform;
+  settings: FrameSettings;
+  // children ids (can include frames)
+  children: string[];
+};
+
+export type AnyObj = LabelObj | ImageObj | ArcObj | BarObj | FrameObj;
 
 export type Project = {
   project: { id: string; name: string };
