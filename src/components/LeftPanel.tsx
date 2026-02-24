@@ -152,8 +152,10 @@ export function LeftPanel() {
     try {
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", id);
-    } catch {}
-  }, []);
+      const ids = (selectedObjectIds && selectedObjectIds.includes(id) && selectedObjectIds.length > 1) ? selectedObjectIds : [id];
+      e.dataTransfer.setData("application/x-de-ids", JSON.stringify(ids));
+} catch {}
+  }, [selectedObjectIds]);
 
   const onObjDragEnd = React.useCallback(() => {
     setDragId(null);
@@ -209,11 +211,18 @@ export function LeftPanel() {
     (e: React.DragEvent, targetId: string) => {
       e.preventDefault();
       e.stopPropagation();
+      const raw = e.dataTransfer.getData("application/x-de-ids");
+      const ids: string[] = raw ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [];
       const id = dragId ?? e.dataTransfer.getData("text/plain");
-      if (!id || id === targetId) return;
+      const moved = (ids && ids.length ? ids : (id ? [id] : []));
+      if (!moved.length || moved.includes(targetId)) return;
       const hint = dropHint ?? calcWhere(e, targetId);
-      Actions.moveObject(id, hint.overId, hint.where);
-      setDragId(null);
+      if (moved.length === 1) {
+        Actions.moveObject(moved[0], hint.overId, hint.where);
+      } else {
+        Actions.moveObjects(moved, hint.overId, hint.where);
+      }
+setDragId(null);
       setDropHint(null);
     },
     [dragId, dropHint, byId],

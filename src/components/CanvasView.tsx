@@ -632,17 +632,6 @@ export function CanvasView() {
   const [spaceDown, setSpaceDown] = useState(false);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
 
-  const [hoverFrameId, setHoverFrameId] = useState<string | null>(null);
-  const [dropHint, setDropHint] = useState<{
-    parentId: string;
-    index: number;
-    // in screen px for drawing
-    sx: number;
-    sy: number;
-    w: number;
-    h: number;
-    mode: "lineH" | "lineV" | "cell";
-  } | null>(null);
 
 
   // History batching for drag/resize (one undo step per gesture)
@@ -1432,48 +1421,6 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
       ctx.restore(); // rotation scope
       ctx.restore(); // clip scope
     }
-
-    // drag target highlight (Frame)
-    if (hoverFrameId) {
-      const f: any = byIdResolved.get(hoverFrameId);
-      if (f && !hiddenById.get(hoverFrameId)) {
-        const fb = objectBounds(f);
-        const fp = worldToScreen(fb.x - sw / 2, fb.y - sh / 2);
-        const fw = fb.w * vp.zoom;
-        const fh = fb.h * vp.zoom;
-
-        ctx.save();
-        ctx.globalAlpha = 0.7;
-        ctx.strokeStyle = "#3EA3FF";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 4]);
-        ctx.strokeRect(fp.sx + 1, fp.sy + 1, fw - 2, fh - 2);
-        ctx.restore();
-      }
-    }
-
-    // drop placeholder
-    if (dropHint) {
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      ctx.strokeStyle = "#3EA3FF";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
-      if (dropHint.mode === "lineH") {
-        ctx.beginPath();
-        ctx.moveTo(dropHint.sx, dropHint.sy);
-        ctx.lineTo(dropHint.sx + dropHint.w, dropHint.sy);
-        ctx.stroke();
-      } else if (dropHint.mode === "lineV") {
-        ctx.beginPath();
-        ctx.moveTo(dropHint.sx, dropHint.sy);
-        ctx.lineTo(dropHint.sx, dropHint.sy + dropHint.h);
-        ctx.stroke();
-      } else {
-        ctx.strokeRect(dropHint.sx, dropHint.sy, dropHint.w, dropHint.h);
-      }
-      ctx.restore();
-    }
   }, [
     // force redraw on deep changes
     fontVersion,
@@ -1488,9 +1435,7 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     fontAssets,
     assetBytes,
     bgVersion,
-    hoverFrameId,
-    dropHint,
-  ]);
+]);
 
   function onMouseDown(e: React.MouseEvent) {
     const c = canvasRef.current!;
@@ -1614,10 +1559,23 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
         newH = MIN_OBJ_H;
       }
 
+      // If object is inside a Frame, store transform in parent's local space.
+      const resizingResolved: any = byIdResolved.get(resizing.id);
+      const rParentId = resizingResolved?.parentId ?? null;
+      let rx = Math.round(newX);
+      let ry = Math.round(newY);
+      if (rParentId) {
+        const rParent: any = byIdResolved.get(rParentId);
+        if (rParent?.transform) {
+          rx = Math.round(newX - rParent.transform.x);
+          ry = Math.round(newY - rParent.transform.y);
+        }
+      }
+
       scheduleTransformWrite({
         id: resizing.id,
-        x: Math.round(newX),
-        y: Math.round(newY),
+        x: rx,
+        y: ry,
         width: Math.round(newW),
         height: Math.round(newH),
       });
@@ -1638,108 +1596,25 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     const newX = w.x - dragObj.dx + sw / 2;
     const newY = w.y - dragObj.dy + sh / 2;
 
+    // If object is inside a Frame, its transform.x/y are stored in the parent's local space.
+    // Convert absolute (screen) coords to local coords to avoid double-offset while dragging.
+    const draggedResolved: any = byIdResolved.get(dragObj.id);
+    const parentId = draggedResolved?.parentId ?? null;
+    let writeX = Math.round(newX);
+    let writeY = Math.round(newY);
+    if (parentId) {
+      const parentResolved: any = byIdResolved.get(parentId);
+      if (parentResolved?.transform) {
+        writeX = Math.round(newX - parentResolved.transform.x);
+        writeY = Math.round(newY - parentResolved.transform.y);
+      }
+    }
+
     scheduleTransformWrite({
       id: dragObj.id,
-      x: Math.round(newX),
-      y: Math.round(newY),
+      x: writeX,
+      y: writeY,
     });
-
-    // Update frame hover + drop placeholder (Figma-like)
-    const hovered = topFrameAt(sx, sy, sw, sh) as any;
-
-    // Disallow dropping into itself / descendants
-    const isBadTarget = (fid: string): boolean => {
-      if (fid === dragObj.id) return true;
-      let cur: string | null = fid;
-      while (cur) {
-        if (cur === dragObj.id) return true;
-        cur = parentOf.get(cur) || null;
-      }
-      return false;
-    };
-
-    if (hovered && !isBadTarget(hovered.id)) {
-      setHoverFrameId(hovered.id);
-
-      const layout = hovered.settings?.layout ?? "None";
-      const pad = hovered.settings?.padding ?? { left: 0, top: 0, right: 0, bottom: 0 };
-      const fb = objectBounds(hovered);
-      const innerW = Math.max(0, fb.w - (pad.left ?? 0) - (pad.right ?? 0));
-      const innerH = Math.max(0, fb.h - (pad.top ?? 0) - (pad.bottom ?? 0));
-      const scrollX = hovered.settings?.scrollX ?? 0;
-      const scrollY = hovered.settings?.scrollY ?? 0;
-
-      const cursorSX = w.x + sw / 2;
-      const cursorSY = w.y + sh / 2;
-
-      const relX = cursorSX - fb.x - (pad.left ?? 0) + scrollX;
-      const relY = cursorSY - fb.y - (pad.top ?? 0) + scrollY;
-
-      const kids: string[] = Array.isArray(hovered.children) ? hovered.children : [];
-      let index = kids.length;
-
-      if (layout === "Vertical") {
-        for (let i = 0; i < kids.length; i++) {
-          const child: any = byIdResolved.get(kids[i]);
-          if (!child) continue;
-          const cb = objectBounds(child);
-          const cRelY = (child.transform?.y ?? 0) - fb.y - (pad.top ?? 0) + scrollY;
-          const mid = cRelY + (cb.h ?? 0) / 2;
-          if (relY < mid) {
-            index = i;
-            break;
-          }
-        }
-        const lineY = fb.y + (pad.top ?? 0) + (index === kids.length ? Math.max(0, relY) : 0) - scrollY;
-        const wy = lineY - sh / 2;
-        const wx = (fb.x + (pad.left ?? 0)) - sw / 2;
-        const p = worldToScreen(wx, wy);
-        setDropHint({ parentId: hovered.id, index, sx: p.sx, sy: p.sy, w: innerW * vp.zoom, h: 0, mode: "lineH" });
-      } else if (layout === "Horizontal") {
-        for (let i = 0; i < kids.length; i++) {
-          const child: any = byIdResolved.get(kids[i]);
-          if (!child) continue;
-          const cb = objectBounds(child);
-          const cRelX = (child.transform?.x ?? 0) - fb.x - (pad.left ?? 0) + scrollX;
-          const mid = cRelX + (cb.w ?? 0) / 2;
-          if (relX < mid) {
-            index = i;
-            break;
-          }
-        }
-        const lineX = fb.x + (pad.left ?? 0) + Math.max(0, relX) - scrollX;
-        const wy = (fb.y + (pad.top ?? 0)) - sh / 2;
-        const wx = lineX - sw / 2;
-        const p = worldToScreen(wx, wy);
-        setDropHint({ parentId: hovered.id, index, sx: p.sx, sy: p.sy, w: 0, h: innerH * vp.zoom, mode: "lineV" });
-      } else if (layout === "Grid") {
-        const cols = Math.max(1, Math.round(hovered.settings?.gridCols ?? 2));
-        const rowsHint = Math.max(1, Math.round(hovered.settings?.gridRows ?? 1));
-        const n = Math.max(kids.length + 1, cols * rowsHint);
-        const rows = Math.max(rowsHint, Math.ceil(n / cols));
-
-        const gapX = hovered.settings?.gapX ?? 0;
-        const gapY = hovered.settings?.gapY ?? 0;
-
-        const cellW = cols > 0 ? Math.max(0, (innerW - gapX * (cols - 1)) / cols) : innerW;
-        const cellH = rows > 0 ? Math.max(0, (innerH - gapY * (rows - 1)) / rows) : innerH;
-
-        const col = Math.max(0, Math.min(cols - 1, Math.floor(relX / Math.max(1, cellW + gapX))));
-        const row = Math.max(0, Math.floor(relY / Math.max(1, cellH + gapY)));
-        index = row * cols + col;
-
-        const cellSX = fb.x + (pad.left ?? 0) + col * (cellW + gapX) - scrollX;
-        const cellSY = fb.y + (pad.top ?? 0) + row * (cellH + gapY) - scrollY;
-
-        const p = worldToScreen(cellSX - sw / 2, cellSY - sh / 2);
-        setDropHint({ parentId: hovered.id, index, sx: p.sx, sy: p.sy, w: cellW * vp.zoom, h: cellH * vp.zoom, mode: "cell" });
-      } else {
-        setDropHint(null);
-      }
-    } else {
-      setHoverFrameId(null);
-      setDropHint(null);
-    }
 
   }
 
@@ -1759,25 +1634,8 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     setPanning(null);
     setResizing(null);
 
-    // Figma-like: drop into/reorder inside frames (with placeholder)
-    if (wasDragging && !wasResizing && !wasPanning && draggedId) {
-      const dragged = (byIdResolved.get(draggedId) as any) ?? null;
-      if (!dragged) return;
-
-      if (dropHint && hoverFrameId && dropHint.parentId === hoverFrameId) {
-        Actions.moveObjectIndexed(draggedId, dropHint.parentId, dropHint.index);
-      } else if (hoverFrameId) {
-        // drop inside frame (append)
-        Actions.moveObject(draggedId, hoverFrameId, "inside");
-      } else {
-        // detach by dropping outside any frame
-        const pid = (dragged as any).parentId;
-        if (pid) Actions.moveObject(draggedId, null, "after");
-      }
-    }
-
-    setHoverFrameId(null);
-    setDropHint(null);
+    
+    
   }
 
   function onWheel(e: React.WheelEvent) {
@@ -1831,4 +1689,3 @@ if (o.id === selectedObjectId && (o.type === "Label" || o.type === "Image" || o.
     </div>
   );
 }
-

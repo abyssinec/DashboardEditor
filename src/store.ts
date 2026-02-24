@@ -59,6 +59,17 @@ type HistorySnapshot = {
   selectedScreenId: string;
 };
 
+function safeClone<T>(v: T): T {
+  // Prefer structuredClone, fallback to JSON for cases where runtime objects accidentally contain non-cloneables.
+  try {
+    // @ts-ignore
+    return safeClone(v);
+  } catch {
+    return JSON.parse(JSON.stringify(v));
+  }
+}
+
+
 type History = {
   past: HistorySnapshot[];
   future: HistorySnapshot[];
@@ -82,7 +93,7 @@ let clipboard: Clipboard = null;
 
 function cloneHistorySnapshot(s: State): HistorySnapshot {
   // Project data is serializable (no functions), so structuredClone is OK and fast enough.
-  return structuredClone({ project: s.project, selectedScreenId: s.selectedScreenId });
+  return safeClone({ project: s.project, selectedScreenId: s.selectedScreenId });
 }
 
 function ensureValidSelection(next: State): State {
@@ -290,22 +301,121 @@ function getSelectedObjects(s: State): AnyObj[] {
   return ids.map((id) => map.get(id)).filter(Boolean) as AnyObj[];
 }
 
-function cloneObjectForPaste(src: AnyObj, screen: Screen): AnyObj {
-  const o = structuredClone(src) as AnyObj;
-  o.id = "obj_" + nanoid(6);
-  o.z = nextZ(screen);
-  o.name = `${src.name} Copy`;
-  return o;
+function collectFrameDescendants(screen: Screen, frameId: string): string[] {
+  const byId = new Map((screen.objects ?? []).map((o) => [o.id, o] as const));
+  const out: string[] = [];
+  const stack: string[] = [frameId];
+  const seen = new Set<string>();
+  while (stack.length) {
+    const id = stack.pop()!;
+    const o = byId.get(id);
+    if (!o) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (isFrame(o)) {
+      const ch = Array.isArray((o as any).children) ? ((o as any).children as string[]) : [];
+      for (let i = ch.length - 1; i >= 0; i--) stack.push(ch[i]);
+    }
+  }
+  return out;
+}
+
+/**
+ * Clone a single object. If it's a Frame, clones the entire subtree (frame + descendants)
+ * and remaps children/parentId to the new ids. Returns all clones and the cloned root.
+ */
+function cloneObjectOrSubtreeForPaste(src: AnyObj, screen: Screen): { root: AnyObj; all: AnyObj[] } {
+  const byId = new Map((screen.objects ?? []).map((o) => [o.id, o] as const));
+
+  // 1) Determine which ids to clone
+  let idsToClone: string[] = [src.id];
+  if (isFrame(src)) {
+    idsToClone = collectFrameDescendants(screen, src.id);
+  }
+
+  // 2) Create id mapping old->new
+  const idMap = new Map<string, string>();
+  for (const oldId of idsToClone) idMap.set(oldId, "obj_" + nanoid(6));
+
+  // 3) Clone objects
+  const clonesByOld = new Map<string, AnyObj>();
+  for (const oldId of idsToClone) {
+    const orig = byId.get(oldId);
+    if (!orig) continue;
+    const c = safeClone(orig) as AnyObj;
+    c.id = idMap.get(oldId)!;
+    c.z = nextZ(screen);
+    c.name = `${orig.name} Copy`;
+
+    const oldPid = (orig as any).parentId as string | undefined;
+    if (oldPid && idMap.has(oldPid)) (c as any).parentId = idMap.get(oldPid);
+    else delete (c as any).parentId;
+
+    if (isFrame(c)) {
+      const oldChildren = Array.isArray((orig as any).children) ? ((orig as any).children as string[]) : [];
+      (c as any).children = oldChildren.map((cid) => idMap.get(cid)).filter(Boolean);
+    }
+
+    clonesByOld.set(oldId, c);
+  }
+
+  // Root will be inserted into ctx parent/root later
+  const rootClone = clonesByOld.get(src.id)!;
+  delete (rootClone as any).parentId;
+
+  const all = idsToClone.map((oldId) => clonesByOld.get(oldId)).filter(Boolean) as AnyObj[];
+  return { root: rootClone, all };
+}
+
+function clonePackedObjectsForPaste(pack: AnyObj[], screen: Screen): { roots: AnyObj[]; all: AnyObj[] } {
+  const byOld = new Map(pack.map((o) => [o.id, o] as const));
+  const idSet = new Set(pack.map((o) => o.id));
+  const idMap = new Map<string, string>();
+  for (const o of pack) idMap.set(o.id, "obj_" + nanoid(6));
+
+  const clonesByOld = new Map<string, AnyObj>();
+  for (const o of pack) {
+    const c = safeClone(o) as AnyObj;
+    c.id = idMap.get(o.id)!;
+    c.z = nextZ(screen);
+    c.name = `${o.name} Copy`;
+
+    const oldPid = (o as any).parentId as string | undefined;
+    if (oldPid && idSet.has(oldPid)) (c as any).parentId = idMap.get(oldPid);
+    else delete (c as any).parentId;
+
+    if (isFrame(c)) {
+      const oldChildren = Array.isArray((o as any).children) ? ((o as any).children as string[]) : [];
+      (c as any).children = oldChildren.map((cid) => idMap.get(cid)).filter(Boolean);
+    }
+
+    clonesByOld.set(o.id, c);
+  }
+
+  const rootsOld = pack
+    .filter((o) => {
+      const pid = (o as any).parentId as string | undefined;
+      return !pid || !idSet.has(pid);
+    })
+    .map((o) => o.id);
+
+  const roots = rootsOld.map((id) => clonesByOld.get(id)!).filter(Boolean) as AnyObj[];
+  const all = pack.map((o) => clonesByOld.get(o.id)!).filter(Boolean) as AnyObj[];
+
+  for (const r of roots) delete (r as any).parentId;
+
+  return { roots, all };
 }
 
 function cloneScreenForPaste(src: Screen): Screen {
-  const s = structuredClone(src) as Screen;
+  const s = safeClone(src) as Screen;
   s.id = "screen_" + nanoid(5);
   s.name = `${src.name} Copy`;
 
   // give NEW ids to all objects to avoid collisions
   s.objects = (s.objects || []).map((o: AnyObj) => {
-    const c = structuredClone(o) as AnyObj;
+    const c = safeClone(o) as AnyObj;
     c.id = "obj_" + nanoid(6);
     return c;
   });
@@ -367,6 +477,64 @@ function ensureParentLinks(screen: Screen) {
 }
 
 
+
+function getPasteContext(screen: Screen, selectedObjectId?: string): { parentId: string | null; afterId: string | null } {
+  const objs = screen.objects ?? [];
+  const byId = new Map(objs.map((o) => [o.id, o] as const));
+  const sel = selectedObjectId ? byId.get(selectedObjectId) : undefined;
+  if (!sel) return { parentId: null, afterId: null };
+
+  // If selection is a Frame: paste/duplicate should create a sibling next to it (same parent), not inside itself.
+  if (isFrame(sel as any)) {
+    const pid = ((sel as any).parentId as string) ?? null;
+    return { parentId: pid, afterId: sel.id };
+  }
+
+  const pid = ((sel as any).parentId as string) ?? null;
+
+  // If selection is inside a frame: user wants paste/duplicate to go to the END of that frame (so layout order works).
+  if (pid) {
+    const p = byId.get(pid);
+    if (p && isFrame(p as any)) {
+      const ch = Array.isArray((p as any).children) ? ((p as any).children as string[]) : [];
+      return { parentId: pid, afterId: ch.length ? ch[ch.length - 1] : null };
+    }
+  }
+
+  // Root: place right after the selected object (best match to Figma and user's expectation).
+  return { parentId: null, afterId: sel.id };
+}
+
+function insertObjectIntoParent(
+  screen: Screen,
+  obj: AnyObj,
+  ctx: { parentId: string | null; afterId: string | null },
+) {
+  const objs = screen.objects ?? [];
+  const byId = new Map(objs.map((o) => [o.id, o] as const));
+
+  // Frame parent: use children ordering
+  if (ctx.parentId) {
+    const p = byId.get(ctx.parentId);
+    if (p && isFrame(p as any)) {
+      (obj as any).parentId = ctx.parentId;
+      const f: any = p as any;
+      f.children = Array.isArray(f.children) ? f.children : [];
+      const afterIdx = ctx.afterId ? f.children.indexOf(ctx.afterId) : -1;
+      const ins = afterIdx >= 0 ? afterIdx + 1 : f.children.length;
+      f.children.splice(ins, 0, obj.id);
+      return;
+    }
+  }
+
+  // Root parent
+  (obj as any).parentId = null;
+
+  // Preserve relative order at root using z as a seed for rebuildZ().
+  const afterObj = ctx.afterId ? byId.get(ctx.afterId) : undefined;
+  const maxZ = objs.reduce((m, o) => Math.max(m, o.z ?? 0), 0);
+  obj.z = afterObj ? (afterObj.z ?? 0) + 0.01 : maxZ + 1;
+}
 function getTopLevelIds(screen: Screen): string[] {
   const objs = screen.objects ?? [];
   return objs
@@ -569,17 +737,26 @@ export const Actions = {
   // ✅ COPY: object(s) if selected, otherwise screen
   copySelected() {
     const objs = getSelectedObjects(state);
-    if (objs.length === 1) {
-      clipboard = { kind: "object", obj: structuredClone(objs[0]) as AnyObj };
-      return;
-    }
-    if (objs.length > 1) {
-      clipboard = { kind: "objects", objs: structuredClone(objs) as AnyObj[] };
+    const scr = getSelectedScreen(state);
+
+    if (objs.length === 1 && scr && isFrame(objs[0])) {
+      const byId = new Map((scr.objects ?? []).map((o) => [o.id, o] as const));
+      const ids = collectFrameDescendants(scr, objs[0].id);
+      const pack = ids.map((id) => safeClone(byId.get(id)!) as AnyObj).filter(Boolean) as AnyObj[];
+      clipboard = { kind: "objects", objs: pack };
       return;
     }
 
-    const scr = getSelectedScreen(state);
-    if (scr) clipboard = { kind: "screen", screen: structuredClone(scr) as Screen };
+    if (objs.length === 1) {
+      clipboard = { kind: "object", obj: safeClone(objs[0]) as AnyObj };
+      return;
+    }
+    if (objs.length > 1) {
+      clipboard = { kind: "objects", objs: safeClone(objs) as AnyObj[] };
+      return;
+    }
+
+    if (scr) clipboard = { kind: "screen", screen: safeClone(scr) as Screen };
   },
 
   // ✅ PASTE: object(s) OR screen depending on clipboard
@@ -592,76 +769,71 @@ export const Actions = {
           const s = getSelectedScreenDraft(d);
           ensureParentLinks(s);
 
-          const pasted = cloneObjectForPaste(clipboard!.obj, s);
-          s.objects.push(pasted);
+          const ctx = getPasteContext(s, d.selectedObjectId);
 
-          // Figma-like: paste into the currently selected frame, otherwise into the same parent as selection.
-          const sel = d.selectedObjectId ? (s.objects ?? []).find((o) => o.id === d.selectedObjectId) : undefined;
-          const targetParentId =
-            sel && isFrame(sel) ? sel.id : sel ? (((sel as any).parentId as string) ?? null) : null;
-          const targetParent = targetParentId ? (s.objects ?? []).find((o) => o.id === targetParentId) : undefined;
+          const { root, all } = cloneObjectOrSubtreeForPaste(clipboard!.obj, s);
+          for (const o of all) s.objects.push(o);
 
-          if (targetParentId && targetParent && isFrame(targetParent)) {
-            (pasted as any).parentId = targetParentId;
-            (targetParent as any).children = Array.isArray((targetParent as any).children) ? (targetParent as any).children : [];
-            (targetParent as any).children.push(pasted.id); // ✅ append to end
-            const pad = (targetParent as any).settings?.padding ?? { left: 0, top: 0 };
-            (pasted as any).transform.x = (pad.left ?? 0) + 6;
-            (pasted as any).transform.y = (pad.top ?? 0) + 6;
-          } else {
-            (pasted as any).parentId = null;
+          insertObjectIntoParent(s, root, ctx);
+
+          // If inserted into a frame, nudge inside padding a bit for visibility.
+          if (ctx.parentId) {
+            const p = (s.objects ?? []).find((o) => o.id === ctx.parentId);
+            if (p && isFrame(p)) {
+              const pad = (p as any).settings?.padding ?? { left: 0, top: 0 };
+              (root as any).transform.x = (pad.left ?? 0) + 6;
+              (root as any).transform.y = (pad.top ?? 0) + 6;
+            }
           }
 
           rebuildZ(s);
 
-          d.selectedObjectId = pasted.id;
-          d.selectedObjectIds = [pasted.id];
-          d.selectionAnchorId = pasted.id;
+          d.selectedObjectId = root.id;
+          d.selectedObjectIds = [root.id];
+          d.selectionAnchorId = root.id;
         }),
       );
       return;
     }
 
     if (clipboard.kind === "objects") {
-      setState(
-        produce(state, (d) => {
-          const s = getSelectedScreenDraft(d);
-          ensureParentLinks(s);
+  setState(
+    produce(state, (d) => {
+      const s = getSelectedScreenDraft(d);
+      ensureParentLinks(s);
 
-          // Determine target parent once.
-          const sel = d.selectedObjectId ? (s.objects ?? []).find((o) => o.id === d.selectedObjectId) : undefined;
-          const targetParentId =
-            sel && isFrame(sel) ? sel.id : sel ? (((sel as any).parentId as string) ?? null) : null;
-          const targetParent = targetParentId ? (s.objects ?? []).find((o) => o.id === targetParentId) : undefined;
+      const ctx = getPasteContext(s, d.selectedObjectId);
 
-          const created: string[] = [];
-          for (const src of clipboard!.objs) {
-            const pasted = cloneObjectForPaste(src, s);
-            s.objects.push(pasted);
+      const { roots, all } = clonePackedObjectsForPaste(clipboard!.objs, s);
+      for (const o of all) s.objects.push(o);
 
-            if (targetParentId && targetParent && isFrame(targetParent)) {
-              (pasted as any).parentId = targetParentId;
-              (targetParent as any).children = Array.isArray((targetParent as any).children) ? (targetParent as any).children : [];
-              (targetParent as any).children.push(pasted.id); // ✅ append to end
-              const pad = (targetParent as any).settings?.padding ?? { left: 0, top: 0 };
-              (pasted as any).transform.x = (pad.left ?? 0) + 6;
-              (pasted as any).transform.y = (pad.top ?? 0) + 6;
-            } else {
-              (pasted as any).parentId = null;
-            }
+      const created: string[] = [];
+      for (const r of roots) {
+        insertObjectIntoParent(s, r, ctx);
 
-            created.push(pasted.id);
+        if (ctx.parentId) {
+          const p = (s.objects ?? []).find((o) => o.id === ctx.parentId);
+          if (p && isFrame(p)) {
+            const pad = (p as any).settings?.padding ?? { left: 0, top: 0 };
+            (r as any).transform.x = (pad.left ?? 0) + 6;
+            (r as any).transform.y = (pad.top ?? 0) + 6;
           }
+        }
 
-          rebuildZ(s);
+        created.push(r.id);
 
-          d.selectedObjectIds = created;
-          d.selectedObjectId = created.length ? created[created.length - 1] : undefined;
-          d.selectionAnchorId = created.length ? created[0] : undefined;
-        }),
-      );
-      return;
-    }
+        if (!ctx.parentId && ctx.afterId) ctx.afterId = r.id;
+      }
+
+      rebuildZ(s);
+
+      d.selectedObjectIds = created;
+      d.selectedObjectId = created.length ? created[created.length - 1] : undefined;
+      d.selectionAnchorId = created.length ? created[0] : undefined;
+    }),
+  );
+  return;
+}
 
     if (clipboard.kind === "screen") {
       setState(
@@ -686,28 +858,31 @@ export const Actions = {
           const s = getSelectedScreenDraft(d);
           ensureParentLinks(s);
 
-          const sel = d.selectedObjectId ? (s.objects ?? []).find((o) => o.id === d.selectedObjectId) : undefined;
-          const targetParentId =
-            sel && isFrame(sel) ? sel.id : sel ? (((sel as any).parentId as string) ?? null) : null;
-          const targetParent = targetParentId ? (s.objects ?? []).find((o) => o.id === targetParentId) : undefined;
+          const ctx = getPasteContext(s, d.selectedObjectId);
+
 
           const created: string[] = [];
           for (const src of objs) {
-            const dup = cloneObjectForPaste(src, s);
-            s.objects.push(dup);
+            const { root, all } = cloneObjectOrSubtreeForPaste(src, s);
+            for (const o of all) s.objects.push(o);
 
-            if (targetParentId && targetParent && isFrame(targetParent)) {
-              (dup as any).parentId = targetParentId;
-              (targetParent as any).children = Array.isArray((targetParent as any).children) ? (targetParent as any).children : [];
-              (targetParent as any).children.push(dup.id); // ✅ append to end
-              const pad = (targetParent as any).settings?.padding ?? { left: 0, top: 0 };
-              (dup as any).transform.x = (pad.left ?? 0) + 6;
-              (dup as any).transform.y = (pad.top ?? 0) + 6;
-            } else {
-              (dup as any).parentId = null;
+            insertObjectIntoParent(s, root, ctx);
+
+            if (ctx.parentId) {
+              const p = (s.objects ?? []).find((o) => o.id === ctx.parentId);
+              if (p && isFrame(p)) {
+                const pad = (p as any).settings?.padding ?? { left: 0, top: 0 };
+                (root as any).transform.x = (pad.left ?? 0) + 6;
+                (root as any).transform.y = (pad.top ?? 0) + 6;
+              }
             }
 
-            created.push(dup.id);
+            // Keep appending subsequent items after the previous one when inserting at root next-to-selection.
+            if (!ctx.parentId && ctx.afterId) {
+              ctx.afterId = root.id;
+            }
+
+            created.push(root.id);
           }
 
           rebuildZ(s);
@@ -972,6 +1147,107 @@ export const Actions = {
   },
 
 
+
+
+  /**
+   * Move multiple objects at once (multi-selection drag & drop).
+   * Keeps relative order based on current screen.z traversal.
+   * - "inside" appends to the end of target frame (or root fallback)
+   * - "before"/"after" inserts as a block next to target within the same parent
+   */
+  moveObjects(objectIds: string[], targetId: string | null, where: "before" | "after" | "inside") {
+    setState(
+      produce(state, (d) => {
+        const s = getSelectedScreenDraft(d);
+        ensureParentLinks(s);
+
+        const byId = new Map((s.objects ?? []).map((o) => [o.id, o] as const));
+        const ids = Array.from(new Set(objectIds)).filter((id) => byId.has(id));
+        if (!ids.length) return;
+
+        // Dropping onto one of the dragged items is a no-op
+        if (targetId && ids.includes(targetId)) return;
+
+        const orderIndex = new Map<string, number>();
+        (s.z ?? []).forEach((id, i) => orderIndex.set(id, i));
+        ids.sort((a, b) => (orderIndex.get(a) ?? 1e9) - (orderIndex.get(b) ?? 1e9));
+
+        // For before/after we apply in reverse to preserve block order
+        const applyIds = where === "inside" ? ids : [...ids].reverse();
+
+        for (const objectId of applyIds) {
+          const obj = byId.get(objectId) as any;
+          if (!obj) continue;
+
+          // disallow dropping into itself / descendants
+          const descendants = new Set(collectDescendants(s, objectId));
+          if (targetId && descendants.has(targetId)) continue;
+
+          const oldParent = (obj as any).parentId ?? null;
+          removeFromParent(s, objectId, oldParent);
+
+          if (where === "inside") {
+            const target = targetId ? (byId.get(targetId) as any) : undefined;
+
+            const frameTarget =
+              target && isFrame(target)
+                ? target
+                : target
+                  ? (byId.get(((target as any).parentId as string) ?? "") as any)
+                  : undefined;
+
+            if (!frameTarget || !isFrame(frameTarget)) {
+              (obj as any).parentId = null;
+              // append at root end
+              // moveObjectIndexed handles z; but we keep simple and rebuildZ later
+            } else {
+              (obj as any).parentId = (frameTarget as any).id;
+              // append to the end (Figma-like)
+              insertIntoParent(s, objectId, (frameTarget as any).id, null);
+            }
+            continue;
+          }
+
+          // before/after
+          const target = targetId ? (byId.get(targetId) as any) : undefined;
+          const targetParent = target ? (((target as any).parentId as string | null) ?? null) : null;
+
+          if (!target) {
+            (obj as any).parentId = null;
+            continue;
+          }
+
+          (obj as any).parentId = targetParent;
+
+          if (targetParent) {
+            const p = byId.get(targetParent) as any;
+            if (p && isFrame(p)) {
+              const kids = Array.isArray(p.children) ? (p.children as string[]) : [];
+              const cleaned = kids.filter((id) => id !== objectId);
+              const ti = cleaned.indexOf(target.id);
+              const at = ti < 0 ? cleaned.length : where === "before" ? ti : ti + 1;
+              cleaned.splice(at, 0, objectId);
+              p.children = cleaned;
+              continue;
+            }
+          }
+
+          // root ordering by z
+          const top = getTopLevelIds(s).filter((id) => id !== objectId);
+          const ti = top.indexOf(target.id);
+          const at = ti < 0 ? top.length : where === "before" ? ti : ti + 1;
+          top.splice(at, 0, objectId);
+
+          for (let i = 0; i < top.length; i++) {
+            const ro: any = byId.get(top[i]);
+            if (ro) ro.z = i;
+          }
+        }
+
+        rebuildZ(s);
+      }),
+    );
+  },
 
   /**
    * Move object into a parent frame (or root when parentId is null) at a specific child index.
